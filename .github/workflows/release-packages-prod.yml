@@ -55,11 +55,15 @@ jobs:
           npm run test:run --workspace=@vextrus/distributed-transactions --if-present
 
       - name: Setup GPG Key
-        if: github.ref == 'refs/heads/main' && secrets.GPG_PRIVATE_KEY != ''
+        if: github.ref == 'refs/heads/main'
         run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
-          git config --global user.signingkey ${{ secrets.GPG_KEY_ID }}
-          git config --global commit.gpgsign true
+          if [ -n "${{ secrets.GPG_PRIVATE_KEY }}" ]; then
+            echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+            git config --global user.signingkey ${{ secrets.GPG_KEY_ID }}
+            git config --global commit.gpgsign true
+          else
+            echo "GPG signing skipped - no GPG_PRIVATE_KEY secret configured"
+          fi
 
       - name: Create Release Pull Request or Publish
         id: changesets
