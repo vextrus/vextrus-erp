@@ -118,10 +118,10 @@ vextrus-erp/
 │   ├── hr/                # Human resources
 │   ├── scm/               # Supply chain
 │   └── crm/               # Customer relations
-├── shared/                # Shared code
-│   ├── kernel/           # Domain primitives
-│   ├── contracts/        # Service contracts
-│   └── utils/           # Common utilities
+├── shared/                # Shared npm packages
+│   ├── kernel/           # @vextrus/kernel - Domain primitives
+│   ├── contracts/        # @vextrus/contracts - Service contracts
+│   └── utils/           # @vextrus/utils - Common utilities
 ├── infrastructure/       # DevOps configuration
 │   ├── docker/          # Docker configs
 │   ├── kubernetes/      # K8s manifests
@@ -132,6 +132,115 @@ vextrus-erp/
     ├── api/            # API documentation
     └── guides/         # User guides
 ```
+
+### Monorepo Structure
+
+This project uses npm workspaces and Turborepo for efficient monorepo management:
+
+- **Workspace Packages**: All services and shared libraries are npm workspaces
+- **Turbo Pipeline**: Optimized build pipeline with caching and parallelization
+- **TypeScript Project References**: Incremental compilation across packages
+- **Shared Libraries**: Published as internal npm packages (`@vextrus/*`)
+
+### Shared Libraries
+
+The monorepo includes three core shared libraries as npm packages:
+
+#### @vextrus/kernel
+Core domain primitives implementing Domain-Driven Design patterns:
+- `AggregateRoot` - Event sourcing support
+- `Entity` - Identity management
+- `ValueObject` - Immutable value types
+- `Specification` - Business rule patterns
+- Repository interfaces
+
+#### @vextrus/contracts
+Cross-service contracts and interfaces:
+- Authentication contracts (IAuthUser, IAuthTokens)
+- Event contracts (domain events)
+- Error contracts (standardized errors)
+- DTOs and API contracts
+
+#### @vextrus/utils
+Common utilities and helpers:
+- Date/time formatting
+- Currency formatting (BDT support)
+- Bengali language utilities
+- Validation helpers
+- Common constants
+
+## 📦 Package Publishing
+
+### Prerequisites
+- Node.js 20.x and pnpm 8.x
+- GPG key for signing (see [GPG Setup Guide](docs/GPG_KEY_SETUP.md))
+- npm account with 2FA enabled (future)
+
+### Publishing Workflow
+
+#### Local Development
+```bash
+# Create a changeset for your changes
+pnpm changeset
+
+# Version packages based on changesets
+pnpm version-packages
+
+# Build all packages
+pnpm build:packages
+
+# Publish to local registry (Verdaccio)
+docker-compose up -d verdaccio
+pnpm release:local
+```
+
+#### Production Publishing (CI/CD)
+```bash
+# Create changeset
+pnpm changeset
+
+# Commit and push to feature branch
+git add .changeset/
+git commit -m "chore: add changeset for [feature]"
+git push origin feature/your-feature
+
+# Create PR - GitHub Actions will handle the rest
+gh pr create
+```
+
+### Automated Publishing
+Our GitHub Actions workflow automatically:
+1. Creates version PR when changesets are detected
+2. Bumps versions according to changesets
+3. Publishes to npm registry (when configured)
+4. Creates GitHub releases with changelogs
+5. Signs packages with GPG (when configured)
+
+### Security & Quality
+- ✅ All packages are GPG signed for integrity
+- ✅ Automated vulnerability scanning with npm audit
+- ✅ Pre-publish testing and linting
+- ✅ Semantic versioning enforced
+- ✅ Changeset-based version management
+
+### Registry Configuration
+Currently using:
+- **Development**: Local Verdaccio registry
+- **Future Production**: NPM Enterprise (pending budget approval)
+
+### Package Versions
+| Package | Current Version | Status |
+|---------|-----------------|--------|
+| @vextrus/kernel | 1.0.1 | ✅ Published |
+| @vextrus/contracts | 1.0.1 | ✅ Published |
+| @vextrus/utils | 1.0.1 | ✅ Published |
+| @vextrus/distributed-transactions | 1.0.1 | ✅ Published |
+
+### Monitoring & Status
+- Package health: `npm run check:packages`
+- Dependency updates: `npm run update:deps`
+- Security audit: `npm audit`
+- Registry status: http://localhost:4873 (local)
 
 ## 📊 Performance Targets
 

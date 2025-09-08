@@ -1,0 +1,156 @@
+# Verdaccio configuration for Vextrus ERP private package registry
+#
+# This is the configuration file for Verdaccio, our private NPM registry.
+# It manages @vextrus/* packages and proxies public packages from npmjs.org
+
+# Storage path for packages (inside Docker container)
+storage: /verdaccio/storage
+
+# Authentication configuration
+auth:
+  htpasswd:
+    file: /verdaccio/auth/htpasswd
+    # Maximum number of users allowed to register
+    max_users: 10
+    # Hash algorithm (bcrypt is recommended)
+    algorithm: bcrypt
+    # Rounds for bcrypt (higher = more secure but slower)
+    rounds: 10
+
+# Uplinks - proxy configuration for public packages
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+    # Cache time for package metadata
+    maxage: 60m
+    # Timeout for network requests
+    timeout: 10s
+    # Number of retries on failure
+    max_fails: 3
+    # Time to wait before retrying
+    fail_timeout: 10m
+    # Cache all packages from npmjs
+    cache: true
+
+# Packages configuration
+packages:
+  # Private @vextrus packages - restricted access
+  '@vextrus/*':
+    # Allow authenticated users to read
+    access: $authenticated
+    # Allow authenticated users to publish
+    publish: $authenticated
+    # Do not proxy to npmjs (these are our private packages)
+    proxy: []
+
+  # All other packages - proxy to npmjs
+  '**':
+    # Allow all users to read (including anonymous)
+    access: $all
+    # Only authenticated users can publish
+    publish: $authenticated
+    # Proxy to npmjs for packages we don't have
+    proxy: npmjs
+
+# Server configuration
+server:
+  # Keep-alive timeout
+  keepAliveTimeout: 60
+
+# Web UI configuration
+web:
+  # Enable web interface
+  enable: true
+  # Title for the web interface
+  title: Vextrus ERP Private Registry
+  # Logo for the web interface
+  # logo: /verdaccio/logo.png
+  # Primary color for the web interface
+  primary_color: "#4B5563"
+  # Gravatar support
+  gravatar: true
+  # Package sorting
+  sort_packages: asc
+  # Dark mode
+  darkMode: true
+  # Show package stats
+  showInfo: true
+  # Show package settings
+  showSettings: true
+  # Show theme switcher
+  showThemeSwitch: true
+  # Show footer
+  showFooter: true
+  # Show search box
+  showSearch: true
+  # Show raw manifest
+  showRaw: true
+  # Show download tarball button
+  showDownloadTarball: true
+
+# Middleware configuration
+middlewares:
+  audit:
+    enabled: true
+
+# Security configuration
+security:
+  api:
+    # JWT token configuration
+    jwt:
+      # Sign tokens with this secret
+      sign:
+        expiresIn: 7d
+        notBefore: 0
+      # Verify tokens with this configuration
+      verify:
+        # Accept tokens created before this time
+        notBefore: 0
+  # Web token configuration
+  web:
+    sign:
+      expiresIn: 7d
+      notBefore: 0
+    verify:
+      notBefore: 0
+
+# Publish configuration
+publish:
+  # Allow offline publishing
+  allow_offline: false
+
+# Experimental features
+experiments:
+  # Enable search endpoint
+  search: true
+  # Token authentication
+  token: false
+
+# Log settings
+logs:
+  - type: stdout
+    format: pretty
+    level: http
+
+# Maximum body size
+max_body_size: 100mb
+
+# Listen configuration (inside Docker)
+listen: 0.0.0.0:4873
+
+# Notification settings (optional)
+# notify:
+#   method: POST
+#   headers: [{'Content-Type': 'application/json'}]
+#   endpoint: https://your-webhook-endpoint.com
+#   content: '{"text": "Package published: {{ name }}@{{ version }}"}'
+
+# Rate limiting (optional)
+# rateLimit:
+#   windowMs: 900000  # 15 minutes
+#   max: 100          # limit each IP to 100 requests per windowMs
+
+# i18n configuration
+i18n:
+  # List of available translations
+  web: en-US

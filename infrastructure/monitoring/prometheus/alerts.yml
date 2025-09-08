@@ -1,0 +1,82 @@
+groups:
+  - name: vextrus_alerts
+    interval: 30s
+    rules:
+      # Service availability alerts
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 2 minutes."
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: (100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 5 minutes."
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85% for more than 5 minutes."
+
+      # Package publishing failures
+      - alert: PackagePublishFailure
+        expr: increase(npm_publish_failures_total[5m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Package publishing failed"
+          description: "Package publishing has failed {{ $value }} times in the last 5 minutes."
+
+      # Database connection pool exhausted
+      - alert: DatabaseConnectionPoolExhausted
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool near limit"
+          description: "Database connection pool is at {{ $value | humanizePercentage }} capacity."
+
+      # Redis memory usage
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis is using {{ $value | humanizePercentage }} of available memory."
+
+      # API response time
+      - alert: HighAPIResponseTime
+        expr: histogram_quantile(0.95, http_request_duration_seconds_bucket) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile API response time is {{ $value }}s (threshold: 0.5s)."
+
+      # Package registry availability
+      - alert: PackageRegistryDown
+        expr: probe_success{job="verdaccio"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Package registry is down"
+          description: "Verdaccio package registry has been unreachable for 2 minutes."

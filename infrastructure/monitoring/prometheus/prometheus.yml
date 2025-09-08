@@ -1,0 +1,104 @@
+# Prometheus configuration for Vextrus ERP
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'vextrus-monitor'
+    environment: 'development'
+
+# Alert Manager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Rules for alerts
+rule_files:
+  - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter - System metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'vextrus-server'
+
+  # PostgreSQL Exporter
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['host.docker.internal:9187']
+    metrics_path: /metrics
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['host.docker.internal:9121']
+
+  # Application metrics - Auth Service
+  - job_name: 'auth-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:3001']
+        labels:
+          service: 'auth'
+          type: 'microservice'
+
+  # Application metrics - Project Management Service
+  - job_name: 'project-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:3002']
+        labels:
+          service: 'project-management'
+          type: 'microservice'
+
+  # Application metrics - Finance Service
+  - job_name: 'finance-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:3003']
+        labels:
+          service: 'finance'
+          type: 'microservice'
+
+  # Application metrics - HR Service
+  - job_name: 'hr-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:3004']
+        labels:
+          service: 'hr'
+          type: 'microservice'
+
+  # Application metrics - Web Application
+  - job_name: 'web-app'
+    metrics_path: '/api/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:3000']
+        labels:
+          service: 'web'
+          type: 'frontend'
+
+  # Docker containers monitoring
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['host.docker.internal:9323']
+
+  # Package Registry (Verdaccio) monitoring
+  - job_name: 'verdaccio'
+    metrics_path: '/-/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:4873']
+        labels:
+          service: 'package-registry'
+          type: 'infrastructure'
