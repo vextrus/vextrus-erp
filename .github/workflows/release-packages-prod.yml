@@ -1,0 +1,121 @@
+name: Release Packages (Production)
+
+on:
+  push:
+    branches:
+      - main
+      - feature/productionize-package-registry  # For testing
+    paths:
+      - 'shared/**'
+      - '.changeset/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Release Packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      packages: write
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Packages
+        run: |
+          npm run build --workspace=@vextrus/kernel
+          npm run build --workspace=@vextrus/contracts
+          npm run build --workspace=@vextrus/utils
+          npm run build --workspace=@vextrus/distributed-transactions
+
+      - name: Run Tests
+        run: |
+          npm run test:run --workspace=@vextrus/utils --if-present
+          npm run test:run --workspace=@vextrus/distributed-transactions --if-present
+
+      - name: Setup GPG Key
+        if: github.ref == 'refs/heads/main'
+        run: |
+          if [ -n "${{ secrets.GPG_PRIVATE_KEY }}" ]; then
+            echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+            git config --global user.signingkey ${{ secrets.GPG_KEY_ID }}
+            git config --global commit.gpgsign true
+          else
+            echo "GPG signing skipped - no GPG_PRIVATE_KEY secret configured"
+          fi
+
+      - name: Create Release Pull Request or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: npm run release
+          version: npm run version
+          commit: 'chore: release packages'
+          title: 'chore: release packages'
+          createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
+
+      - name: Generate Documentation
+        if: steps.changesets.outputs.published == 'true'
+        run: npm run docs:generate
+
+      - name: Upload Documentation
+        if: steps.changesets.outputs.published == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-documentation
+          path: docs/api/
+          retention-days: 30
+
+      - name: Notify Release
+        if: always()
+        run: |
+          if [ "${{ steps.changesets.outputs.published }}" == "true" ]; then
+            echo "✅ Packages Published Successfully!"
+            echo "Published packages:"
+            echo "${{ steps.changesets.outputs.publishedPackages }}"
+          else
+            echo "📦 No packages were published in this run"
+          fi
