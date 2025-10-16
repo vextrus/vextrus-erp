@@ -1,0 +1,90 @@
+{
+  "name": "@vextrus/distributed-transactions",
+  "version": "1.0.1",
+  "description": "Distributed transactions foundation with saga orchestration, event sourcing, CQRS, and outbox pattern",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "CLAUDE.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "distributed-transactions",
+    "saga",
+    "event-sourcing",
+    "cqrs",
+    "outbox-pattern",
+    "postgresql",
+    "microservices",
+    "domain-driven-design"
+  ],
+  "author": "Vextrus ERP Team",
+  "license": "MIT",
+  "dependencies": {
+    "@event-driven-io/emmett": "^0.19.1",
+    "@event-driven-io/emmett-postgresql": "^0.19.1",
+    "@vextrus/kernel": "1.0.1",
+    "@vextrus/utils": "1.0.1",
+    "@vextrus/contracts": "1.0.1",
+    "pg": "^8.11.3",
+    "uuid": "^10.0.0",
+    "decimal.js": "^10.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/pg": "^8.10.9",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vitest/coverage-v8": "^1.1.0",
+    "eslint": "^8.56.0",
+    "rimraf": "^5.0.5",
+    "testcontainers": "^10.4.0",
+    "@testcontainers/postgresql": "^10.4.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": "^1.7.0"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "http://localhost:4873/"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vextrus/vextrus-erp.git",
+    "directory": "shared/transactions"
+  }
+}

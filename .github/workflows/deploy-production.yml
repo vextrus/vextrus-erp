@@ -1,0 +1,165 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'shared/**'
+      - 'infrastructure/kubernetes/**'
+      - '.github/workflows/deploy-production.yml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [auth, organization, notification, file-storage, audit, configuration, import-export, document-generator]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.14.2
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Run Unit Tests
+        run: |
+          pnpm --filter @vextrus/${{ matrix.service }}-service test
+          pnpm --filter @vextrus/${{ matrix.service }}-service test:e2e
+      
+      - name: Run Integration Tests
+        run: |
+          docker-compose -f docker-compose.test.yml up -d postgres redis kafka
+          sleep 30
+          cd test-integration
+          pnpm test:${{ matrix.service }}
+          docker-compose -f ../docker-compose.test.yml down
+      
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=vextrus-erp
+            -Dsonar.sources=services/${{ matrix.service }}
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [auth, organization, notification, file-storage, audit, configuration, import-export, document-generator]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}-service
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./infrastructure/docker/services/node-service.Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SERVICE_NAME=@vextrus/${{ matrix.service }}-service
+            SERVICE_PATH=services/${{ matrix.service }}
+            SERVICE_PORT=${{ fromJSON('{"auth":3001,"organization":3002,"notification":3003,"file-storage":3004,"audit":3005,"configuration":3006,"import-export":3007,"document-generator":3008}')[matrix.service] }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+      
+      - name: Set up Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+      
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f infrastructure/kubernetes/namespace/
+          kubectl apply -f infrastructure/kubernetes/secrets/
+          kubectl apply -f infrastructure/kubernetes/configmaps/
+          kubectl apply -f infrastructure/kubernetes/services/
+          kubectl apply -f infrastructure/kubernetes/deployments/
+          kubectl apply -f infrastructure/kubernetes/hpa/
+          kubectl apply -f infrastructure/kubernetes/network-policies/
+          kubectl apply -f infrastructure/kubernetes/ingress/
+          
+          # Wait for deployments
+          kubectl rollout status deployment -n vextrus --timeout=10m
+      
+      - name: Run smoke tests
+        run: |
+          PRODUCTION_URL="${{ secrets.PRODUCTION_URL || 'https://api.vextrus.com.bd' }}"
+          
+          # Health check all services
+          for service in auth organization notification file-storage audit configuration import-export document-generator; do
+            echo "Testing $service service..."
+            curl -f "$PRODUCTION_URL/api/v1/$service/health" || exit 1
+          done
+          
+          # Test RBAC performance
+          echo "Testing RBAC performance..."
+          ./scripts/test-rbac-performance.sh "$PRODUCTION_URL"
+          
+          # Test multi-tenant isolation
+          echo "Testing multi-tenant isolation..."
+          ./scripts/test-tenant-isolation.sh "$PRODUCTION_URL"
+      
+      - name: Notify deployment status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow

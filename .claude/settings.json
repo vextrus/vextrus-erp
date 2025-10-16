@@ -1,5 +1,15 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\session-start.py\""
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
@@ -12,26 +22,18 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit|Task|Bash",
+        "matcher": "Write|Edit|MultiEdit|Bash",
         "hooks": [
           {
             "type": "command",
             "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\sessions-enforce.py\""
           }
         ]
-      },
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\task-transcript-link.py\""
-          }
-        ]
       }
     ],
     "PostToolUse": [
       {
+        "matcher": "Edit|Write|MultiEdit|Task",
         "hooks": [
           {
             "type": "command",
@@ -39,22 +41,11 @@
           }
         ]
       }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "startup|clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\session-start.py\""
-          }
-        ]
-      }
     ]
   },
   "statusLine": {
     "type": "command",
-    "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\statusline-wrapper.py\"",
+    "command": "python \"%CLAUDE_PROJECT_DIR%\\statusline-script.py\"",
     "padding": 0
   }
 }

@@ -1,0 +1,4 @@
+registry=http://localhost:4873/
+//localhost:4873/:_auth=YWRtaW46YWRtaW4xMjM=
+//localhost:4873/:always-auth=true
+//localhost:4873/:email=admin@vextrus.local

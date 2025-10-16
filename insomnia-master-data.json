@@ -1,0 +1,277 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-10-08T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_master_data",
+      "_type": "workspace",
+      "name": "Vextrus ERP - Master Data Service",
+      "description": "GraphQL API for Master Data Management",
+      "scope": "collection",
+      "parentId": null
+    },
+    {
+      "_id": "env_master_data_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:3002",
+        "tenant_id": "default",
+        "jwt_token": ""
+      },
+      "dataPropertyOrder": {
+        "&": ["base_url", "tenant_id", "jwt_token"]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1,
+      "parentId": "wrk_master_data"
+    },
+    {
+      "_id": "req_health_check",
+      "_type": "request",
+      "name": "1. Health Check",
+      "description": "Basic GraphQL health check - no auth required",
+      "method": "POST",
+      "url": "{{ _.base_url }}/graphql",
+      "body": {
+        "mimeType": "application/graphql",
+        "text": "{\n  __typename\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "x-tenant-id",
+          "value": "{{ _.tenant_id }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "parentId": "wrk_master_data"
+    },
+    {
+      "_id": "req_schema_introspection",
+      "_type": "request",
+      "name": "2. Schema Introspection",
+      "description": "Get GraphQL schema information",
+      "method": "POST",
+      "url": "{{ _.base_url }}/graphql",
+      "body": {
+        "mimeType": "application/graphql",
+        "text": "{\n  __schema {\n    queryType {\n      name\n      fields {\n        name\n        description\n      }\n    }\n  }\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "x-tenant-id",
+          "value": "{{ _.tenant_id }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -2,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "parentId": "wrk_master_data"
+    },
+    {
+      "_id": "req_validate_tin",
+      "_type": "request",
+      "name": "3. Validate TIN (Auth Required)",
+      "description": "Validate Bangladesh TIN format - requires JWT token",
+      "method": "POST",
+      "url": "{{ _.base_url }}/graphql",
+      "body": {
+        "mimeType": "application/graphql",
+        "text": "{\n  validateTin(tin: \"1234567890\")\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "x-tenant-id",
+          "value": "{{ _.tenant_id }}"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.jwt_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -3,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "parentId": "wrk_master_data"
+    },
+    {
+      "_id": "req_validate_nid",
+      "_type": "request",
+      "name": "4. Validate NID (Auth Required)",
+      "description": "Validate Bangladesh National ID format",
+      "method": "POST",
+      "url": "{{ _.base_url }}/graphql",
+      "body": {
+        "mimeType": "application/graphql",
+        "text": "{\n  validateNid(nid: \"1234567890123\")\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "x-tenant-id",
+          "value": "{{ _.tenant_id }}"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.jwt_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -4,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "parentId": "wrk_master_data"
+    },
+    {
+      "_id": "req_get_customers",
+      "_type": "request",
+      "name": "5. Get Customers (Paginated)",
+      "description": "Retrieve paginated list of customers",
+      "method": "POST",
+      "url": "{{ _.base_url }}/graphql",
+      "body": {
+        "mimeType": "application/graphql",
+        "text": "query GetCustomers {\n  customers(limit: 10, page: 1) {\n    data {\n      id\n      name\n      email\n      phone\n      tin\n      status\n      customerType\n    }\n    total\n    page\n    limit\n    totalPages\n    hasNext\n    hasPrevious\n  }\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "x-tenant-id",
+          "value": "{{ _.tenant_id }}"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.jwt_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -5,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "parentId": "wrk_master_data"
+    },
+    {
+      "_id": "req_get_vendors",
+      "_type": "request",
+      "name": "6. Get Vendors (Paginated)",
+      "description": "Retrieve paginated list of vendors",
+      "method": "POST",
+      "url": "{{ _.base_url }}/graphql",
+      "body": {
+        "mimeType": "application/graphql",
+        "text": "query GetVendors {\n  vendors(limit: 10, page: 1) {\n    data {\n      id\n      name\n      email\n      phone\n      tin\n      vendorType\n      status\n    }\n    total\n    page\n    totalPages\n  }\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "x-tenant-id",
+          "value": "{{ _.tenant_id }}"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.jwt_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -6,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "parentId": "wrk_master_data"
+    },
+    {
+      "_id": "req_get_products",
+      "_type": "request",
+      "name": "7. Get Products (Paginated)",
+      "description": "Retrieve paginated list of products",
+      "method": "POST",
+      "url": "{{ _.base_url }}/graphql",
+      "body": {
+        "mimeType": "application/graphql",
+        "text": "query GetProducts {\n  products(limit: 10, page: 1) {\n    data {\n      id\n      name\n      sku\n      category\n      unitPrice\n      vatRate\n      status\n    }\n    total\n    totalPages\n  }\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "x-tenant-id",
+          "value": "{{ _.tenant_id }}"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.jwt_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -7,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "parentId": "wrk_master_data"
+    }
+  ]
+}

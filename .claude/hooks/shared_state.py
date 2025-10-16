@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """Shared state management for Claude Code Sessions hooks."""
 import json
+import time
 from pathlib import Path
 from datetime import datetime
+
+# Cache for frequent reads (reduces I/O in CC 2.0.10)
+_mode_cache = None
+_mode_cache_time = 0
+_cache_ttl = 5  # seconds
 
 # Get project root dynamically
 def get_project_root():
@@ -31,15 +37,30 @@ def ensure_state_dir():
     STATE_DIR.mkdir(parents=True, exist_ok=True)
 
 def check_daic_mode_bool() -> bool:
-    """Check if DAIC (discussion) mode is enabled. Returns True for discussion, False for implementation."""
+    """Check if DAIC (discussion) mode is enabled. Returns True for discussion, False for implementation.
+    Uses caching to reduce file I/O for CC 2.0.10 stability."""
+    global _mode_cache, _mode_cache_time
+
     ensure_state_dir()
+    now = time.time()
+
+    # Return cached value if still valid
+    if _mode_cache is not None and now - _mode_cache_time < _cache_ttl:
+        return _mode_cache
+
+    # Load from file
     try:
         with open(DAIC_STATE_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            return data.get("mode", "discussion") == "discussion"
+            mode = data.get("mode", "discussion") == "discussion"
+            _mode_cache = mode
+            _mode_cache_time = now
+            return mode
     except (FileNotFoundError, json.JSONDecodeError):
         # Default to discussion mode if file doesn't exist
         set_daic_mode(True)
+        _mode_cache = True
+        _mode_cache_time = now
         return True
 
 def check_daic_mode() -> str:
@@ -57,6 +78,8 @@ def check_daic_mode() -> str:
 
 def toggle_daic_mode() -> str:
     """Toggle DAIC mode and return the new state message."""
+    global _mode_cache, _mode_cache_time
+
     ensure_state_dir()
     # Read current mode
     try:
@@ -65,17 +88,23 @@ def toggle_daic_mode() -> str:
             current_mode = data.get("mode", "discussion")
     except (FileNotFoundError, json.JSONDecodeError):
         current_mode = "discussion"
-    
+
     # Toggle and write new value
     new_mode = "implementation" if current_mode == "discussion" else "discussion"
     with open(DAIC_STATE_FILE, 'w', encoding='utf-8') as f:
         json.dump({"mode": new_mode}, f, indent=2)
-    
+
+    # Invalidate cache
+    _mode_cache = None
+    _mode_cache_time = 0
+
     # Return appropriate message
     return IMPLEMENTATION_MODE_MSG if new_mode == "implementation" else DISCUSSION_MODE_MSG
 
 def set_daic_mode(value: str|bool):
     """Set DAIC mode to a specific value."""
+    global _mode_cache, _mode_cache_time
+
     ensure_state_dir()
     if value == True or value == "discussion":
         mode = "discussion"
@@ -85,9 +114,14 @@ def set_daic_mode(value: str|bool):
         name = "Implementation Mode"
     else:
         raise ValueError(f"Invalid mode value: {value}")
-    
+
     with open(DAIC_STATE_FILE, 'w', encoding='utf-8') as f:
         json.dump({"mode": mode}, f, indent=2)
+
+    # Invalidate cache
+    _mode_cache = None
+    _mode_cache_time = 0
+
     return name
 
 # Task and branch state management

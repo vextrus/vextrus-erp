@@ -1,0 +1,209 @@
+#!/usr/bin/env python
+"""Progressive Mode Management Command
+
+Usage:
+  pmode           - Show current mode
+  pmode explore   - Switch to explore mode
+  pmode prototype - Switch to prototype mode
+  pmode implement - Switch to implement mode
+  pmode validate  - Switch to validate mode
+  pmode deploy    - Switch to deploy mode (requires confirmation)
+"""
+
+import json
+import sys
+import io
+from pathlib import Path
+from datetime import datetime
+
+# Fix Windows encoding issues
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+# Find project root
+def get_project_root():
+    """Find project root by looking for .claude directory."""
+    current = Path.cwd()
+    while current.parent != current:
+        if (current / ".claude").exists():
+            return current
+        current = current.parent
+    return Path.cwd()
+
+PROJECT_ROOT = get_project_root()
+CONFIG_FILE = PROJECT_ROOT / ".claude" / "config" / "progressive-modes.json"
+STATE_FILE = PROJECT_ROOT / ".claude" / "state" / "progressive-mode.json"
+
+# Mode descriptions
+MODE_DESCRIPTIONS = {
+    "explore": "🔍 Explore Mode - Research and investigation only (read-only)",
+    "prototype": "🧪 Prototype Mode - Test and experiment (test files only)",
+    "implement": "🔨 Implement Mode - Full development access",
+    "validate": "✅ Validate Mode - Testing and quality checks",
+    "deploy": "🚀 Deploy Mode - Production deployment (requires confirmation)"
+}
+
+def load_config():
+    """Load progressive mode configuration."""
+    if not CONFIG_FILE.exists():
+        print(f"Error: Progressive mode config not found at {CONFIG_FILE}")
+        sys.exit(1)
+    with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def load_state():
+    """Load current progressive mode state."""
+    if not STATE_FILE.exists():
+        # Create default state
+        default_state = {
+            "current_mode": "explore",
+            "mode_history": [],
+            "auto_elevation_enabled": True,
+            "context_retention": "full",
+            "last_transition": None
+        }
+        save_state(default_state)
+        return default_state
+    with open(STATE_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def save_state(state):
+    """Save progressive mode state."""
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(STATE_FILE, 'w', encoding='utf-8') as f:
+        json.dump(state, f, indent=2)
+
+def get_current_mode():
+    """Get the current progressive mode."""
+    state = load_state()
+    return state.get("current_mode", "explore")
+
+def set_mode(new_mode):
+    """Set a new progressive mode."""
+    config = load_config()
+    state = load_state()
+    
+    if new_mode not in config["modes"]:
+        print(f"Error: Invalid mode '{new_mode}'")
+        print(f"Valid modes: {', '.join(config['modes'].keys())}")
+        sys.exit(1)
+    
+    current_mode = state.get("current_mode", "explore")
+    
+    # Check if deploy mode requires confirmation
+    if new_mode == "deploy":
+        mode_config = config["modes"]["deploy"]
+        if mode_config.get("requires_confirmation", True):
+            print("⚠️  Warning: Deploy mode allows production changes!")
+            response = input("Are you sure you want to enter deploy mode? (yes/no): ")
+            if response.lower() != "yes":
+                print("Deploy mode cancelled.")
+                sys.exit(0)
+    
+    # Update state
+    if current_mode != new_mode:
+        # Add to history
+        if "mode_history" not in state:
+            state["mode_history"] = []
+        state["mode_history"].append({
+            "from": current_mode,
+            "to": new_mode,
+            "timestamp": datetime.now().isoformat(),
+            "trigger": "manual"
+        })
+        
+        # Keep only last 10 transitions
+        state["mode_history"] = state["mode_history"][-10:]
+        
+        # Update last transition
+        state["last_transition"] = {
+            "from": current_mode,
+            "to": new_mode,
+            "trigger": "manual",
+            "timestamp": datetime.now().isoformat()
+        }
+    
+    state["current_mode"] = new_mode
+    state["context_retention"] = config["modes"][new_mode].get("context_retention", "full")
+    
+    save_state(state)
+    return new_mode
+
+def show_status():
+    """Show current progressive mode status."""
+    config = load_config()
+    state = load_state()
+    current_mode = state.get("current_mode", "explore")
+    mode_config = config["modes"][current_mode]
+    
+    print(f"\n{MODE_DESCRIPTIONS.get(current_mode, current_mode)}")
+    print(f"Description: {mode_config.get('description', 'N/A')}")
+    
+    # Show permissions
+    permissions = mode_config.get("permissions", {})
+    print(f"\nPermissions:")
+    print(f"  Read: {', '.join(permissions.get('read', [])) or 'None'}")
+    print(f"  Write: {', '.join(permissions.get('write', [])) or 'None'}")
+    print(f"  Execute: {', '.join(permissions.get('execute', [])) or 'None'}")
+    
+    # Show blocked tools
+    blocked = mode_config.get("blocked_tools", [])
+    if blocked:
+        print(f"\nBlocked tools: {', '.join(blocked)}")
+    
+    # Show next modes
+    next_modes = mode_config.get("next_modes", [])
+    if next_modes:
+        print(f"\nCan transition to: {', '.join(next_modes)}")
+    
+    # Show last transition
+    last_transition = state.get("last_transition")
+    if last_transition:
+        print(f"\nLast transition: {last_transition['from']} → {last_transition['to']}")
+        print(f"  Trigger: {last_transition['trigger']}")
+        print(f"  Time: {last_transition['timestamp']}")
+    
+    # Show auto-elevation triggers
+    triggers = mode_config.get("auto_elevate_triggers", [])
+    if triggers:
+        print(f"\nAuto-elevation triggers:")
+        for trigger in triggers:
+            print(f"  - \"{trigger}\"")
+
+def main():
+    """Main entry point."""
+    args = sys.argv[1:]
+    
+    if not args:
+        # Show current status
+        show_status()
+    elif len(args) == 1:
+        # Set new mode
+        new_mode = args[0].lower()
+        old_mode = get_current_mode()
+        set_mode(new_mode)
+        
+        print(f"Mode changed: {old_mode} → {new_mode}")
+        print(MODE_DESCRIPTIONS.get(new_mode, new_mode))
+        
+        # Show what's now allowed
+        config = load_config()
+        mode_config = config["modes"][new_mode]
+        permissions = mode_config.get("permissions", {})
+        
+        if new_mode == "explore":
+            print("You can now: Research and read code")
+        elif new_mode == "prototype":
+            print("You can now: Write test files and experiments")
+        elif new_mode == "implement":
+            print("You can now: Full development access")
+        elif new_mode == "validate":
+            print("You can now: Run tests and quality checks")
+        elif new_mode == "deploy":
+            print("You can now: Deploy to production (be careful!)")
+    else:
+        print(__doc__)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,104 @@
+name: Release Packages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'shared/**'
+      - '.changeset/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Release Packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      packages: write
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Packages
+        run: |
+          npm run build --workspace=@vextrus/kernel
+          npm run build --workspace=@vextrus/contracts
+          npm run build --workspace=@vextrus/utils
+          npm run build --workspace=@vextrus/distributed-transactions
+
+      - name: Run Tests
+        run: |
+          npm run test:run --workspace=@vextrus/utils --if-present
+          npm run test:run --workspace=@vextrus/distributed-transactions --if-present
+
+      - name: Start Verdaccio
+        run: |
+          docker-compose up -d verdaccio
+          sleep 10
+          docker-compose ps
+
+      - name: Configure NPM for Verdaccio
+        run: |
+          npm config set registry http://localhost:4873/
+          npm config set //localhost:4873/:_authToken $(echo -n 'admin:admin123' | base64)
+          echo "//localhost:4873/:_authToken=$(echo -n 'admin:admin123' | base64)" >> ~/.npmrc
+
+      - name: Create Release Pull Request or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: npm run release
+          version: npm run version
+          commit: 'chore: release packages'
+          title: 'chore: release packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to Verdaccio
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          npm publish --workspace=@vextrus/kernel --registry http://localhost:4873/
+          npm publish --workspace=@vextrus/contracts --registry http://localhost:4873/
+          npm publish --workspace=@vextrus/utils --registry http://localhost:4873/
+          npm publish --workspace=@vextrus/distributed-transactions --registry http://localhost:4873/
+
+      - name: Generate Documentation
+        if: steps.changesets.outputs.published == 'true'
+        run: npm run docs:generate
+
+      - name: Upload Documentation
+        if: steps.changesets.outputs.published == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: api-documentation
+          path: docs/api/
+          retention-days: 30
+
+      - name: Notify Release
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          echo "📦 Packages Published Successfully!"
+          echo "Published packages:"
+          echo "${{ steps.changesets.outputs.publishedPackages }}"

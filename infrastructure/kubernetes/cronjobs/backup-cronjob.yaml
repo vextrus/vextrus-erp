@@ -1,0 +1,196 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: vextrus
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM Bangladesh time
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: postgres-backup
+            image: postgres:16-alpine
+            env:
+            - name: PGHOST
+              value: postgres.vextrus.svc.cluster.local
+            - name: PGDATABASE
+              value: vextrus_erp
+            - name: PGUSER
+              value: vextrus
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              DATE=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="/backup/vextrus_erp_${DATE}.sql.gz"
+              
+              echo "Starting backup at $(date)"
+              
+              # Create backup with custom format for faster restore
+              pg_dump --format=custom --verbose --no-password \
+                --exclude-table-data='audit_logs_*' \
+                --exclude-table-data='temp_*' | gzip > $BACKUP_FILE
+              
+              echo "Backup completed: $BACKUP_FILE ($(du -h $BACKUP_FILE | cut -f1))"
+              
+              # Upload to S3/MinIO for offsite backup
+              mc alias set backup http://minio.vextrus.svc.cluster.local:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+              mc cp $BACKUP_FILE backup/vextrus-backups/postgres/
+              
+              # Keep only last 30 days of local backups
+              find /backup -name "*.sql.gz" -mtime +30 -delete
+              
+              # Create backup metadata
+              cat > /backup/latest.json <<EOF
+              {
+                "timestamp": "$(date -Iseconds)",
+                "file": "$BACKUP_FILE",
+                "size": "$(du -b $BACKUP_FILE | cut -f1)",
+                "database": "vextrus_erp",
+                "retention_days": 30,
+                "compliance": {
+                  "btrc": true,
+                  "nbr": true,
+                  "location": "bangladesh"
+                }
+              }
+              EOF
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: backup-pvc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: elasticsearch-backup
+  namespace: vextrus
+spec:
+  schedule: "0 3 * * *"  # Daily at 3 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: elasticsearch-backup
+            image: elasticsearch:8.11.1
+            env:
+            - name: ELASTICSEARCH_HOST
+              value: elasticsearch.vextrus.svc.cluster.local
+            command:
+            - /bin/sh
+            - -c
+            - |
+              DATE=$(date +%Y%m%d_%H%M%S)
+              
+              # Create snapshot repository if not exists
+              curl -X PUT "http://$ELASTICSEARCH_HOST:9200/_snapshot/backup" \
+                -H 'Content-Type: application/json' \
+                -d '{
+                  "type": "fs",
+                  "settings": {
+                    "location": "/backup/elasticsearch",
+                    "compress": true
+                  }
+                }'
+              
+              # Create snapshot
+              curl -X PUT "http://$ELASTICSEARCH_HOST:9200/_snapshot/backup/snapshot_$DATE?wait_for_completion=true" \
+                -H 'Content-Type: application/json' \
+                -d '{
+                  "indices": "audit-*,logs-*",
+                  "include_global_state": false,
+                  "metadata": {
+                    "taken_by": "cronjob",
+                    "taken_because": "scheduled backup",
+                    "nbr_compliance": true
+                  }
+                }'
+              
+              # Delete old snapshots (keep last 30)
+              curl -X DELETE "http://$ELASTICSEARCH_HOST:9200/_snapshot/backup/snapshot_*?pretty" \
+                --data-binary @- <<EOF
+              {
+                "snapshots": ["snapshot_*"],
+                "ignore_unavailable": true,
+                "partial": true,
+                "max_count": 30
+              }
+              EOF
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: backup-pvc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: minio-backup
+  namespace: vextrus
+spec:
+  schedule: "0 4 * * *"  # Daily at 4 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: minio-backup
+            image: minio/mc:latest
+            env:
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: secret-key
+            command:
+            - /bin/sh
+            - -c
+            - |
+              DATE=$(date +%Y%m%d_%H%M%S)
+              
+              # Configure MinIO client
+              mc alias set local http://minio.vextrus.svc.cluster.local:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+              mc alias set backup s3://s3.amazonaws.com $AWS_ACCESS_KEY $AWS_SECRET_KEY
+              
+              # Mirror all buckets to S3
+              mc mirror --overwrite --remove local/ backup/vextrus-backup-$DATE/
+              
+              # Create backup manifest
+              mc ls local/ --recursive --json > /backup/minio-manifest-$DATE.json
+              
+              echo "MinIO backup completed at $(date)"
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: backup-pvc

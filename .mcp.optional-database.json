@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "prisma-local": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "prisma",
+        "mcp"
+      ]
+    },
+    "sqlite": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "mcp-sqlite",
+        "C:/Users/riz/vextrus-erp/.sqlite/local.db"
+      ]
+    }
+  }
+}

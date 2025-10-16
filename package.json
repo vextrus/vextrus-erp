@@ -1,0 +1,46 @@
+{
+  "name": "vextrus-erp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise Resource Planning System for Bangladesh Construction Industry",
+  "author": "Vextrus Technologies",
+  "license": "PROPRIETARY",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "build:packages": "npm run build --workspace=@vextrus/kernel && npm run build --workspace=@vextrus/contracts && npm run build --workspace=@vextrus/utils && npm run build --workspace=@vextrus/distributed-transactions",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docs:generate": "typedoc",
+    "docs:serve": "npx serve docs/api",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "npm run build:packages && changeset publish",
+    "verdaccio:start": "docker-compose up -d verdaccio",
+    "verdaccio:stop": "docker-compose stop verdaccio",
+    "verdaccio:logs": "docker-compose logs -f verdaccio",
+    "registry:login": "npm adduser --registry http://localhost:4873/",
+    "registry:whoami": "npm whoami --registry http://localhost:4873/",
+    "publish:local": "npm run build:packages && npm publish --workspace=@vextrus/* --registry http://localhost:4873/"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.6",
+    "@types/node": "^22.10.0",
+    "prettier": "^3.4.0",
+    "tsup": "^8.5.0",
+    "turbo": "^2.0.0",
+    "typedoc": "^0.28.12",
+    "typedoc-plugin-markdown": "^4.8.1",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

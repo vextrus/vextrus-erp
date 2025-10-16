@@ -1,0 +1,10 @@
+{
+  "task_name": "implement-finance-module",
+  "created_date": "2025-10-16",
+  "priority": "high",
+  "complexity": 75,
+  "estimated_hours": 24,
+  "task_description": "Implement core finance module with Bangladesh VAT compliance and Mushak 6.3 tax invoice generation",
+  "services": ["finance", "tax", "reporting"],
+  "dependencies": ["auth-service", "notification-service"]
+}

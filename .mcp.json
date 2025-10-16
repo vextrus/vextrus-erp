@@ -1,6 +1,69 @@
 {
   "mcpServers": {
+    "filesystem": {
+      "disabled": true,
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:/Users/riz/vextrus-erp"
+      ]
+    },
+    "postgres": {
+      "disabled": true,
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://vextrus:vextrus_dev_2024@localhost:5432/vextrus_erp"
+      ]
+    },
+    "sequential-thinking": {
+      "disabled": true,
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "context7": {
+      "disabled": true,
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "ctx7sk-a89018f2-9934-4b30-b384-23a7e6883071"
+      ]
+    },
+    "consult7": {
+      "disabled": true,
+      "type": "stdio",
+      "command": "C:\\Users\\riz\\AppData\\Roaming\\uv\\tools\\consult7\\Scripts\\consult7.exe",
+      "args": ["google", "AIzaSyDmVuWC7_gWvK7IQsUbLNPjMU4QnywnkE8"]
+    },
+    "docker": {
+      "disabled": true,
+      "type": "stdio",
+      "command": "C:\\Users\\riz\\AppData\\Roaming\\Python\\Python313\\Scripts\\uvx.exe",
+      "args": [
+        "docker-mcp"
+      ]
+    },
     "playwright": {
+      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -15,6 +78,7 @@
       }
     },
     "brave-search": {
+      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -27,40 +91,14 @@
         "BRAVE_API_KEY": "BSAN-x6l1bRzrW5CokyV_URi33fbtnk"
       }
     },
-    "context7": {
-      "type": "stdio",
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@upstash/context7-mcp",
-        "--api-key",
-        "ctx7sk-a89018f2-9934-4b30-b384-23a7e6883071"
-      ]
-    },
-    "consult7": {
-      "type": "stdio",
-      "command": "C:\\Users\\riz\\AppData\\Roaming\\uv\\tools\\consult7\\Scripts\\consult7.exe",
-      "args": ["google", "AIzaSyDmVuWC7_gWvK7IQsUbLNPjMU4QnywnkE8"]
-    },
     "serena": {
+      "disabled": true,
       "type": "stdio",
       "command": "C:\\Users\\riz\\AppData\\Roaming\\uv\\tools\\serena-agent\\Scripts\\serena.exe",
       "args": ["start-mcp-server", "--context", "ide-assistant"]
     },
-    "filesystem": {
-      "type": "stdio",
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "C:/Users/riz/vextrus-app"
-      ]
-    },
     "github": {
+      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -74,6 +112,7 @@
       }
     },
     "memory": {
+      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -83,17 +122,8 @@
         "@modelcontextprotocol/server-memory"
       ]
     },
-    "sequential-thinking": {
-      "type": "stdio",
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ]
-    },
     "prisma-local": {
+      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -105,6 +135,7 @@
       ]
     },
     "prisma-remote": {
+      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -115,18 +146,8 @@
         "https://mcp.prisma.io/mcp"
       ]
     },
-    "postgres": {
-      "type": "stdio",
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@modelcontextprotocol/server-postgres",
-        "postgresql://postgres:postgres@localhost:5432/vextrus_db?schema=public"
-      ]
-    },
     "sqlite": {
+      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -134,10 +155,11 @@
         "npx",
         "-y",
         "mcp-sqlite",
-        "C:/Users/riz/vextrus-app/.sqlite/local.db"
+        "C:/Users/riz/vextrus-erp/.sqlite/local.db"
       ]
     },
     "brightdata": {
+      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -151,6 +173,7 @@
       }
     },
     "notion": {
+      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -164,6 +187,7 @@
       }
     },
     "reddit": {
+      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [

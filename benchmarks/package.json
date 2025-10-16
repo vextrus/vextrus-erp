@@ -1,0 +1,21 @@
+{
+  "name": "@vextrus/benchmarks",
+  "version": "1.0.0",
+  "description": "Performance benchmarking suite for Vextrus ERP",
+  "scripts": {
+    "benchmark:api": "artillery run artillery-api.yml",
+    "benchmark:notifications": "artillery run artillery-notifications.yml",
+    "benchmark:files": "artillery run artillery-files.yml",
+    "benchmark:rbac": "k6 run k6-rbac.js",
+    "benchmark:database": "k6 run k6-database.js",
+    "benchmark:all": "npm run benchmark:api && npm run benchmark:notifications && npm run benchmark:files && npm run benchmark:rbac && npm run benchmark:database",
+    "report": "artillery report --output ./reports/benchmark-report.html"
+  },
+  "devDependencies": {
+    "artillery": "^2.0.0",
+    "artillery-plugin-metrics-by-endpoint": "^1.0.0",
+    "artillery-plugin-publish-metrics": "^1.0.0",
+    "@faker-js/faker": "^8.2.0",
+    "k6": "^0.46.0"
+  }
+}

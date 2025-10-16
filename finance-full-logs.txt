@@ -1,0 +1,78 @@
+vextrus-finance  | 
+vextrus-finance  | > finance@0.0.1 start:dev /app/services/finance
+vextrus-finance  | > nest start --watch
+vextrus-finance  | 
+vextrus-finance  | [2J[3J[H[[90m10:09:20 PM[0m] Starting compilation in watch mode...
+vextrus-finance  | 
+vextrus-finance  | [96mscripts/performance-optimization.ts[0m:[93m3[0m:[93m30[0m - [91merror[0m[90m TS2307: [0mCannot find module '@vextrus/shared-infrastructure' or its corresponding type declarations.
+vextrus-finance  | 
+vextrus-finance  | [7m3[0m import { RedisService } from '@vextrus/shared-infrastructure';
+vextrus-finance  | [7m [0m [91m                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/application/services/analytics-dashboard.service.ts[0m:[93m4[0m:[93m30[0m - [91merror[0m[90m TS2307: [0mCannot find module '@vextrus/shared-infrastructure' or its corresponding type declarations.
+vextrus-finance  | 
+vextrus-finance  | [7m4[0m import { RedisService } from '@vextrus/shared-infrastructure';
+vextrus-finance  | [7m [0m [91m                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/application/services/deployment-preparation.service.ts[0m:[93m4[0m:[93m30[0m - [91merror[0m[90m TS2307: [0mCannot find module '@vextrus/shared-infrastructure' or its corresponding type declarations.
+vextrus-finance  | 
+vextrus-finance  | [7m4[0m import { RedisService } from '@vextrus/shared-infrastructure';
+vextrus-finance  | [7m [0m [91m                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/application/services/deployment-preparation.service.ts[0m:[93m7[0m:[93m23[0m - [91merror[0m[90m TS2307: [0mCannot find module 'yaml' or its corresponding type declarations.
+vextrus-finance  | 
+vextrus-finance  | [7m7[0m import * as yaml from 'yaml';
+vextrus-finance  | [7m [0m [91m                      ~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/application/services/kpi-calculation.service.ts[0m:[93m5[0m:[93m30[0m - [91merror[0m[90m TS2307: [0mCannot find module '@vextrus/shared-infrastructure' or its corresponding type declarations.
+vextrus-finance  | 
+vextrus-finance  | [7m5[0m import { RedisService } from '@vextrus/shared-infrastructure';
+vextrus-finance  | [7m [0m [91m                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/application/services/performance-optimization.service.ts[0m:[93m5[0m:[93m30[0m - [91merror[0m[90m TS2307: [0mCannot find module '@vextrus/shared-infrastructure' or its corresponding type declarations.
+vextrus-finance  | 
+vextrus-finance  | [7m5[0m import { RedisService } from '@vextrus/shared-infrastructure';
+vextrus-finance  | [7m [0m [91m                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/monitoring/prometheus.service.ts[0m:[93m2[0m:[93m60[0m - [91merror[0m[90m TS2307: [0mCannot find module '@vextrus/shared-infrastructure' or its corresponding type declarations.
+vextrus-finance  | 
+vextrus-finance  | [7m2[0m import { PrometheusService as BasePrometheusService } from '@vextrus/shared-infrastructure';
+vextrus-finance  | [7m [0m [91m                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/monitoring/prometheus.service.ts[0m:[93m7[0m:[93m27[0m - [91merror[0m[90m TS2339: [0mProperty 'createCounter' does not exist on type 'PrometheusService'.
+vextrus-finance  | 
+vextrus-finance  | [7m7[0m     invoicesCreated: this.createCounter(
+vextrus-finance  | [7m [0m [91m                          ~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/monitoring/prometheus.service.ts[0m:[93m12[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'createCounter' does not exist on type 'PrometheusService'.
+vextrus-finance  | 
+vextrus-finance  | [7m12[0m     paymentsProcessed: this.createCounter(
+vextrus-finance  | [7m  [0m [91m                            ~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/monitoring/prometheus.service.ts[0m:[93m17[0m:[93m26[0m - [91merror[0m[90m TS2339: [0mProperty 'createCounter' does not exist on type 'PrometheusService'.
+vextrus-finance  | 
+vextrus-finance  | [7m17[0m     expenseTracked: this.createCounter(
+vextrus-finance  | [7m  [0m [91m                         ~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/monitoring/prometheus.service.ts[0m:[93m22[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'createHistogram' does not exist on type 'PrometheusService'.
+vextrus-finance  | 
+vextrus-finance  | [7m22[0m     transactionAmount: this.createHistogram(
+vextrus-finance  | [7m  [0m [91m                            ~~~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/monitoring/prometheus.service.ts[0m:[93m28[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'createHistogram' does not exist on type 'PrometheusService'.
+vextrus-finance  | 
+vextrus-finance  | [7m28[0m     reconciliationTime: this.createHistogram(
+vextrus-finance  | [7m  [0m [91m                             ~~~~~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/monitoring/prometheus.service.ts[0m:[93m34[0m:[93m26[0m - [91merror[0m[90m TS2339: [0mProperty 'createGauge' does not exist on type 'PrometheusService'.
+vextrus-finance  | 
+vextrus-finance  | [7m34[0m     activeInvoices: this.createGauge(
+vextrus-finance  | [7m  [0m [91m                         ~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [96msrc/monitoring/prometheus.service.ts[0m:[93m39[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'createGauge' does not exist on type 'PrometheusService'.
+vextrus-finance  | 
+vextrus-finance  | [7m39[0m     outstandingBalance: this.createGauge(
+vextrus-finance  | [7m  [0m [91m                             ~~~~~~~~~~~[0m
+vextrus-finance  | 
+vextrus-finance  | [[90m10:09:31 PM[0m] Found 14 errors. Watching for file changes.
+vextrus-finance  | 

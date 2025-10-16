@@ -1,0 +1,25 @@
+{{- if .Values.services.apiGateway.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.services.apiGateway.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.services.apiGateway.name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "{{ .Values.services.apiGateway.service.port }}"
+spec:
+  type: {{ .Values.services.apiGateway.service.type }}
+  ports:
+    - port: {{ .Values.services.apiGateway.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ .Values.services.apiGateway.name }}
+    release: {{ .Release.Name }}
+{{- end }}

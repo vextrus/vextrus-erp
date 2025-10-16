@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: import-export-config
+  namespace: vextrus
+data:
+  NODE_ENV: "production"
+  PORT: "3007"
+  DATABASE_HOST: "postgres.vextrus.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "vextrus_erp"
+  REDIS_HOST: "redis.vextrus.svc.cluster.local"
+  REDIS_PORT: "6379"
+  BULL_QUEUE_PREFIX: "import-export"
+  MAX_FILE_SIZE: "52428800"  # 50MB
+  SUPPORTED_FORMATS: "csv,xlsx,xls,json"
+  BATCH_SIZE: "1000"
+  PARALLEL_WORKERS: "4"
+  TIN_VALIDATION_ENABLED: "true"
+  TIN_PATTERN: "^\\d{12}$"
+  NID_VALIDATION_ENABLED: "true"
+  NID_PATTERN: "^\\d{10}|\\d{13}|\\d{17}$"
+  BANGLADESH_PHONE_VALIDATION: "true"
+  ENABLE_METRICS: "true"
+  METRICS_PORT: "9090"

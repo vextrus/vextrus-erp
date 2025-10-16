@@ -1,0 +1,85 @@
+#1 [internal] load local bake definitions
+#1 reading from stdin 700B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from node-service-production.Dockerfile
+#2 transferring dockerfile: 3.79kB 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:20-alpine
+#3 DONE 0.3s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 878B done
+#4 DONE 0.0s
+
+#5 [base 1/4] FROM docker.io/library/node:20-alpine@sha256:eabac870db94f7342d6c33560d6613f188bbcf4bbe1f4eb47d5e2a08e1a37722
+#5 resolve docker.io/library/node:20-alpine@sha256:eabac870db94f7342d6c33560d6613f188bbcf4bbe1f4eb47d5e2a08e1a37722 0.0s done
+#5 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 1.38MB 0.1s done
+#6 DONE 0.1s
+
+#7 [deps 4/4] RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store     pnpm fetch --frozen-lockfile
+#7 CACHED
+
+#8 [builder 1/6] COPY tsconfig.base.json ./
+#8 CACHED
+
+#9 [base 4/4] WORKDIR /app
+#9 CACHED
+
+#10 [deps 1/4] COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+#10 CACHED
+
+#11 [base 3/4] RUN corepack enable && corepack prepare pnpm@9.14.2 --activate
+#11 CACHED
+
+#12 [builder 2/6] COPY shared/ ./shared/
+#12 CACHED
+
+#13 [deps 2/4] COPY shared/*/package.json ./shared/*/
+#13 CACHED
+
+#14 [builder 3/6] COPY services/auth-service/ ./services/auth-service/
+#14 ERROR: failed to calculate checksum of ref ra3z9ys5wf6nntkge7lhq9uik::gznhfv3iimeyejo4f7z9wlzcn: "/services/auth-service": not found
+
+#15 [deps 3/4] COPY services/auth-service/package.json ./services/auth-service/
+#15 ERROR: failed to calculate checksum of ref ra3z9ys5wf6nntkge7lhq9uik::gznhfv3iimeyejo4f7z9wlzcn: "/services/auth-service/package.json": not found
+
+#16 [base 2/4] RUN apk add --no-cache     libc6-compat     dumb-init     curl
+#16 0.413 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz
+#16 CANCELED
+
+#17 [runtime 2/5] RUN apk add --no-cache     tini     dumb-init     curl
+#17 0.413 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz
+#17 CANCELED
+------
+ > [deps 3/4] COPY services/auth-service/package.json ./services/auth-service/:
+------
+------
+ > [builder 3/6] COPY services/auth-service/ ./services/auth-service/:
+------
+node-service-production.Dockerfile:59
+
+--------------------
+
+  57 |     COPY tsconfig.base.json ./
+
+  58 |     COPY shared/ ./shared/
+
+  59 | >>> COPY services/${SERVICE_NAME}/ ./services/${SERVICE_NAME}/
+
+  60 |     
+
+  61 |     # Install all dependencies (using cache from fetch)
+
+--------------------
+
+failed to solve: failed to compute cache key: failed to calculate checksum of ref ra3z9ys5wf6nntkge7lhq9uik::gznhfv3iimeyejo4f7z9wlzcn: "/services/auth-service": not found
+
+
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/7jk3554mxuqvbbc8g1uuf8bch
+

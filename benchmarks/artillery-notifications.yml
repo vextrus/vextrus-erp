@@ -1,0 +1,119 @@
+config:
+  target: "http://localhost:3003"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 60
+      arrivalRate: 50
+      name: "Ramp up"
+    - duration: 180
+      arrivalRate: 100
+      name: "Sustained notification load"
+  variables:
+    tenantId: "test-tenant-001"
+  processor: "./processors/notification-processor.js"
+
+scenarios:
+  - name: "Email Notification Load Test"
+    weight: 40
+    flow:
+      - post:
+          url: "/api/v1/notifications/send"
+          json:
+            type: "email"
+            to: "{{ $randomEmail() }}"
+            subject: "Test Email {{ $timestamp() }}"
+            template: "welcome"
+            data:
+              name: "{{ $randomFullName() }}"
+              company: "Test Company"
+            tenantId: "{{ tenantId }}"
+          expect:
+            - statusCode: 202
+            - hasProperty: jobId
+          capture:
+            - json: "$.jobId"
+              as: "emailJobId"
+      
+      - think: 2
+      
+      - get:
+          url: "/api/v1/notifications/status/{{ emailJobId }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: status
+
+  - name: "SMS Notification Bangladesh Test"
+    weight: 30
+    flow:
+      - loop:
+        - post:
+            url: "/api/v1/notifications/send"
+            json:
+              type: "sms"
+              to: "+880{{ $randomNumber(1700000000, 1999999999) }}"
+              message: "OTP: {{ $randomNumber(100000, 999999) }}"
+              provider: "alpha_sms"
+              tenantId: "{{ tenantId }}"
+            expect:
+              - statusCode: 202
+              - hasProperty: jobId
+              - hasProperty: estimatedCost
+        count: 10
+
+  - name: "Bulk Notification Processing"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/v1/notifications/bulk"
+          json:
+            template: "monthly_update"
+            channels: ["email", "sms"]
+            recipients: "{{ $generateRecipients(100) }}"
+            scheduledAt: "{{ $futureTimestamp(3600) }}"
+            tenantId: "{{ tenantId }}"
+          expect:
+            - statusCode: 202
+            - hasProperty: batchId
+            - hasProperty: totalRecipients
+          capture:
+            - json: "$.batchId"
+              as: "batchId"
+      
+      - think: 5
+      
+      - get:
+          url: "/api/v1/notifications/bulk/{{ batchId }}/progress"
+          expect:
+            - statusCode: 200
+            - hasProperty: processed
+            - hasProperty: failed
+            - hasProperty: pending
+
+  - name: "Push Notification FCM Test"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/v1/notifications/send"
+          json:
+            type: "push"
+            devices: "{{ $generateDeviceTokens(50) }}"
+            notification:
+              title: "Test Push {{ $timestamp() }}"
+              body: "Performance test notification"
+              data:
+                action: "open_app"
+                screen: "dashboard"
+            priority: "high"
+            tenantId: "{{ tenantId }}"
+          expect:
+            - statusCode: 202
+            - hasProperty: successCount
+            - hasProperty: failureCount
+
+# Performance metrics
+ensure:
+  p95: 200   # Email/SMS API should respond within 200ms
+  p99: 500   # 99th percentile under 500ms
+  errors: 1  # Error rate less than 1%

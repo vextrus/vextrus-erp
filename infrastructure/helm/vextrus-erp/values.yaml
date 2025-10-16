@@ -1,0 +1,366 @@
+# Default values for vextrus-erp.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  environment: development
+  domain: vextrus.local
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: "standard"
+
+# Common configuration for all services
+common:
+  replicaCount: 2
+  image:
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Service-specific configurations
+services:
+  # API Gateway
+  apiGateway:
+    enabled: true
+    name: api-gateway
+    replicaCount: 3
+    image:
+      repository: vextrus/api-gateway
+      tag: "latest"
+    service:
+      type: LoadBalancer
+      port: 4000
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+      hosts:
+        - host: api.vextrus.local
+          paths:
+            - path: /
+              pathType: Prefix
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 20
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+  # Master Data Service
+  masterData:
+    enabled: true
+    name: master-data
+    replicaCount: 2
+    image:
+      repository: vextrus/master-data-service
+      tag: "latest"
+    service:
+      type: ClusterIP
+      port: 3002
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+
+  # Auth Service
+  auth:
+    enabled: true
+    name: auth
+    replicaCount: 2
+    image:
+      repository: vextrus/auth-service
+      tag: "latest"
+    service:
+      type: ClusterIP
+      port: 3000
+    jwt:
+      secret: "" # Override in production
+      expiresIn: "24h"
+
+  # Workflow Service
+  workflow:
+    enabled: true
+    name: workflow
+    replicaCount: 2
+    image:
+      repository: vextrus/workflow-service
+      tag: "latest"
+    service:
+      type: ClusterIP
+      port: 3010
+    temporal:
+      enabled: true
+      namespace: default
+      taskQueue: vextrus-workflow
+
+  # Rules Engine
+  rulesEngine:
+    enabled: true
+    name: rules-engine
+    replicaCount: 2
+    image:
+      repository: vextrus/rules-engine
+      tag: "latest"
+    service:
+      type: ClusterIP
+      port: 3011
+    businessRules:
+      vatRate: 0.15  # Bangladesh VAT rate
+      fiscalYearStart: "07-01"  # July 1st
+
+  # Organization Service
+  organization:
+    enabled: true
+    name: organization
+    replicaCount: 2
+    image:
+      repository: vextrus/organization-service
+      tag: "latest"
+    service:
+      type: ClusterIP
+      port: 3001
+
+  # Notification Service
+  notification:
+    enabled: true
+    name: notification
+    replicaCount: 2
+    image:
+      repository: vextrus/notification-service
+      tag: "latest"
+    service:
+      type: ClusterIP
+      port: 3008
+    smtp:
+      host: smtp.gmail.com
+      port: 587
+      secure: false
+      auth:
+        user: ""
+        pass: ""
+
+  # File Storage Service
+  fileStorage:
+    enabled: true
+    name: file-storage
+    replicaCount: 1
+    image:
+      repository: vextrus/file-storage-service
+      tag: "latest"
+    service:
+      type: ClusterIP
+      port: 3009
+    persistence:
+      enabled: true
+      storageClass: "standard"
+      size: 10Gi
+
+# Infrastructure Dependencies
+postgresql:
+  enabled: true
+  auth:
+    database: vextrus_erp
+    username: vextrus
+    password: "" # Override in production
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "" # Override in production
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+kafka:
+  enabled: true
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    controller:
+      protocol: PLAINTEXT
+  persistence:
+    enabled: true
+    size: 8Gi
+
+# Temporal configuration
+temporal:
+  enabled: true
+  server:
+    replicaCount: 1
+    image:
+      repository: temporalio/server
+      tag: 1.22.4
+  ui:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: temporalio/ui
+      tag: 2.22.3
+  persistence:
+    defaultStore: postgres
+    visibilityStore: postgres
+    postgres:
+      host: vextrus-postgres
+      port: 5432
+      database: temporal
+      user: temporal
+      password: "" # Override in production
+
+# MinIO for object storage
+minio:
+  enabled: true
+  mode: standalone
+  auth:
+    rootUser: admin
+    rootPassword: "" # Override in production
+  persistence:
+    enabled: true
+    size: 20Gi
+
+# Monitoring Stack
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    retention: 15d
+    storageSize: 10Gi
+  grafana:
+    enabled: true
+    adminUser: admin
+    adminPassword: "" # Override in production
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus:9090
+  jaeger:
+    enabled: true
+    collector:
+      otlp:
+        enabled: true
+    storage:
+      type: memory # Use elasticsearch in production
+
+# OpenTelemetry Configuration
+opentelemetry:
+  enabled: true
+  collector:
+    image:
+      repository: otel/opentelemetry-collector-contrib
+      tag: 0.91.0
+    config:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+      exporters:
+        prometheus:
+          endpoint: 0.0.0.0:8889
+        jaeger:
+          endpoint: jaeger:14250
+      processors:
+        batch:
+          timeout: 1s
+          send_batch_size: 1024
+      service:
+        pipelines:
+          traces:
+            receivers: [otlp]
+            processors: [batch]
+            exporters: [jaeger]
+          metrics:
+            receivers: [otlp]
+            processors: [batch]
+            exporters: [prometheus]
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+    - host: vextrus.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: api-gateway
+            port: 4000
+  tls:
+    - secretName: vextrus-tls
+      hosts:
+        - vextrus.local
+
+# Network Policies
+networkPolicies:
+  enabled: false # Enable in production
+  policyTypes:
+    - Ingress
+    - Egress
+
+# Pod Security Policies
+podSecurityPolicy:
+  enabled: false # Enable in production
+
+# Service Mesh (optional)
+serviceMesh:
+  enabled: false
+  type: istio # or linkerd
+
+# Backup Configuration
+backup:
+  enabled: false
+  schedule: "0 2 * * *" # Daily at 2 AM
+  retention: 30 # days
+
+# Secrets Management
+secrets:
+  provider: kubernetes # or vault, aws-secrets-manager
+  externalSecrets:
+    enabled: false
+
+# Health Check Configuration
+healthCheck:
+  liveness:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  startup:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30

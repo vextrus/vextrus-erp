@@ -1,0 +1,70 @@
+{
+  "name": "@vextrus/kernel",
+  "version": "1.0.1",
+  "description": "Domain-Driven Design primitives and patterns for Vextrus ERP",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "CLAUDE.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/cqrs": "^10.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^10.4.8",
+    "@nestjs/cqrs": "^10.2.7",
+    "@types/node": "^22.10.0",
+    "rimraf": "^6.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "http://localhost:4873/"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vextrus/vextrus-erp.git",
+    "directory": "shared/kernel"
+  },
+  "keywords": [
+    "ddd",
+    "domain-driven-design",
+    "aggregate",
+    "entity",
+    "value-object",
+    "event-sourcing",
+    "cqrs"
+  ],
+  "license": "PROPRIETARY",
+  "author": "Vextrus Technologies"
+}

@@ -1,0 +1,185 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-alerts
+  namespace: vextrus
+data:
+  alerts.yml: |
+    groups:
+      - name: vextrus_production
+        interval: 30s
+        rules:
+          # Service availability alerts
+          - alert: ServiceDown
+            expr: up{job=~"vextrus-.*"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              team: platform
+            annotations:
+              summary: "Service {{ $labels.job }} is down"
+              description: "{{ $labels.job }} has been down for more than 2 minutes"
+          
+          # High error rate
+          - alert: HighErrorRate
+            expr: |
+              sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+              / sum(rate(http_requests_total[5m])) by (service) > 0.05
+            for: 5m
+            labels:
+              severity: critical
+              team: platform
+            annotations:
+              summary: "High error rate for {{ $labels.service }}"
+              description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.service }}"
+          
+          # RBAC performance degradation
+          - alert: RBACPermissionCheckSlow
+            expr: |
+              histogram_quantile(0.95, rbac_permission_check_duration_seconds_bucket) > 0.01
+            for: 2m
+            labels:
+              severity: warning
+              team: security
+            annotations:
+              summary: "RBAC permission checks are slow"
+              description: "95th percentile latency is {{ $value }}s (target: <10ms)"
+          
+          # Multi-tenant isolation violation
+          - alert: TenantIsolationViolation
+            expr: |
+              increase(tenant_isolation_violations_total[5m]) > 0
+            for: 0m
+            labels:
+              severity: critical
+              team: security
+              compliance: btrc
+            annotations:
+              summary: "Multi-tenant isolation violation detected"
+              description: "{{ $value }} isolation violations in the last 5 minutes"
+          
+          # Bangladesh compliance violations
+          - alert: BangladeshComplianceViolation
+            expr: |
+              btrc_data_localization_violations_total > 0
+              or nbr_audit_trail_missing_total > 0
+            for: 0m
+            labels:
+              severity: critical
+              team: compliance
+              region: bangladesh
+            annotations:
+              summary: "Bangladesh compliance violation detected"
+              description: "BTRC data localization or NBR audit trail issues detected"
+          
+          # High memory usage
+          - alert: HighMemoryUsage
+            expr: |
+              container_memory_usage_bytes{pod=~"vextrus-.*"}
+              / container_spec_memory_limit_bytes > 0.9
+            for: 5m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "High memory usage for {{ $labels.pod }}"
+              description: "Memory usage is {{ $value | humanizePercentage }} of limit"
+          
+          # High CPU usage
+          - alert: HighCPUUsage
+            expr: |
+              rate(container_cpu_usage_seconds_total{pod=~"vextrus-.*"}[5m]) > 0.9
+            for: 5m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "High CPU usage for {{ $labels.pod }}"
+              description: "CPU usage is above 90% for {{ $labels.pod }}"
+          
+          # Pod restart loop
+          - alert: PodRestartLoop
+            expr: |
+              increase(kube_pod_container_status_restarts_total{namespace="vextrus"}[1h]) > 5
+            for: 0m
+            labels:
+              severity: critical
+              team: platform
+            annotations:
+              summary: "Pod {{ $labels.pod }} is in restart loop"
+              description: "Pod has restarted {{ $value }} times in the last hour"
+          
+          # Database connection pool exhaustion
+          - alert: DatabaseConnectionPoolExhausted
+            expr: |
+              pg_stat_database_numbackends{datname="vextrus_erp"}
+              / pg_settings_max_connections > 0.9
+            for: 2m
+            labels:
+              severity: critical
+              team: database
+            annotations:
+              summary: "Database connection pool near exhaustion"
+              description: "{{ $value | humanizePercentage }} of max connections used"
+          
+          # Kafka consumer lag
+          - alert: KafkaConsumerLag
+            expr: |
+              kafka_consumer_lag_sum > 10000
+            for: 5m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "High Kafka consumer lag"
+              description: "Consumer lag is {{ $value }} messages"
+          
+          # SMS cost threshold (Bangladesh specific)
+          - alert: HighSMSCost
+            expr: |
+              increase(sms_cost_bdt_total[1h]) > 1000
+            for: 5m
+            labels:
+              severity: warning
+              team: finance
+              region: bangladesh
+            annotations:
+              summary: "High SMS costs in Bangladesh"
+              description: "SMS costs exceeded ৳{{ $value }} in the last hour"
+          
+          # Storage usage
+          - alert: HighStorageUsage
+            expr: |
+              (node_filesystem_size_bytes - node_filesystem_avail_bytes)
+              / node_filesystem_size_bytes > 0.85
+            for: 5m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "High disk usage on {{ $labels.instance }}"
+              description: "Disk usage is {{ $value | humanizePercentage }}"
+          
+          # API Gateway throughput degradation
+          - alert: APIGatewayThroughputLow
+            expr: |
+              sum(rate(http_requests_total{service="auth-service"}[5m])) < 1000
+            for: 10m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "API Gateway throughput below target"
+              description: "Current throughput: {{ $value }} req/s (target: 10,000 req/s)"
+          
+          # Certificate expiry
+          - alert: CertificateExpiringSoon
+            expr: |
+              certmanager_certificate_expiration_timestamp_seconds - time() < 7 * 86400
+            for: 0m
+            labels:
+              severity: warning
+              team: security
+            annotations:
+              summary: "Certificate expiring soon"
+              description: "Certificate {{ $labels.name }} expires in {{ $value | humanizeDuration }}"

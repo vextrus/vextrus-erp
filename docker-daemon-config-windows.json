@@ -1,0 +1,29 @@
+{
+  "builder": {
+    "gc": {
+      "defaultKeepStorage": "50GB",
+      "enabled": true
+    }
+  },
+  "debug": false,
+  "experimental": false,
+  "features": {
+    "buildkit": true
+  },
+  "insecure-registries": [
+    "registry-1.docker.io",
+    "registry.docker.io",
+    "docker.io"
+  ],
+  "max-concurrent-downloads": 10,
+  "max-concurrent-uploads": 10,
+  "max-download-attempts": 5,
+  "registry-mirrors": [
+    "https://mirror.gcr.io"
+  ],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "50m",
+    "max-file": "5"
+  }
+}

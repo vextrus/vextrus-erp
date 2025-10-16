@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vextrus-erp.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "vextrus-erp.labels" . | nindent 4 }}
+data:
+  # Environment configuration
+  NODE_ENV: {{ .Values.global.environment }}
+  LOG_LEVEL: {{ .Values.global.logLevel | default "info" }}
+
+  # Service discovery
+  AUTH_SERVICE_URL: "http://{{ .Values.services.auth.name }}:{{ .Values.services.auth.service.port }}"
+  MASTER_DATA_SERVICE_URL: "http://{{ .Values.services.masterData.name }}:{{ .Values.services.masterData.service.port }}"
+  ORGANIZATION_SERVICE_URL: "http://{{ .Values.services.organization.name }}:{{ .Values.services.organization.service.port }}"
+  WORKFLOW_SERVICE_URL: "http://{{ .Values.services.workflow.name }}:{{ .Values.services.workflow.service.port }}"
+  RULES_ENGINE_URL: "http://{{ .Values.services.rulesEngine.name }}:{{ .Values.services.rulesEngine.service.port }}"
+  NOTIFICATION_SERVICE_URL: "http://{{ .Values.services.notification.name }}:{{ .Values.services.notification.service.port }}"
+  FILE_STORAGE_SERVICE_URL: "http://{{ .Values.services.fileStorage.name }}:{{ .Values.services.fileStorage.service.port }}"
+
+  # Kafka configuration
+  KAFKA_BROKERS: {{ include "vextrus-erp.kafkaBrokers" . }}
+  KAFKA_CLIENT_ID: {{ .Release.Name }}-client
+  KAFKA_GROUP_ID: {{ .Release.Name }}-group
+
+  # Temporal configuration
+  TEMPORAL_ADDRESS: {{ include "vextrus-erp.temporalAddress" . }}
+  TEMPORAL_NAMESPACE: {{ .Values.services.workflow.temporal.namespace }}
+  TEMPORAL_TASK_QUEUE: {{ .Values.services.workflow.temporal.taskQueue }}
+
+  # OpenTelemetry configuration
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://{{ .Release.Name }}-otel-collector:4317"
+  OTEL_TRACES_EXPORTER: "otlp"
+  OTEL_METRICS_EXPORTER: "prometheus"
+  OTEL_LOGS_EXPORTER: "otlp"
+
+  # Business rules (Bangladesh specific)
+  VAT_RATE: "{{ .Values.services.rulesEngine.businessRules.vatRate }}"
+  FISCAL_YEAR_START: "{{ .Values.services.rulesEngine.businessRules.fiscalYearStart }}"
+  CURRENCY: "BDT"
+  COUNTRY_CODE: "BD"
+  TIMEZONE: "Asia/Dhaka"
+
+  # Feature flags
+  ENABLE_DISTRIBUTED_TRACING: "true"
+  ENABLE_METRICS_COLLECTION: "true"
+  ENABLE_AUDIT_LOGGING: "true"
+  ENABLE_RATE_LIMITING: "true"
+
+  # API Gateway configuration
+  APOLLO_FEDERATION_ENABLED: "true"
+  APOLLO_INTROSPECTION_ENABLED: {{ eq .Values.global.environment "development" | quote }}
+  APOLLO_PLAYGROUND_ENABLED: {{ eq .Values.global.environment "development" | quote }}
+
+  # Cache configuration
+  CACHE_TTL: "3600"
+  CACHE_MAX_SIZE: "1000"
+
+  # Rate limiting
+  RATE_LIMIT_WINDOW_MS: "60000"
+  RATE_LIMIT_MAX_REQUESTS: "100"

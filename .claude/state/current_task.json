@@ -1,6 +1,8 @@
 {
-  "task": "m-vextrus-erp-migration",
-  "branch": "feature/vextrus-erp-migration",
-  "services": ["migration", "infrastructure", "documentation"],
-  "updated": "2025-09-05"
+  "task": "h-implement-production-phased-rollout",
+  "branch": "feature/production-phased-rollout",
+  "services": ["finance", "master-data", "auth", "notification"],
+  "updated": "2025-10-16",
+  "current_week": 1,
+  "subtask": "01-week1-security-fixes.md"
 }

@@ -1,0 +1,854 @@
+services:
+  # Traefik v3.5 - API Gateway & Load Balancer
+  traefik:
+    image: traefik:v3.5
+    container_name: vextrus-traefik
+    command:
+      # API Configuration
+      - "--api.dashboard=true"
+      - "--api.debug=true"
+      - "--api.insecure=true"
+      # Docker Provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=vextrus-network"
+      # File Provider for dynamic configuration
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      # Entrypoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Logging
+      - "--log.level=DEBUG"
+      - "--accesslog=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Dashboard
+    volumes:
+      # Docker socket for service discovery - works on Windows Docker Desktop
+      - //var/run/docker.sock:/var/run/docker.sock:ro
+      # Dynamic configuration file
+      - ./infrastructure/traefik:/etc/traefik/dynamic:ro
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      # Dashboard
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+      # Global middleware for tenant detection
+      - "traefik.http.middlewares.tenant-headers.headers.customrequestheaders.X-Tenant-ID=default"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+
+  # Auth Service - Authentication & Authorization
+  auth:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/auth-optimized-v2.Dockerfile
+    container_name: vextrus-auth
+    environment:
+      NODE_ENV: development
+      APP_PORT: 3001
+      # Database configuration - individual variables expected by auth service
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_erp
+      # Redis configuration - individual variables expected by auth service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+      # JWT configuration
+      JWT_ACCESS_SECRET: vextrus_jwt_access_secret_dev_2024
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_SECRET: vextrus_jwt_refresh_secret_dev_2024
+      JWT_REFRESH_EXPIRES_IN: 7d
+      # Kafka configuration
+      KAFKA_BROKERS: kafka:9093
+      KAFKA_CLIENT_ID: auth-service
+      KAFKA_CONSUMER_GROUP: auth-consumer
+      # OpenTelemetry configuration
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz-otel-collector:4318
+      OTEL_SERVICE_NAME: auth-service
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+    ports:
+      - "3001:3001"  # Direct access for development
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      # Router configuration
+      - "traefik.http.routers.auth.rule=Host(`api.localhost`) && PathPrefix(`/api/auth`)"
+      - "traefik.http.routers.auth.entrypoints=web"
+      - "traefik.http.routers.auth.service=auth-service"
+      # Service configuration
+      - "traefik.http.services.auth-service.loadbalancer.server.port=3001"
+      # Middleware configuration
+      - "traefik.http.routers.auth.middlewares=tenant-headers@docker"
+    depends_on:
+      - postgres
+      - redis
+      - traefik
+    restart: unless-stopped
+    # Volumes disabled for simple auth service testing
+    # volumes:
+    #   - ./services/auth:/app
+    #   - /app/node_modules
+
+  # PostgreSQL - Primary Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: vextrus-postgres
+    environment:
+      POSTGRES_USER: vextrus
+      POSTGRES_PASSWORD: vextrus_dev_2024
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.utf8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - vextrus-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vextrus -d vextrus_erp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Caching and Sessions
+  redis:
+    image: redis:7-alpine
+    container_name: vextrus-redis
+    command: redis-server --appendonly yes --requirepass vextrus_redis_2024
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - vextrus-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Zookeeper - Kafka Dependency
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: vextrus-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    networks:
+      - vextrus-network
+
+  # Kafka - Event Streaming
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: vextrus-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093,OUTSIDE://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - vextrus-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:9093"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # Kafka UI - For Development
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: vextrus-kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8085:8080"  # Changed to avoid conflict with Traefik
+    environment:
+      KAFKA_CLUSTERS_0_NAME: vextrus-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - vextrus-network
+
+  # MinIO - S3-compatible Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: vextrus-minio
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      MINIO_ROOT_USER: vextrus_admin
+      MINIO_ROOT_PASSWORD: vextrus_minio_2024
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - vextrus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Elasticsearch - For Audit Service
+  elasticsearch:
+    image: elasticsearch:8.11.1
+    container_name: vextrus-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false  # Disabled for development
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - vextrus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # RabbitMQ - Message Queue (optional, services use Bull/Redis)
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: vextrus-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: vextrus
+      RABBITMQ_DEFAULT_PASS: vextrus_rabbitmq_2024
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - vextrus-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Notification Service - Email/SMS/Push Notifications
+  notification:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/notification-service"
+        SERVICE_PATH: services/notification
+        SERVICE_PORT: 3003
+    container_name: vextrus-notification
+    environment:
+      NODE_ENV: development
+      APP_PORT: 3003
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_notification
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+      KAFKA_BROKERS: kafka:9093
+      # SMTP Configuration (configure with your provider)
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      # SMS Configuration (Bangladesh providers)
+      ALPHA_SMS_API_KEY: ${ALPHA_SMS_API_KEY:-}
+      SMS_NET_BD_API_KEY: ${SMS_NET_BD_API_KEY:-}
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notification.rule=Host(`api.localhost`) && PathPrefix(`/api/notifications`)"
+      - "traefik.http.routers.notification.entrypoints=web"
+      - "traefik.http.services.notification-service.loadbalancer.server.port=3003"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    restart: unless-stopped
+
+  # Configuration Service - Feature Flags & Tenant Configs
+  configuration:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/configuration-service"
+        SERVICE_PATH: services/configuration
+        SERVICE_PORT: 3004
+    container_name: vextrus-configuration
+    environment:
+      NODE_ENV: development
+      APP_PORT: 3004
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.configuration.rule=Host(`api.localhost`) && PathPrefix(`/api/configuration`)"
+      - "traefik.http.routers.configuration.entrypoints=web"
+      - "traefik.http.services.configuration-service.loadbalancer.server.port=3004"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Scheduler Service - Cron Job Management
+  scheduler:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/scheduler-service"
+        SERVICE_PATH: services/scheduler
+        SERVICE_PORT: 3005
+    container_name: vextrus-scheduler
+    environment:
+      NODE_ENV: development
+      APP_PORT: 3005
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_scheduler
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+      KAFKA_BROKERS: kafka:9093
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.scheduler.rule=Host(`api.localhost`) && PathPrefix(`/api/scheduler`)"
+      - "traefik.http.routers.scheduler.entrypoints=web"
+      - "traefik.http.services.scheduler-service.loadbalancer.server.port=3005"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    restart: unless-stopped
+
+  # Document Generator Service - PDF/Excel Generation
+  document-generator:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/document-generator-service"
+        SERVICE_PATH: services/document-generator
+        SERVICE_PORT: 3006
+    container_name: vextrus-document-generator
+    environment:
+      NODE_ENV: production
+      APP_PORT: 3006
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_document_generator
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+      KAFKA_BROKERS: kafka:9093
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.docgen.rule=Host(`api.localhost`) && PathPrefix(`/api/documents`)"
+      - "traefik.http.routers.docgen.entrypoints=web"
+      - "traefik.http.services.docgen-service.loadbalancer.server.port=3006"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    restart: unless-stopped
+
+  # Import/Export Service - Bulk Data Processing
+  import-export:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/import-export-service"
+        SERVICE_PATH: services/import-export
+        SERVICE_PORT: 3007
+    container_name: vextrus-import-export
+    environment:
+      NODE_ENV: development
+      APP_PORT: 3007
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_import_export
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+      KAFKA_BROKERS: kafka:9093
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.impexp.rule=Host(`api.localhost`) && PathPrefix(`/api/import-export`)"
+      - "traefik.http.routers.impexp.entrypoints=web"
+      - "traefik.http.services.impexp-service.loadbalancer.server.port=3007"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    restart: unless-stopped
+
+  # File Storage Service - MinIO Integration
+  file-storage:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/file-storage-service"
+        SERVICE_PATH: services/file-storage
+        SERVICE_PORT: 3008
+    container_name: vextrus-file-storage
+    environment:
+      NODE_ENV: development
+      APP_PORT: 3008
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_file_storage
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+      KAFKA_BROKERS: kafka:9093
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: vextrus_admin
+      MINIO_SECRET_KEY: vextrus_minio_2024
+      MINIO_USE_SSL: "false"
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.filestorage.rule=Host(`api.localhost`) && PathPrefix(`/api/files`)"
+      - "traefik.http.routers.filestorage.entrypoints=web"
+      - "traefik.http.services.filestorage-service.loadbalancer.server.port=3008"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - minio
+    restart: unless-stopped
+
+  # Audit Service - Compliance & Audit Logging
+  audit:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/audit-service"
+        SERVICE_PATH: services/audit
+        SERVICE_PORT: 3009
+    container_name: vextrus-audit
+    environment:
+      NODE_ENV: development
+      APP_PORT: 3009
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_audit
+      KAFKA_BROKERS: kafka:9093
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.audit.rule=Host(`api.localhost`) && PathPrefix(`/api/audit`)"
+      - "traefik.http.routers.audit.entrypoints=web"
+      - "traefik.http.services.audit-service.loadbalancer.server.port=3009"
+    depends_on:
+      - postgres
+      - kafka
+      - elasticsearch
+    restart: unless-stopped
+
+  # Master Data Service - Core Business Entities
+  master-data:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/master-data"
+        SERVICE_PATH: services/master-data
+        SERVICE_PORT: 3002
+    container_name: vextrus-master-data
+    environment:
+      NODE_ENV: development
+      APP_PORT: 3002
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_master_data
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+      KAFKA_BROKERS: kafka:9093
+      # OpenTelemetry configuration
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz-otel-collector:4318
+      OTEL_SERVICE_NAME: master-data-service
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+    ports:
+      - "3002:3002"  # Direct access for development
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.masterdata.rule=Host(`api.localhost`) && PathPrefix(`/api/master-data`)"
+      - "traefik.http.routers.masterdata.entrypoints=web"
+      - "traefik.http.services.masterdata-service.loadbalancer.server.port=3002"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - signoz-otel-collector
+    restart: unless-stopped
+
+  # Workflow Service - Temporal Workflow Engine
+  workflow:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/workflow-service"
+        SERVICE_PATH: services/workflow
+        SERVICE_PORT: 3011
+    container_name: vextrus-workflow
+    environment:
+      NODE_ENV: development
+      APP_PORT: 3011
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_workflow
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+      KAFKA_BROKERS: kafka:9093
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: vextrus
+      # OpenTelemetry configuration
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz-otel-collector:4318
+      OTEL_SERVICE_NAME: workflow-service
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+    ports:
+      - "3011:3011"  # Direct access for development
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.workflow.rule=Host(`api.localhost`) && PathPrefix(`/api/workflow`)"
+      - "traefik.http.routers.workflow.entrypoints=web"
+      - "traefik.http.services.workflow-service.loadbalancer.server.port=3011"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - temporal
+      - signoz-otel-collector
+    restart: unless-stopped
+
+  # Rules Engine Service - Business Rules Processing
+  rules-engine:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/rules-engine-service"
+        SERVICE_PATH: services/rules-engine
+        SERVICE_PORT: 3012
+    container_name: vextrus-rules-engine
+    environment:
+      NODE_ENV: development
+      APP_PORT: 3012
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: vextrus
+      DATABASE_PASSWORD: vextrus_dev_2024
+      DATABASE_NAME: vextrus_rules_engine
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+      KAFKA_BROKERS: kafka:9093
+      # OpenTelemetry configuration
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz-otel-collector:4318
+      OTEL_SERVICE_NAME: rules-engine-service
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+    ports:
+      - "3012:3012"  # Direct access for development
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rulesengine.rule=Host(`api.localhost`) && PathPrefix(`/api/rules`)"
+      - "traefik.http.routers.rulesengine.entrypoints=web"
+      - "traefik.http.services.rulesengine-service.loadbalancer.server.port=3012"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - signoz-otel-collector
+    restart: unless-stopped
+
+  # API Gateway - Apollo Federation Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      args:
+        SERVICE_NAME: "@vextrus/api-gateway"
+        SERVICE_PATH: services/api-gateway
+        SERVICE_PORT: 4000
+    container_name: vextrus-api-gateway
+    environment:
+      NODE_ENV: development
+      APP_PORT: 4000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: vextrus_redis_2024
+      # Federation services
+      MASTER_DATA_URL: http://master-data:3002/graphql
+      WORKFLOW_URL: http://workflow:3011/graphql
+      RULES_ENGINE_URL: http://rules-engine:3012/graphql
+      AUTH_URL: http://auth:3001/graphql
+      # OpenTelemetry configuration
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz-otel-collector:4318
+      OTEL_SERVICE_NAME: api-gateway
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+    ports:
+      - "4000:4000"  # GraphQL Playground
+    networks:
+      - vextrus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gateway.rule=Host(`api.localhost`) && PathPrefix(`/graphql`)"
+      - "traefik.http.routers.gateway.entrypoints=web"
+      - "traefik.http.services.gateway-service.loadbalancer.server.port=4000"
+    depends_on:
+      - master-data
+      - workflow
+      - rules-engine
+      - auth
+      - signoz-otel-collector
+    restart: unless-stopped
+
+  # Temporal Server - Workflow Orchestration Engine
+  temporal:
+    image: temporalio/auto-setup:1.22.0
+    container_name: vextrus-temporal
+    depends_on:
+      - postgres
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=vextrus
+      - POSTGRES_PWD=vextrus_dev_2024
+      - POSTGRES_SEEDS=postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml
+    ports:
+      - "7233:7233"
+    networks:
+      - vextrus-network
+    volumes:
+      - ./infrastructure/temporal/dynamicconfig:/etc/temporal/config/dynamicconfig
+
+  # Temporal Web UI
+  temporal-ui:
+    image: temporalio/ui:2.21.0
+    container_name: vextrus-temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8088:8080"
+    networks:
+      - vextrus-network
+
+  # SigNoz - Monitoring Stack (Alternative to DataDog)
+  # ClickHouse for SigNoz
+  signoz-clickhouse:
+    image: clickhouse/clickhouse-server:23.8-alpine
+    container_name: vextrus-signoz-clickhouse
+    volumes:
+      - signoz_clickhouse_data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_DB: signoz_metrics
+      CLICKHOUSE_USER: signoz
+      CLICKHOUSE_PASSWORD: signoz_2024
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "9100:9000"
+      - "8123:8123"
+    networks:
+      - vextrus-network
+
+  # SigNoz OtelCollector
+  signoz-otel-collector:
+    image: signoz/signoz-otel-collector:0.88.11
+    container_name: vextrus-signoz-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./infrastructure/docker/signoz/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+    networks:
+      - vextrus-network
+    depends_on:
+      - signoz-clickhouse
+
+  # SigNoz Frontend
+  signoz-frontend:
+    image: signoz/frontend:0.38.2
+    container_name: vextrus-signoz-frontend
+    ports:
+      - "3301:3301"
+    environment:
+      FRONTEND_API_URL: http://signoz-query-service:8080
+    depends_on:
+      - signoz-query-service
+    networks:
+      - vextrus-network
+
+  # SigNoz Query Service
+  signoz-query-service:
+    image: signoz/query-service:0.38.2
+    container_name: vextrus-signoz-query-service
+    ports:
+      - "8081:8080"
+    environment:
+      ClickHouseUrl: tcp://signoz-clickhouse:9000
+      STORAGE: clickhouse
+      GODEBUG: netdns=go
+      TELEMETRY_ENABLED: false
+    depends_on:
+      - signoz-clickhouse
+    networks:
+      - vextrus-network
+
+  # Adminer - Database Management UI (Development Only)
+  adminer:
+    image: adminer:4.8.1
+    container_name: vextrus-adminer
+    ports:
+      - "8082:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - vextrus-network
+    depends_on:
+      - postgres
+
+  # Redis Commander - Redis UI (Development Only)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: vextrus-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:vextrus_redis_2024
+    ports:
+      - "8083:8081"
+    networks:
+      - vextrus-network
+    depends_on:
+      - redis
+
+  # Verdaccio - Private NPM Registry
+  verdaccio:
+    image: verdaccio/verdaccio:5
+    container_name: vextrus-verdaccio
+    ports:
+      - "4873:4873"
+    volumes:
+      - verdaccio_data:/verdaccio/storage
+      - ./infrastructure/verdaccio/config.yaml:/verdaccio/conf/config.yaml
+      - ./infrastructure/verdaccio/htpasswd:/verdaccio/auth/htpasswd
+    environment:
+      VERDACCIO_PUBLIC_URL: http://localhost:4873/
+    networks:
+      - vextrus-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:4873/-/ping"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 5
+
+networks:
+  vextrus-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  kafka_data:
+  zookeeper_data:
+  zookeeper_logs:
+  signoz_clickhouse_data:
+  verdaccio_data:
+  minio_data:
+  elasticsearch_data:
+  rabbitmq_data:

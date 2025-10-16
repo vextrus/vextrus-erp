@@ -1,0 +1,112 @@
+{{- if .Values.services.apiGateway.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.services.apiGateway.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.services.apiGateway.name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.services.apiGateway.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.services.apiGateway.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.services.apiGateway.name }}
+        release: {{ .Release.Name }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.services.apiGateway.service.port }}"
+        prometheus.io/path: "/metrics"
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: {{ .Values.services.apiGateway.name }}
+        image: "{{ .Values.services.apiGateway.image.repository }}:{{ .Values.services.apiGateway.image.tag }}"
+        imagePullPolicy: {{ .Values.common.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.services.apiGateway.service.port }}
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: {{ .Values.global.environment }}
+        - name: PORT
+          value: "{{ .Values.services.apiGateway.service.port }}"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-database-secret
+              key: url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-redis-secret
+              key: url
+        - name: KAFKA_BROKERS
+          value: "{{ .Release.Name }}-kafka:9092"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://{{ .Release.Name }}-otel-collector:4317"
+        - name: OTEL_SERVICE_NAME
+          value: {{ .Values.services.apiGateway.name }}
+        - name: APOLLO_GATEWAY_SERVICES
+          value: |
+            [
+              {"name": "auth", "url": "http://{{ .Values.services.auth.name }}:{{ .Values.services.auth.service.port }}/graphql"},
+              {"name": "master-data", "url": "http://{{ .Values.services.masterData.name }}:{{ .Values.services.masterData.service.port }}/graphql"},
+              {"name": "organization", "url": "http://{{ .Values.services.organization.name }}:{{ .Values.services.organization.service.port }}/graphql"}
+            ]
+        {{- if .Values.healthCheck.liveness.enabled }}
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: http
+          initialDelaySeconds: {{ .Values.healthCheck.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.liveness.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthCheck.liveness.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthCheck.liveness.failureThreshold }}
+        {{- end }}
+        {{- if .Values.healthCheck.readiness.enabled }}
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: {{ .Values.healthCheck.readiness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.readiness.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthCheck.readiness.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthCheck.readiness.failureThreshold }}
+        {{- end }}
+        {{- if .Values.healthCheck.startup.enabled }}
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: http
+          initialDelaySeconds: {{ .Values.healthCheck.startup.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.startup.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthCheck.startup.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthCheck.startup.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.common.resources | nindent 12 }}
+      {{- with .Values.common.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.common.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.common.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

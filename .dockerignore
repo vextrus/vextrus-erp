@@ -1,0 +1,78 @@
+# Node modules and dependencies
+**/node_modules
+**/.pnpm-store
+**/npm-debug.log
+**/yarn-error.log
+**/pnpm-debug.log
+
+# Build outputs
+**/dist
+**/build
+**/lib
+**/*.tsbuildinfo
+**/.turbo
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs
+README.md
+CHANGELOG.md
+LICENSE
+
+# Test files
+**/*.spec.ts
+**/*.spec.js
+**/*.test.ts
+**/*.test.js
+**/test
+**/tests
+**/__tests__
+coverage
+.nyc_output
+*.coverage
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Docker files (to avoid recursion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs
+*.log
+
+# Temporary files
+tmp
+temp
+.tmp
+
+# Claude files
+.claude
+sessions
+
+# Cache
+.cache
+.eslintcache
+.parcel-cache
+
+# Other
+.github
+.husky
+.circleci
+.travis.yml

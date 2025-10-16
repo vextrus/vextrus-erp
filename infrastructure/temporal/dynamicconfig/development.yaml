@@ -1,0 +1,80 @@
+# Temporal Dynamic Configuration for Development
+# This configuration file controls various runtime parameters for Temporal
+
+# System limits
+limit.maxIDLength:
+  - value: 1000
+    constraints: {}
+
+# Workflow execution limits
+limit.maxWorkflowExecutionSignalsSent:
+  - value: 10000
+    constraints: {}
+
+# Frontend service limits
+frontend.enableClientVersionCheck:
+  - value: true
+    constraints: {}
+
+frontend.workerVersioningDataAPIs:
+  - value: true
+    constraints: {}
+
+frontend.workerVersioningWorkflowAPIs:
+  - value: true
+    constraints: {}
+
+# History service configuration
+history.persistenceMaxQPS:
+  - value: 9000
+    constraints: {}
+
+history.persistenceGlobalMaxQPS:
+  - value: 0
+    constraints: {}
+
+# Matching service configuration
+matching.numTaskqueueReadPartitions:
+  - value: 4
+    constraints:
+      namespace: vextrus
+
+matching.numTaskqueueWritePartitions:
+  - value: 4
+    constraints:
+      namespace: vextrus
+
+# Worker service configuration
+worker.EnableBatcher:
+  - value: true
+    constraints: {}
+
+# Retention policy
+system.advancedVisibilityWritingMode:
+  - value: "on"
+    constraints: {}
+
+# Namespace-specific settings for vextrus
+frontend.namespaceCount:
+  - value: 100
+    constraints: {}
+
+# Enable search attributes
+system.enableSearchAttributeValidation:
+  - value: true
+    constraints: {}
+
+# Workflow task timeout
+defaultWorkflowTaskTimeout:
+  - value: "10s"
+    constraints: {}
+
+# Activity task timeout
+defaultActivityTaskTimeout:
+  - value: "10s"
+    constraints: {}
+
+# Maximum workflow execution retention
+maxWorkflowExecutionRetention:
+  - value: "720h" # 30 days
+    constraints: {}

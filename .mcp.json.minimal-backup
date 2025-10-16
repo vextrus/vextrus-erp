@@ -1,0 +1,60 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:/Users/riz/vextrus-erp"
+      ]
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://vextrus:vextrus_dev_2024@localhost:5432/vextrus_erp"
+      ]
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "ctx7sk-a89018f2-9934-4b30-b384-23a7e6883071"
+      ]
+    },
+    "consult7": {
+      "type": "stdio",
+      "command": "C:\\Users\\riz\\AppData\\Roaming\\uv\\tools\\consult7\\Scripts\\consult7.exe",
+      "args": ["google", "AIzaSyDmVuWC7_gWvK7IQsUbLNPjMU4QnywnkE8"]
+    },
+    "docker": {
+      "type": "stdio",
+      "command": "C:\\Users\\riz\\AppData\\Roaming\\Python\\Python313\\Scripts\\uvx.exe",
+      "args": [
+        "docker-mcp"
+      ]
+    }
+  }
+}

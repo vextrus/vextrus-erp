@@ -1,0 +1,271 @@
+groups:
+  - name: service_health
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} service has been down for more than 1 minute.\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+            /
+            sum(rate(http_requests_total[5m])) by (service)
+          ) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: reliability
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.service }}"
+
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+            /
+            sum(rate(http_requests_total[5m])) by (service)
+          ) * 100 > 10
+        for: 2m
+        labels:
+          severity: critical
+          category: reliability
+        annotations:
+          summary: "Critical error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.service }}. IMMEDIATE ACTION REQUIRED!"
+
+  - name: performance
+    interval: 30s
+    rules:
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High response time on {{ $labels.service }}"
+          description: "95th percentile response time is {{ $value }}s on {{ $labels.service }} (threshold: 1s)"
+
+      - alert: CriticalResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)
+          ) > 3
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "Critical response time on {{ $labels.service }}"
+          description: "95th percentile response time is {{ $value }}s on {{ $labels.service }} (threshold: 3s)"
+
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes
+            /
+            container_spec_memory_limit_bytes
+          ) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High memory usage on {{ $labels.service }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.service }}"
+
+      - alert: HighCPUUsage
+        expr: |
+          rate(process_cpu_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High CPU usage on {{ $labels.service }}"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.service }}"
+
+  - name: authentication
+    interval: 30s
+    rules:
+      - alert: HighAuthenticationFailureRate
+        expr: |
+          (
+            sum(rate(auth_login_failures_total[5m]))
+            /
+            sum(rate(auth_login_attempts_total[5m]))
+          ) * 100 > 20
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: PossibleBruteForceAttack
+        expr: |
+          sum(rate(auth_login_failures_total[1m])) > 10
+        for: 2m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "Possible brute force attack detected"
+          description: "More than 10 failed login attempts per minute detected. Possible brute force attack!"
+
+      - alert: ExpiredTokenSpike
+        expr: |
+          rate(auth_token_expired_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: info
+          category: authentication
+        annotations:
+          summary: "High rate of expired token attempts"
+          description: "{{ $value }} expired token attempts per second. Users may need to refresh their sessions."
+
+  - name: database
+    interval: 30s
+    rules:
+      - alert: HighDatabaseConnectionPoolUsage
+        expr: |
+          (
+            pg_stat_database_numbackends{datname="vextrus"}
+            /
+            pg_settings_max_connections
+          ) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "High database connection pool usage"
+          description: "Database connection pool usage is {{ $value | humanizePercentage }}"
+
+      - alert: SlowDatabaseQueries
+        expr: |
+          rate(pg_stat_statements_mean_exec_time_seconds[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query execution time is {{ $value }}s (threshold: 0.5s)"
+
+      - alert: DatabaseReplicationLag
+        expr: |
+          pg_replication_lag_seconds > 60
+        for: 2m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "Database replication lag detected"
+          description: "Replication lag is {{ $value }}s (threshold: 60s)"
+
+  - name: infrastructure
+    interval: 30s
+    rules:
+      - alert: RedisHighMemoryUsage
+        expr: |
+          (
+            redis_memory_used_bytes
+            /
+            redis_memory_max_bytes
+          ) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: KafkaConsumerLag
+        expr: |
+          kafka_consumer_lag > 1000
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "High Kafka consumer lag on {{ $labels.topic }}"
+          description: "Consumer lag is {{ $value }} messages on topic {{ $labels.topic }}"
+
+      - alert: DiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/"}
+            /
+            node_filesystem_size_bytes{mountpoint="/"}
+          ) * 100 < 15
+        for: 5m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+
+  - name: business_sla
+    interval: 1m
+    rules:
+      - alert: SLAViolation_Availability
+        expr: |
+          (
+            sum(up{job=~".*-service|api-gateway"})
+            /
+            count(up{job=~".*-service|api-gateway"})
+          ) * 100 < 99.9
+        for: 5m
+        labels:
+          severity: critical
+          category: sla
+          sla_type: availability
+        annotations:
+          summary: "SLA violation: Availability below 99.9%"
+          description: "System availability is {{ $value | humanizePercentage }}. SLA target: 99.9%"
+
+      - alert: SLAViolation_ResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          category: sla
+          sla_type: performance
+        annotations:
+          summary: "SLA violation: Response time above 500ms"
+          description: "95th percentile response time is {{ $value }}s. SLA target: < 500ms"
+
+      - alert: SLAViolation_ErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) * 100 > 1
+        for: 10m
+        labels:
+          severity: warning
+          category: sla
+          sla_type: reliability
+        annotations:
+          summary: "SLA violation: Error rate above 1%"
+          description: "Error rate is {{ $value | humanizePercentage }}. SLA target: < 1%"
