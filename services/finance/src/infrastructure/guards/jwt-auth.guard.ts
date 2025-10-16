@@ -1,0 +1,128 @@
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { GqlExecutionContext } from '@nestjs/graphql';
+import { firstValueFrom } from 'rxjs';
+import { Reflector } from '@nestjs/core';
+
+export const IS_PUBLIC_KEY = 'isPublic';
+
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+    private readonly reflector: Reflector,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
+
+    // Allow introspection queries for Apollo Sandbox
+    if (context.getType() as string === 'graphql') {
+      try {
+        const gqlContext = GqlExecutionContext.create(context);
+        const info = gqlContext.getInfo();
+
+        // Check if this is an introspection query by field name
+        if (info?.fieldName === '__schema' || info?.fieldName === '__type') {
+          this.logger.log('✅ Allowing introspection query by field name: ' + info.fieldName);
+          return true;
+        }
+
+        // Also check the operation name and query text for introspection
+        const ctx = gqlContext.getContext();
+        const request = ctx?.req;
+        const body = request?.body;
+
+        // Check for IntrospectionQuery operation name or __schema/__type in query
+        if (body?.operationName === 'IntrospectionQuery' ||
+            body?.query?.includes('__schema') ||
+            body?.query?.includes('__type')) {
+          this.logger.log('✅ Allowing introspection query by operation name or query text');
+          return true;
+        }
+      } catch (error) {
+        // If we can't get GraphQL context, continue to auth check
+        this.logger.debug('Could not extract GraphQL context for introspection check');
+      }
+    }
+
+    const request = this.getRequest(context);
+    const token = this.extractTokenFromHeader(request);
+
+    if (!token) {
+      throw new UnauthorizedException('No token provided');
+    }
+
+    try {
+      const authServiceUrl = this.configService.get<string>('AUTH_SERVICE_URL', 'http://localhost:3001');
+      const response = await firstValueFrom(
+        this.httpService.get(
+          `${authServiceUrl}/api/v1/auth/me`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'X-Service-Name': 'finance-service',
+            },
+          }
+        )
+      );
+
+      const user = response.data;
+
+      if (!user) {
+        throw new UnauthorizedException('Invalid token');
+      }
+
+      // Attach user to request with tenantId from middleware
+      const tenantId = request.tenantId || request.headers['x-tenant-id'] || 'default';
+
+      request.user = {
+        ...user,
+        userId: user.id,      // Add userId alias
+        tenantId: tenantId,   // Add tenantId from middleware
+      };
+      request.userId = user.id;
+      request.userRole = user.role;
+
+      this.logger.debug(`Authenticated user: ${user.id} with role: ${user.role}, tenant: ${tenantId}`);
+
+      return true;
+    } catch (error: any) {
+      this.logger.error('Token verification failed:', error);
+
+      if (error.response?.status === 401) {
+        throw new UnauthorizedException('Invalid or expired token');
+      }
+
+      throw new UnauthorizedException('Authentication service unavailable');
+    }
+  }
+
+  private getRequest(context: ExecutionContext) {
+    const type = context.getType();
+
+    if (type === 'http') {
+      return context.switchToHttp().getRequest();
+    } else {
+      // GraphQL
+      const ctx = GqlExecutionContext.create(context);
+      return ctx.getContext().req;
+    }
+  }
+
+  private extractTokenFromHeader(request: any): string | undefined {
+    const [type, token] = request.headers?.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
+  }
+}

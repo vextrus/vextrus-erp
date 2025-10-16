@@ -1,0 +1,145 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""Chart of Accounts classification"""
+enum AccountType {
+  ASSET
+  EQUITY
+  EXPENSE
+  LIABILITY
+  REVENUE
+}
+
+type ChartOfAccount {
+  accountCode: String!
+  accountName: String!
+  accountType: AccountType!
+  balance: MoneyDto!
+  children: [ChartOfAccount!]
+  createdAt: DateTime!
+  currency: String!
+  id: ID!
+  isActive: Boolean!
+  parentAccount: ChartOfAccount
+  parentAccountId: String
+  tenantId: String!
+  updatedAt: DateTime!
+}
+
+input CreateAccountInput {
+  accountCode: String!
+  accountName: String!
+  accountType: AccountType!
+  currency: String!
+  parentAccountId: String
+}
+
+input CreateInvoiceInput {
+  customerBIN: String
+  customerId: String!
+  customerTIN: String
+  dueDate: DateTime!
+  invoiceDate: DateTime!
+  lineItems: [LineItemInput!]!
+  vendorBIN: String
+  vendorId: String!
+  vendorTIN: String
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Invoice {
+  advanceIncomeTax: MoneyDto!
+  challanNumber: String
+  createdAt: DateTime!
+  customerBIN: String
+  customerId: String!
+  customerTIN: String
+  dueDate: DateTime!
+  fiscalYear: String!
+  grandTotal: MoneyDto!
+  id: ID!
+  invoiceDate: DateTime!
+  invoiceNumber: String!
+  lineItems: [LineItem!]!
+  mushakNumber: String
+  status: InvoiceStatus!
+  subtotal: MoneyDto!
+  supplementaryDuty: MoneyDto!
+  updatedAt: DateTime!
+  vatAmount: MoneyDto!
+  vendorBIN: String
+  vendorId: String!
+  vendorTIN: String
+}
+
+"""Invoice lifecycle status"""
+enum InvoiceStatus {
+  APPROVED
+  CANCELLED
+  DRAFT
+  OVERDUE
+  PAID
+  PARTIALLY_PAID
+  PENDING_APPROVAL
+}
+
+type LineItem {
+  advanceIncomeTax: MoneyDto
+  amount: MoneyDto!
+  description: String!
+  hsCode: String
+  id: ID!
+  quantity: Float!
+  supplementaryDuty: MoneyDto
+  unitPrice: MoneyDto!
+  vatAmount: MoneyDto!
+  vatCategory: VATCategory!
+  vatRate: Float!
+}
+
+input LineItemInput {
+  advanceIncomeTaxRate: Float
+  currency: String!
+  description: String!
+  hsCode: String
+  quantity: Float!
+  supplementaryDutyRate: Float
+  unitPrice: Float!
+  vatCategory: VATCategory
+}
+
+type MoneyDto {
+  amount: Float!
+  currency: String!
+  formattedAmount: String!
+}
+
+type Mutation {
+  approveInvoice(id: ID!): Invoice!
+  cancelInvoice(id: ID!, reason: String!): Invoice!
+  createAccount(input: CreateAccountInput!): ChartOfAccount!
+  createInvoice(input: CreateInvoiceInput!): Invoice!
+  deactivateAccount(id: ID!, reason: String!): ChartOfAccount!
+}
+
+type Query {
+  accountByCode(accountCode: String!): ChartOfAccount
+  chartOfAccount(id: ID!): ChartOfAccount
+  chartOfAccounts(accountType: AccountType, isActive: Boolean): [ChartOfAccount!]!
+  invoice(id: ID!): Invoice
+  invoices: [Invoice!]!
+}
+
+"""Bangladesh VAT categories per NBR regulations"""
+enum VATCategory {
+  EXEMPT
+  REDUCED
+  STANDARD
+  TRUNCATED
+  ZERO_RATED
+}

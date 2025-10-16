@@ -1,0 +1,172 @@
+---
+# Prometheus ServiceMonitor for Week 1 Canary
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: finance-service-week1
+  namespace: vextrus-production
+  labels:
+    app: finance-service
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: finance-service
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_label_track]
+      targetLabel: track
+    - sourceLabels: [__meta_kubernetes_pod_label_version]
+      targetLabel: version
+---
+# PrometheusRule for Week 1 Canary Monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: finance-service-week1-alerts
+  namespace: vextrus-production
+  labels:
+    app: finance-service
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: finance-service-week1
+    interval: 30s
+    rules:
+    # Critical: High Error Rate in Canary
+    - alert: FinanceWeek1HighErrorRate
+      expr: |
+        (sum(rate(http_requests_total{job="finance-service",track="canary",code=~"5.."}[5m]))
+        /
+        sum(rate(http_requests_total{job="finance-service",track="canary"}[5m]))) > 0.01
+      for: 5m
+      labels:
+        severity: critical
+        track: canary
+      annotations:
+        summary: "Finance Week 1 canary has high error rate (>1%)"
+        description: "Error rate is {{ humanize $value }}% for canary deployment"
+        runbook_url: "https://runbooks.vextrus.com/finance-high-error-rate"
+
+    # Critical: High P95 Latency in Canary
+    - alert: FinanceWeek1HighLatency
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket{job="finance-service",track="canary"}[5m])) by (le)
+        ) > 0.5
+      for: 5m
+      labels:
+        severity: critical
+        track: canary
+      annotations:
+        summary: "Finance Week 1 canary has high P95 latency (>500ms)"
+        description: "P95 latency is {{ humanize $value }}s for canary deployment"
+        runbook_url: "https://runbooks.vextrus.com/finance-high-latency"
+
+    # Warning: Increased Error Rate vs Stable
+    - alert: FinanceWeek1ErrorRateHigherThanStable
+      expr: |
+        (sum(rate(http_requests_total{job="finance-service",track="canary",code=~"5.."}[5m]))
+        /
+        sum(rate(http_requests_total{job="finance-service",track="canary"}[5m])))
+        >
+        (sum(rate(http_requests_total{job="finance-service",track="stable",code=~"5.."}[5m]))
+        /
+        sum(rate(http_requests_total{job="finance-service",track="stable"}[5m]))) * 1.5
+      for: 10m
+      labels:
+        severity: warning
+        track: canary
+      annotations:
+        summary: "Finance Week 1 canary error rate 50% higher than stable"
+        description: "Canary error rate is significantly higher than stable version"
+
+    # Critical: Pod Crash Loop
+    - alert: FinanceWeek1PodCrashLoop
+      expr: |
+        rate(kube_pod_container_status_restarts_total{namespace="vextrus-production",pod=~"finance-service-week1.*"}[15m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        track: canary
+      annotations:
+        summary: "Finance Week 1 canary pod is crash looping"
+        description: "Pod {{ $labels.pod }} is restarting frequently"
+
+    # Warning: Memory Usage High
+    - alert: FinanceWeek1HighMemoryUsage
+      expr: |
+        (container_memory_working_set_bytes{namespace="vextrus-production",pod=~"finance-service-week1.*"}
+        /
+        container_spec_memory_limit_bytes{namespace="vextrus-production",pod=~"finance-service-week1.*"}) > 0.85
+      for: 10m
+      labels:
+        severity: warning
+        track: canary
+      annotations:
+        summary: "Finance Week 1 canary has high memory usage (>85%)"
+        description: "Memory usage is {{ humanizePercentage $value }} for {{ $labels.pod }}"
+---
+# Grafana Dashboard ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: finance-week1-dashboard
+  namespace: vextrus-production
+  labels:
+    grafana_dashboard: "1"
+data:
+  finance-week1-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Finance Service Week 1 Canary",
+        "uid": "finance-week1",
+        "tags": ["finance", "canary", "week1"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "Request Rate (Canary vs Stable)",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{job=\"finance-service\",track=\"canary\"}[5m]))",
+                "legendFormat": "Canary (Week 1)"
+              },
+              {
+                "expr": "sum(rate(http_requests_total{job=\"finance-service\",track=\"stable\"}[5m]))",
+                "legendFormat": "Stable"
+              }
+            ]
+          },
+          {
+            "title": "Error Rate Comparison",
+            "targets": [
+              {
+                "expr": "(sum(rate(http_requests_total{job=\"finance-service\",track=\"canary\",code=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"finance-service\",track=\"canary\"}[5m]))) * 100",
+                "legendFormat": "Canary Error Rate %"
+              },
+              {
+                "expr": "(sum(rate(http_requests_total{job=\"finance-service\",track=\"stable\",code=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"finance-service\",track=\"stable\"}[5m]))) * 100",
+                "legendFormat": "Stable Error Rate %"
+              }
+            ]
+          },
+          {
+            "title": "P95 Latency Comparison",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"finance-service\",track=\"canary\"}[5m])) by (le))",
+                "legendFormat": "Canary P95"
+              },
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"finance-service\",track=\"stable\"}[5m])) by (le))",
+                "legendFormat": "Stable P95"
+              }
+            ]
+          }
+        ]
+      }
+    }
