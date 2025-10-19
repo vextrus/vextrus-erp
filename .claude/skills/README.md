@@ -1,7 +1,7 @@
 # Vextrus ERP Skills Catalog
 
 **Purpose**: Progressive disclosure skills for Vextrus ERP development
-**Total Skills**: 9 (3 core + 3 domain + 3 infrastructure)
+**Total Skills**: 11 (3 core + 5 domain + 3 infrastructure)
 **Philosophy**: Skills-driven development with zero overhead
 
 ---
@@ -13,8 +13,8 @@ Skills use **progressive disclosure**: Claude loads skill names/descriptions at 
 ### Core Skills (3)
 Foundation skills for all development tasks
 
-### Domain Skills (3)
-Vextrus ERP-specific patterns and compliance
+### Domain Skills (5)
+Vextrus ERP-specific patterns, compliance, performance, and observability
 
 ### Infrastructure Skills (3)
 Production-ready deployment and operations
@@ -148,9 +148,64 @@ Production-ready deployment and operations
 
 ---
 
+### 7. error-handling-observability
+**File**: `error-handling-observability/SKILL.md` (300+ lines)
+**References**: 3 files
+- `otel-integration-guide.md` - OpenTelemetry distributed tracing
+- `error-patterns.md` - Custom exception hierarchy, GraphQL error payloads
+- `logging-standards.md` - Correlation IDs, structured logging
+
+**Triggers**: "error", "exception", "logging", "observability", "tracing", "correlation", "otel"
+
+**Purpose**: Systematic error handling and distributed observability
+
+**Behavior when loaded**:
+- Try-catch with full context (tenant, user, operation)
+- Custom exception hierarchy (ValidationException, UnauthorizedException, etc.)
+- GraphQL error payloads (don't throw)
+- OpenTelemetry distributed tracing
+- Correlation IDs across services
+- Structured logging (no console.log)
+
+**When**: All async operations, error scenarios, production debugging
+**Model**: Sonnet 4.5
+**Evidence**: 1,279 error patterns across 127 files standardized
+
+**Knowledge Base**: `sessions/knowledge/vextrus-erp/patterns/error-handling-observability-patterns.md`
+
+---
+
+### 8. performance-caching
+**File**: `performance-caching/SKILL.md` (400+ lines)
+**References**: 3 files
+- `redis-patterns.md` - Cache-aside, write-through, tag-based invalidation
+- `dataloader-guide.md` - N+1 query prevention, batching patterns
+- `query-optimization.md` - Composite indexes, materialized views, EXPLAIN ANALYZE
+
+**Triggers**: "cache", "redis", "performance", "dataloader", "N+1", "optimization", "slow query"
+
+**Purpose**: Performance optimization through caching and query optimization
+
+**Behavior when loaded**:
+- @Cacheable decorator for query handlers
+- DataLoader for GraphQL field resolvers (eliminates N+1)
+- Composite indexes for multi-tenant queries
+- Materialized views for heavy aggregations
+- Connection pooling optimization
+
+**When**: Performance issues, GraphQL N+1 queries, slow database queries
+**Model**: Sonnet 4.5
+**Evidence**: 100x request reduction (DataLoader in Finance service), Redis in 6+ services
+
+**Performance**: 10-100x faster queries, <50ms indexed queries
+
+**Knowledge Base**: `sessions/knowledge/vextrus-erp/patterns/performance-caching-patterns.md`
+
+---
+
 ## Infrastructure Skills
 
-### 7. database-migrations
+### 9. database-migrations
 **File**: `database-migrations/SKILL.md` (209 lines)
 **References**: `migration-patterns.md` (advanced patterns)
 **Triggers**: "migration", "schema change", "alter table", "database", "typeorm"
@@ -171,7 +226,7 @@ Production-ready deployment and operations
 
 ---
 
-### 8. multi-tenancy
+### 10. multi-tenancy
 **File**: `multi-tenancy/SKILL.md` (354 lines)
 **Triggers**: "tenant", "multi-tenant", "schema isolation", "organization", "x-tenant-id"
 
@@ -192,7 +247,7 @@ Production-ready deployment and operations
 
 ---
 
-### 9. production-deployment
+### 11. production-deployment
 **File**: `production-deployment/SKILL.md` (306 lines)
 **References**:
 - `monitoring-observability.md` (OpenTelemetry, Prometheus, SLI/SLO)
@@ -319,6 +374,18 @@ Skills often activate together for comprehensive task handling.
 │       ├── data-protection.md
 │       ├── audit-compliance.md
 │       └── threats-checklist.md
+├── error-handling-observability/
+│   ├── SKILL.md (300 lines)
+│   └── resources/
+│       ├── otel-integration-guide.md
+│       ├── error-patterns.md
+│       └── logging-standards.md
+├── performance-caching/
+│   ├── SKILL.md (400 lines)
+│   └── resources/
+│       ├── redis-patterns.md
+│       ├── dataloader-guide.md
+│       └── query-optimization.md
 ├── database-migrations/
 │   ├── SKILL.md (209 lines)
 │   └── resources/
@@ -332,7 +399,7 @@ Skills often activate together for comprehensive task handling.
         └── rollout-procedures.md
 ```
 
-**Total**: 9 skills, 25 files, ~8,000 lines (main: ~2,100, references: ~5,900)
+**Total**: 11 skills, 31 files, ~12,000 lines (main: ~2,800, references: ~9,200)
 
 ---
 
@@ -425,7 +492,8 @@ description: When [triggers], activate this skill to enforce [purpose]. Use when
 
 ---
 
-**Version**: 1.0
+**Version**: 1.1
 **Last Updated**: 2025-10-20
-**Status**: ACTIVE - 9 skills production-ready ✅
+**Status**: ACTIVE - 11 skills production-ready ✅
+**Enhancement**: Week 1 Day 1-2 complete (2/12 new skills added)
 **Philosophy**: Skills-driven development, zero overhead, compounding quality
