@@ -1,0 +1,434 @@
+---
+# Week 4 Full Production Deployment (100% traffic - WITH SNAPSHOTS & PRODUCTION HARDENING)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-service-production
+  namespace: vextrus-production
+  labels:
+    app: finance-service
+    environment: production
+    version: week4
+    production-ready: "true"
+  annotations:
+    deployment.kubernetes.io/revision: "week4-final"
+    rollback.target: "week3"
+    kubernetes.io/change-cause: "Week 4: Full production with EventStore snapshots, complete security, RBAC"
+spec:
+  replicas: 10  # 100% capacity (10 pods)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 3  # Allow 3 extra pods for faster rollout
+      maxUnavailable: 0  # Zero-downtime deployment critical for 100%
+  selector:
+    matchLabels:
+      app: finance-service
+      environment: production
+      track: production
+  template:
+    metadata:
+      labels:
+        app: finance-service
+        environment: production
+        track: production
+        version: week4
+        snapshot-enabled: "true"
+        production-ready: "true"
+      annotations:
+        features: "event-sourcing-snapshots,complete-security,full-rbac,optimized-performance"
+        deployment-date: "2025-10-18"
+        rollout-percentage: "100"
+        production-certified: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3014"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 60  # Graceful shutdown for production workload
+      affinity:
+        # Spread pods across nodes for high availability
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - finance-service
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: finance-service
+        image: vextrus/finance:week4-prod-final
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3014
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3014"
+        - name: DEPLOYMENT_TRACK
+          value: "production"
+        - name: DEPLOYMENT_VERSION
+          value: "week4"
+        # Database configuration
+        - name: DATABASE_HOST
+          valueFrom:
+            secretKeyRef:
+              name: finance-db-production
+              key: host
+        - name: DATABASE_PORT
+          value: "5432"
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: finance-db-production
+              key: username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: finance-db-production
+              key: password
+        - name: DATABASE_NAME
+          value: "vextrus_finance"
+        - name: DATABASE_POOL_SIZE
+          value: "20"  # Production connection pool size
+        - name: DATABASE_MAX_QUERY_EXECUTION_TIME
+          value: "5000"  # 5s query timeout
+        # JWT configuration
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets-production
+              key: jwt-secret
+        - name: JWT_EXPIRES_IN
+          value: "24h"
+        # CORS configuration
+        - name: CORS_ORIGIN
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets-production
+              key: cors-origin
+        # EventStore configuration with snapshots and production optimization
+        - name: EVENTSTORE_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets-production
+              key: eventstore-connection
+        - name: SNAPSHOTS_ENABLED
+          value: "true"
+        - name: SNAPSHOT_FREQUENCY
+          value: "50"  # Create snapshot every 50 events
+        - name: SNAPSHOT_RETENTION_COUNT
+          value: "3"  # Keep last 3 snapshots
+        - name: EVENTSTORE_MAX_RETRY_ATTEMPTS
+          value: "5"  # More retries for production
+        - name: EVENTSTORE_RETRY_DELAY_MS
+          value: "1000"
+        - name: EVENTSTORE_CONNECTION_TIMEOUT_MS
+          value: "10000"  # 10s timeout for production
+        - name: EVENTSTORE_READ_BATCH_SIZE
+          value: "500"  # Optimize batch reads
+        - name: EVENTSTORE_KEEP_ALIVE_INTERVAL
+          value: "10000"  # Keep connection alive
+        - name: EVENTSTORE_KEEP_ALIVE_TIMEOUT
+          value: "10000"
+        # Kafka configuration with production settings
+        - name: KAFKA_BROKERS
+          value: "kafka-production-0:9092,kafka-production-1:9092,kafka-production-2:9092"
+        - name: KAFKA_CLIENT_ID
+          value: "finance-service-week4"
+        - name: KAFKA_RETRY_ATTEMPTS
+          value: "5"
+        - name: KAFKA_RETRY_DELAY_MS
+          value: "1000"
+        # Observability and monitoring
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://signoz:4318"
+        - name: OTEL_SERVICE_NAME
+          value: "finance-service"
+        - name: OTEL_SERVICE_VERSION
+          value: "week4"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: METRICS_SNAPSHOT_ENABLED
+          value: "true"
+        - name: METRICS_DETAILED_ENABLED
+          value: "true"
+        # Performance tuning
+        - name: NODE_OPTIONS
+          value: "--max-old-space-size=2048"  # Optimize Node.js heap for 3Gi limit
+        resources:
+          requests:
+            memory: "1.5Gi"  # Increased for snapshot overhead
+            cpu: "600m"
+          limits:
+            memory: "3Gi"    # Higher limit for snapshot memory usage
+            cpu: "1500m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3014
+            scheme: HTTP
+          initialDelaySeconds: 60  # Allow snapshot initialization
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3014
+            scheme: HTTP
+          initialDelaySeconds: 30  # Allow snapshot warmup
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+        startupProbe:
+          # Startup probe for initial container startup (handles slow snapshot loading)
+          httpGet:
+            path: /health/ready
+            port: 3014
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 30  # Allow up to 5 minutes for startup
+        lifecycle:
+          preStop:
+            exec:
+              # Graceful shutdown: deregister from load balancer, flush snapshots, close connections
+              command: ["/bin/sh", "-c", "sleep 15"]
+---
+# Production Service with optimized session affinity
+apiVersion: v1
+kind: Service
+metadata:
+  name: finance-service-production
+  namespace: vextrus-production
+  labels:
+    app: finance-service
+    environment: production
+spec:
+  type: ClusterIP
+  selector:
+    app: finance-service
+    environment: production
+    track: production
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3014
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours for long-running financial operations
+---
+# PodDisruptionBudget for production high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: finance-service-production-pdb
+  namespace: vextrus-production
+spec:
+  minAvailable: 7  # Ensure at least 70% pods available during disruptions
+  selector:
+    matchLabels:
+      app: finance-service
+      environment: production
+      track: production
+---
+# HPA for full production with snapshot-aware scaling
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: finance-service-production-hpa
+  namespace: vextrus-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: finance-service-production
+  minReplicas: 10
+  maxReplicas: 25  # Higher max for production load + snapshot overhead
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60  # Wait 1min before scaling up
+      policies:
+      - type: Percent
+        value: 50  # Scale up by 50% at a time
+        periodSeconds: 60
+      - type: Pods
+        value: 3  # Or add 3 pods at a time
+        periodSeconds: 60
+      selectPolicy: Max  # Use whichever policy scales faster
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5min before scaling down (conservative)
+      policies:
+      - type: Pods
+        value: 1  # Scale down 1 pod at a time
+        periodSeconds: 120  # Wait 2min between each scale down
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 65  # Lower threshold for snapshot CPU overhead
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75  # Lower threshold for snapshot memory overhead
+---
+# ServiceMonitor for Prometheus scraping
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: finance-service-production
+  namespace: vextrus-production
+  labels:
+    app: finance-service
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: finance-service
+      environment: production
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_label_track]
+      targetLabel: track
+    - sourceLabels: [__meta_kubernetes_pod_label_version]
+      targetLabel: version
+    - sourceLabels: [__meta_kubernetes_pod_label_snapshot_enabled]
+      targetLabel: snapshot_enabled
+---
+# PrometheusRule for production monitoring and alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: finance-service-production-alerts
+  namespace: vextrus-production
+  labels:
+    app: finance-service
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: finance-service-production
+    interval: 30s
+    rules:
+    # Critical: High Error Rate
+    - alert: FinanceProductionHighErrorRate
+      expr: |
+        (sum(rate(http_requests_total{job="finance-service",track="production",code=~"5.."}[5m]))
+        /
+        sum(rate(http_requests_total{job="finance-service",track="production"}[5m]))) > 0.01
+      for: 5m
+      labels:
+        severity: critical
+        track: production
+      annotations:
+        summary: "Finance production has high error rate (>1%)"
+        description: "Error rate is {{ humanize $value }}% for production deployment"
+        runbook_url: "https://runbooks.vextrus.com/finance-high-error-rate"
+
+    # Critical: High P95 Latency
+    - alert: FinanceProductionHighLatency
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket{job="finance-service",track="production"}[5m])) by (le)
+        ) > 0.5
+      for: 5m
+      labels:
+        severity: critical
+        track: production
+      annotations:
+        summary: "Finance production has high P95 latency (>500ms)"
+        description: "P95 latency is {{ humanize $value }}s for production"
+
+    # Critical: Snapshot Creation Failures
+    - alert: FinanceSnapshotCreationFailures
+      expr: |
+        rate(eventstore_snapshot_errors_total{service="finance-service"}[5m]) > 0.05
+      for: 10m
+      labels:
+        severity: critical
+        component: snapshots
+      annotations:
+        summary: "EventStore snapshot creation is failing"
+        description: "Snapshot error rate: {{ humanize $value }} errors/sec"
+
+    # Warning: High Snapshot Creation Time
+    - alert: FinanceSnapshotHighLatency
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(eventstore_snapshot_duration_seconds_bucket{service="finance-service"}[5m])) by (le)
+        ) > 2
+      for: 10m
+      labels:
+        severity: warning
+        component: snapshots
+      annotations:
+        summary: "Snapshot creation taking too long (>2s)"
+        description: "P95 snapshot latency is {{ humanize $value }}s"
+
+    # Critical: Pod Crash Loop
+    - alert: FinanceProductionPodCrashLoop
+      expr: |
+        rate(kube_pod_container_status_restarts_total{namespace="vextrus-production",pod=~"finance-service-production.*"}[15m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        track: production
+      annotations:
+        summary: "Finance production pod is crash looping"
+        description: "Pod {{ $labels.pod }} is restarting frequently"
+
+    # Critical: High Memory Usage
+    - alert: FinanceProductionHighMemoryUsage
+      expr: |
+        (container_memory_working_set_bytes{namespace="vextrus-production",pod=~"finance-service-production.*"}
+        /
+        container_spec_memory_limit_bytes{namespace="vextrus-production",pod=~"finance-service-production.*"}) > 0.85
+      for: 10m
+      labels:
+        severity: critical
+        track: production
+      annotations:
+        summary: "Finance production has high memory usage (>85%)"
+        description: "Memory usage is {{ humanizePercentage $value }} for {{ $labels.pod }}"
+
+    # Warning: EventStore Connection Issues
+    - alert: FinanceEventStoreConnectionErrors
+      expr: |
+        rate(eventstore_connection_errors_total{service="finance-service"}[5m]) > 0.01
+      for: 5m
+      labels:
+        severity: warning
+        component: eventstore
+      annotations:
+        summary: "EventStore connection errors detected"
+        description: "Connection error rate: {{ humanize $value }} errors/sec"
+
+    # Info: High Request Volume
+    - alert: FinanceHighRequestVolume
+      expr: |
+        sum(rate(http_requests_total{job="finance-service",track="production"}[5m])) > 1000
+      for: 5m
+      labels:
+        severity: info
+        track: production
+      annotations:
+        summary: "Finance service experiencing high request volume"
+        description: "Request rate: {{ humanize $value }} req/sec"

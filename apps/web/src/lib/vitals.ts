@@ -1,6 +1,6 @@
-import { onCLS, onFID, onFCP, onLCP, onTTFB, onINP } from 'web-vitals'
+import { onCLS, onFCP, onLCP, onTTFB, onINP } from 'web-vitals'
 
-type MetricName = 'CLS' | 'FID' | 'FCP' | 'LCP' | 'TTFB' | 'INP'
+type MetricName = 'CLS' | 'FCP' | 'LCP' | 'TTFB' | 'INP'
 
 interface Metric {
   name: MetricName
@@ -28,7 +28,6 @@ function sendToAnalytics(metric: Metric) {
 
 export function registerWebVitals() {
   onCLS(sendToAnalytics)
-  onFID(sendToAnalytics)
   onFCP(sendToAnalytics)
   onLCP(sendToAnalytics)
   onTTFB(sendToAnalytics)

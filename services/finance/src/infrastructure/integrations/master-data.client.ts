@@ -208,6 +208,72 @@ const SEARCH_CUSTOMERS_QUERY = gql`
   }
 `;
 
+const GET_VENDORS_BATCH_QUERY = gql`
+  query GetVendorsBatch($ids: [String!]!) {
+    vendorsBatch(ids: $ids) {
+      id
+      name
+      tin
+      bin
+      address {
+        street
+        city
+        district
+        division
+        postalCode
+        country
+      }
+      contact {
+        name
+        phone
+        mobile
+        email
+        designation
+      }
+      bankAccounts {
+        accountNumber
+        accountName
+        bankName
+        branch
+        routingNumber
+        swiftCode
+      }
+      status
+      creditLimit
+      paymentTerms
+    }
+  }
+`;
+
+const GET_CUSTOMERS_BATCH_QUERY = gql`
+  query GetCustomersBatch($ids: [String!]!) {
+    customersBatch(ids: $ids) {
+      id
+      name
+      tin
+      bin
+      nid
+      address {
+        street
+        city
+        district
+        division
+        postalCode
+        country
+      }
+      contact {
+        name
+        phone
+        mobile
+        email
+      }
+      creditLimit
+      paymentTerms
+      type
+    }
+  }
+`;
+
 @Injectable()
 export class MasterDataClient {
   private readonly logger = new Logger(MasterDataClient.name);
@@ -319,6 +385,53 @@ export class MasterDataClient {
     } catch (error) {
       this.logger.error(`Failed to search customers with term ${searchTerm}:`, error);
       throw error;
+    }
+  }
+
+  // Batch Operations for DataLoader
+  async getVendorsBatch(vendorIds: readonly string[]): Promise<Vendor[]> {
+    try {
+      this.logger.debug(`Fetching ${vendorIds.length} vendors in batch`);
+
+      const result = await this.apolloClient.query({
+        query: GET_VENDORS_BATCH_QUERY,
+        variables: { ids: vendorIds },
+      });
+
+      if (!result.data?.vendorsBatch) {
+        this.logger.warn(`No vendors returned for batch request`);
+        return [];
+      }
+
+      this.logger.debug(`Successfully fetched ${result.data.vendorsBatch.length} vendors`);
+      return result.data.vendorsBatch;
+    } catch (error) {
+      this.logger.error(`Failed to batch fetch vendors:`, error);
+      // Return empty array instead of throwing to allow DataLoader to continue
+      return [];
+    }
+  }
+
+  async getCustomersBatch(customerIds: readonly string[]): Promise<Customer[]> {
+    try {
+      this.logger.debug(`Fetching ${customerIds.length} customers in batch`);
+
+      const result = await this.apolloClient.query({
+        query: GET_CUSTOMERS_BATCH_QUERY,
+        variables: { ids: customerIds },
+      });
+
+      if (!result.data?.customersBatch) {
+        this.logger.warn(`No customers returned for batch request`);
+        return [];
+      }
+
+      this.logger.debug(`Successfully fetched ${result.data.customersBatch.length} customers`);
+      return result.data.customersBatch;
+    } catch (error) {
+      this.logger.error(`Failed to batch fetch customers:`, error);
+      // Return empty array instead of throwing to allow DataLoader to continue
+      return [];
     }
   }
 

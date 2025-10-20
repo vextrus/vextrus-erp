@@ -10,9 +10,22 @@ export class ContextPropagationInterceptor implements NestInterceptor {
   private readonly propagator = new W3CTraceContextPropagator();
 
   intercept(executionContext: ExecutionContext, next: CallHandler): Observable<any> {
+    // Check if this is an HTTP context (GraphQL uses different context type)
+    const contextType = executionContext.getType();
+
+    // Skip tracing for non-HTTP contexts (GraphQL resolvers are traced separately)
+    if (contextType !== 'http') {
+      return next.handle();
+    }
+
     const request = executionContext.switchToHttp().getRequest();
     const response = executionContext.switchToHttp().getResponse();
-    
+
+    // Skip if request or headers are undefined
+    if (!request || !request.headers) {
+      return next.handle();
+    }
+
     // Extract trace context from incoming headers
     const extractedContext = propagation.extract(
       ROOT_CONTEXT,

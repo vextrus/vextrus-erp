@@ -7,6 +7,8 @@ import { CreateJournalInput } from '../inputs/create-journal.input';
 import { AddJournalLineInput } from '../inputs/add-journal-line.input';
 import { JournalType, JournalStatus } from '../dto/enums.dto';
 import { JwtAuthGuard } from '../../../infrastructure/guards/jwt-auth.guard';
+import { RbacGuard } from '../../../infrastructure/guards/rbac.guard';
+import { Permissions } from '../../../infrastructure/decorators/permissions.decorator';
 import { CurrentUser, CurrentUserContext } from '../../../infrastructure/decorators/current-user.decorator';
 import { CreateJournalCommand } from '../../../application/commands/create-journal.command';
 import { AddJournalLineCommand } from '../../../application/commands/add-journal-line.command';
@@ -57,7 +59,8 @@ export class JournalEntryResolver {
    * Query: Get single journal by ID
    */
   @Query(() => JournalEntryDto, { nullable: true, name: 'journal' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('journal:read')
   async getJournal(
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: CurrentUserContext,
@@ -79,7 +82,8 @@ export class JournalEntryResolver {
    * Query: Get journals with optional filters
    */
   @Query(() => [JournalEntryDto], { name: 'journals' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('journal:read')
   async getJournals(
     @CurrentUser() user: CurrentUserContext,
     @Args('journalType', { type: () => JournalType, nullable: true }) journalType?: JournalType,
@@ -105,7 +109,8 @@ export class JournalEntryResolver {
    * Query: Get all journals for specific fiscal period
    */
   @Query(() => [JournalEntryDto], { name: 'journalsByPeriod' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('journal:read')
   async getJournalsByPeriod(
     @Args('fiscalPeriod') fiscalPeriod: string,
     @CurrentUser() user: CurrentUserContext,
@@ -128,7 +133,8 @@ export class JournalEntryResolver {
    * Query: Get unposted journals (DRAFT status)
    */
   @Query(() => [JournalEntryDto], { name: 'unpostedJournals' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('journal:read')
   async getUnpostedJournals(
     @CurrentUser() user: CurrentUserContext,
     @Args('limit', { type: () => Int, nullable: true, defaultValue: 100 }) limit?: number,
@@ -150,7 +156,8 @@ export class JournalEntryResolver {
    * Mutation: Create new journal entry
    */
   @Mutation(() => JournalEntryDto, { name: 'createJournal' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('journal:create')
   async createJournal(
     @Args('input') input: CreateJournalInput,
     @CurrentUser() user: CurrentUserContext,
@@ -189,7 +196,8 @@ export class JournalEntryResolver {
    * Mutation: Add line to existing DRAFT journal
    */
   @Mutation(() => JournalEntryDto, { name: 'addJournalLine' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('journal:update')
   async addJournalLine(
     @Args('journalId', { type: () => ID }) journalId: string,
     @Args('input') input: AddJournalLineInput,
@@ -231,7 +239,8 @@ export class JournalEntryResolver {
    * Mutation: Post journal to ledger
    */
   @Mutation(() => JournalEntryDto, { name: 'postJournal' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('journal:post')
   async postJournal(
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: CurrentUserContext,
@@ -257,7 +266,8 @@ export class JournalEntryResolver {
    * Mutation: Reverse posted journal
    */
   @Mutation(() => JournalEntryDto, { name: 'reverseJournal' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('journal:reverse')
   async reverseJournal(
     @Args('id', { type: () => ID }) id: string,
     @Args('reversingDate') reversingDate: string,

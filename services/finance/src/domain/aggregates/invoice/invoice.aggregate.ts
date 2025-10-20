@@ -625,4 +625,154 @@ export class Invoice extends AggregateRoot<InvoiceProps> {
   getTenantId(): TenantId {
     return this.tenantId;
   }
+
+  /**
+   * Serialize aggregate state to a snapshot for event sourcing optimization.
+   * Converts all value objects and nested objects to plain JSON-serializable format.
+   *
+   * @returns Snapshot object containing all aggregate state
+   */
+  toSnapshot(): any {
+    return {
+      invoiceId: this.invoiceId.value,
+      invoiceNumber: this.invoiceNumber.value,
+      vendorId: this.vendorId.value,
+      customerId: this.customerId.value,
+      lineItems: this.lineItems.map(item => ({
+        id: item.id.value,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: {
+          amount: item.unitPrice.getAmount(),
+          currency: item.unitPrice.getCurrency(),
+        },
+        amount: {
+          amount: item.amount.getAmount(),
+          currency: item.amount.getCurrency(),
+        },
+        vatCategory: item.vatCategory,
+        vatRate: item.vatRate,
+        vatAmount: {
+          amount: item.vatAmount.getAmount(),
+          currency: item.vatAmount.getCurrency(),
+        },
+        hsCode: item.hsCode,
+        supplementaryDuty: item.supplementaryDuty ? {
+          amount: item.supplementaryDuty.getAmount(),
+          currency: item.supplementaryDuty.getCurrency(),
+        } : undefined,
+        advanceIncomeTax: item.advanceIncomeTax ? {
+          amount: item.advanceIncomeTax.getAmount(),
+          currency: item.advanceIncomeTax.getCurrency(),
+        } : undefined,
+      })),
+      subtotal: {
+        amount: this.subtotal.getAmount(),
+        currency: this.subtotal.getCurrency(),
+      },
+      vatAmount: {
+        amount: this.vatAmount.getAmount(),
+        currency: this.vatAmount.getCurrency(),
+      },
+      supplementaryDuty: {
+        amount: this.supplementaryDuty.getAmount(),
+        currency: this.supplementaryDuty.getCurrency(),
+      },
+      advanceIncomeTax: {
+        amount: this.advanceIncomeTax.getAmount(),
+        currency: this.advanceIncomeTax.getCurrency(),
+      },
+      grandTotal: {
+        amount: this.grandTotal.getAmount(),
+        currency: this.grandTotal.getCurrency(),
+      },
+      status: this.status,
+      mushakNumber: this.mushakNumber,
+      challanNumber: this.challanNumber,
+      invoiceDate: this.invoiceDate.toISOString(),
+      dueDate: this.dueDate.toISOString(),
+      tenantId: this.tenantId.value,
+      fiscalYear: this.fiscalYear,
+      vendorTIN: this.vendorTIN?.value,
+      vendorBIN: this.vendorBIN?.value,
+      customerTIN: this.customerTIN?.value,
+      customerBIN: this.customerBIN?.value,
+    };
+  }
+
+  /**
+   * Deserialize a snapshot back to an Invoice aggregate.
+   * Reconstructs all value objects and nested objects from plain JSON.
+   *
+   * @param state - Snapshot state object
+   * @returns Reconstructed Invoice aggregate
+   */
+  static fromSnapshot(state: any): Invoice {
+    const props: InvoiceProps = {
+      invoiceId: new InvoiceId(state.invoiceId),
+      invoiceNumber: InvoiceNumber.create(state.invoiceNumber),
+      vendorId: new VendorId(state.vendorId),
+      customerId: new CustomerId(state.customerId),
+      lineItems: state.lineItems.map((item: any) => ({
+        id: new LineItemId(item.id),
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: Money.fromAmount(item.unitPrice.amount, item.unitPrice.currency),
+        amount: Money.fromAmount(item.amount.amount, item.amount.currency),
+        vatCategory: item.vatCategory,
+        vatRate: item.vatRate,
+        vatAmount: Money.fromAmount(item.vatAmount.amount, item.vatAmount.currency),
+        hsCode: item.hsCode,
+        supplementaryDuty: item.supplementaryDuty
+          ? Money.fromAmount(item.supplementaryDuty.amount, item.supplementaryDuty.currency)
+          : undefined,
+        advanceIncomeTax: item.advanceIncomeTax
+          ? Money.fromAmount(item.advanceIncomeTax.amount, item.advanceIncomeTax.currency)
+          : undefined,
+      })),
+      subtotal: Money.fromAmount(state.subtotal.amount, state.subtotal.currency),
+      vatAmount: Money.fromAmount(state.vatAmount.amount, state.vatAmount.currency),
+      supplementaryDuty: Money.fromAmount(state.supplementaryDuty.amount, state.supplementaryDuty.currency),
+      advanceIncomeTax: Money.fromAmount(state.advanceIncomeTax.amount, state.advanceIncomeTax.currency),
+      grandTotal: Money.fromAmount(state.grandTotal.amount, state.grandTotal.currency),
+      status: state.status,
+      mushakNumber: state.mushakNumber,
+      challanNumber: state.challanNumber,
+      invoiceDate: new Date(state.invoiceDate),
+      dueDate: new Date(state.dueDate),
+      tenantId: new TenantId(state.tenantId),
+      fiscalYear: state.fiscalYear,
+      vendorTIN: state.vendorTIN ? TIN.create(state.vendorTIN) : undefined,
+      vendorBIN: state.vendorBIN ? BIN.create(state.vendorBIN) : undefined,
+      customerTIN: state.customerTIN ? TIN.create(state.customerTIN) : undefined,
+      customerBIN: state.customerBIN ? BIN.create(state.customerBIN) : undefined,
+    };
+
+    const invoice = new Invoice(props, state.invoiceId);
+
+    // Restore internal state
+    invoice.invoiceId = props.invoiceId;
+    invoice.invoiceNumber = props.invoiceNumber;
+    invoice.vendorId = props.vendorId;
+    invoice.customerId = props.customerId;
+    invoice.lineItems = props.lineItems;
+    invoice.subtotal = props.subtotal;
+    invoice.vatAmount = props.vatAmount;
+    invoice.supplementaryDuty = props.supplementaryDuty;
+    invoice.advanceIncomeTax = props.advanceIncomeTax;
+    invoice.grandTotal = props.grandTotal;
+    invoice.status = props.status;
+    invoice.mushakNumber = props.mushakNumber;
+    invoice.challanNumber = props.challanNumber;
+    invoice.invoiceDate = props.invoiceDate;
+    invoice.dueDate = props.dueDate;
+    invoice.tenantId = props.tenantId;
+    invoice.fiscalYear = props.fiscalYear;
+    invoice.vendorTIN = props.vendorTIN;
+    invoice.vendorBIN = props.vendorBIN;
+    invoice.customerTIN = props.customerTIN;
+    invoice.customerBIN = props.customerBIN;
+
+    return invoice;
+  }
 }

@@ -74,12 +74,19 @@ import { JournalEntryReadModel } from '../../infrastructure/persistence/typeorm/
 
 // Infrastructure
 import { TenantContextService } from '../../infrastructure/context/tenant-context.service';
+import { HttpModule } from '@nestjs/axios';
+import { MasterDataClient } from '../../infrastructure/integrations/master-data.client';
+import { MasterDataDataLoader } from '../../infrastructure/integrations/master-data.dataloader';
 
 @Module({
   imports: [
     CqrsModule,
     TypeOrmModule.forFeature([InvoiceReadModel, ChartOfAccountReadModel, PaymentReadModel, JournalEntryReadModel]),
     AuthModule,
+    HttpModule.register({
+      timeout: 5000,
+      maxRedirects: 5,
+    }),
   ],
   providers: [
     // Resolvers
@@ -157,6 +164,10 @@ import { TenantContextService } from '../../infrastructure/context/tenant-contex
 
     // Context
     TenantContextService,
+
+    // Master Data Integration (DataLoader for batching)
+    MasterDataClient,
+    MasterDataDataLoader,
   ],
   exports: [
     InvoiceResolver,

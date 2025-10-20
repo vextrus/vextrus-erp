@@ -1,9 +1,12 @@
-import { Resolver, Query, Mutation, Args, ID, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, Int, ResolveField, Parent } from '@nestjs/graphql';
 import { UseGuards, Logger, NotFoundException } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InvoiceDto } from '../dto/invoice.dto';
 import { CreateInvoiceInput } from '../inputs/create-invoice.input';
 import { JwtAuthGuard } from '../../../infrastructure/guards/jwt-auth.guard';
+import { RbacGuard } from '../../../infrastructure/guards/rbac.guard';
+import { Permissions } from '../../../infrastructure/decorators/permissions.decorator';
+import { Public } from '../../../infrastructure/decorators/public.decorator';
 import { CurrentUser, CurrentUserContext } from '../../../infrastructure/decorators/current-user.decorator';
 import { CreateInvoiceCommand } from '../../../application/commands/create-invoice.command';
 import { ApproveInvoiceCommand } from '../../../application/commands/approve-invoice.command';
@@ -12,6 +15,8 @@ import { GetInvoiceQuery } from '../../../application/queries/get-invoice.query'
 import { GetInvoicesQuery } from '../../../application/queries/get-invoices.query';
 import { Money } from '../../../domain/value-objects/money.value-object';
 import { LineItemDto } from '../../../domain/aggregates/invoice/invoice.aggregate';
+import { MasterDataDataLoader } from '../../../infrastructure/integrations/master-data.dataloader';
+import { Vendor, Customer } from '../../../infrastructure/integrations/master-data.client';
 
 /**
  * Invoice GraphQL Resolver
@@ -27,31 +32,35 @@ export class InvoiceResolver {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly masterDataLoader: MasterDataDataLoader,
   ) {}
 
   @Query(() => InvoiceDto, { nullable: true, name: 'invoice' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('invoice:read')
   async getInvoice(
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: CurrentUserContext,
   ): Promise<InvoiceDto | null> {
-    this.logger.log(`Fetching invoice ${id} for user ${user.userId}`);
+    this.logger.log(`Fetching invoice ${id} for user ${user.userId} (tenant: ${user.tenantId})`);
     return this.queryBus.execute(new GetInvoiceQuery(id));
   }
 
   @Query(() => [InvoiceDto], { name: 'invoices' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('invoice:read')
   async getInvoices(
     @CurrentUser() user: CurrentUserContext,
     @Args('limit', { type: () => Int, nullable: true, defaultValue: 50 }) limit?: number,
     @Args('offset', { type: () => Int, nullable: true, defaultValue: 0 }) offset?: number,
   ): Promise<InvoiceDto[]> {
-    this.logger.log(`Fetching invoices for tenant ${user.tenantId} (limit: ${limit}, offset: ${offset})`);
+    this.logger.log(`Fetching invoices for tenant ${user.tenantId} (user: ${user.userId}, limit: ${limit}, offset: ${offset})`);
     return this.queryBus.execute(new GetInvoicesQuery(user.tenantId, limit, offset));
   }
 
   @Mutation(() => InvoiceDto, { name: 'createInvoice' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('invoice:create')
   async createInvoice(
     @Args('input') input: CreateInvoiceInput,
     @CurrentUser() user: CurrentUserContext,
@@ -95,7 +104,8 @@ export class InvoiceResolver {
   }
 
   @Mutation(() => InvoiceDto, { name: 'approveInvoice' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('invoice:approve')
   async approveInvoice(
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: CurrentUserContext,
@@ -115,7 +125,8 @@ export class InvoiceResolver {
   }
 
   @Mutation(() => InvoiceDto, { name: 'cancelInvoice' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('invoice:cancel')
   async cancelInvoice(
     @Args('id', { type: () => ID }) id: string,
     @Args('reason') reason: string,

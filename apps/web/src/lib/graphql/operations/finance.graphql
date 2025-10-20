@@ -1,0 +1,116 @@
+# Finance Module GraphQL Operations
+# Queries and mutations for invoice, payment, and accounting operations
+
+# Get all invoices for current tenant
+query GetInvoices(
+  $limit: Int = 50
+  $offset: Int = 0
+) {
+  invoices(limit: $limit, offset: $offset) {
+    id
+    invoiceNumber
+    status
+    customerId
+    customerTIN
+    customerBIN
+    grandTotal {
+      amount
+      currency
+    }
+    invoiceDate
+    dueDate
+    createdAt
+    updatedAt
+  }
+}
+
+# Get single invoice by ID
+query GetInvoice($id: ID!) {
+  invoice(id: $id) {
+    id
+    invoiceNumber
+    status
+    vendorId
+    customerId
+    vendorTIN
+    vendorBIN
+    customerTIN
+    customerBIN
+    grandTotal {
+      amount
+      currency
+    }
+    subtotal {
+      amount
+      currency
+    }
+    vatAmount {
+      amount
+      currency
+    }
+    supplementaryDuty {
+      amount
+      currency
+    }
+    advanceIncomeTax {
+      amount
+      currency
+    }
+    invoiceDate
+    dueDate
+    fiscalYear
+    mushakNumber
+    challanNumber
+    lineItems {
+      description
+      quantity
+      unitPrice {
+        amount
+        currency
+      }
+    }
+    createdAt
+    updatedAt
+  }
+}
+
+# Get chart of accounts
+query GetChartOfAccounts {
+  chartOfAccounts {
+    id
+    accountCode
+    accountName
+    accountType
+    parentAccountId
+    balance {
+      amount
+      currency
+    }
+    currency
+    isActive
+    createdAt
+  }
+}
+
+# Get payments by status
+query GetPaymentsByStatus(
+  $status: PaymentStatus!
+  $limit: Int = 50
+  $offset: Int = 0
+) {
+  paymentsByStatus(status: $status, limit: $limit, offset: $offset) {
+    id
+    paymentNumber
+    invoiceId
+    amount {
+      amount
+      currency
+    }
+    paymentMethod
+    status
+    paymentDate
+    reference
+    createdAt
+    updatedAt
+  }
+}

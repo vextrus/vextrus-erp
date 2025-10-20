@@ -548,4 +548,74 @@ export class Payment extends AggregateRoot<PaymentId> {
   isReconciled(): boolean {
     return this.status === PaymentStatus.RECONCILED;
   }
+
+  /**
+   * Serialize aggregate state to a snapshot for event sourcing optimization.
+   * Converts all value objects and nested objects to plain JSON-serializable format.
+   *
+   * @returns Snapshot object containing all aggregate state
+   */
+  toSnapshot(): any {
+    return {
+      paymentId: this.paymentId.value,
+      paymentNumber: this.paymentNumber,
+      invoiceId: this.invoiceId.value,
+      amount: {
+        amount: this.amount.getAmount(),
+        currency: this.amount.getCurrency(),
+      },
+      paymentMethod: this.paymentMethod,
+      bankAccount: this.bankAccount?.value,
+      mobileWallet: this.mobileWallet ? {
+        provider: this.mobileWallet.provider,
+        mobileNumber: this.mobileWallet.mobileNumber,
+        transactionId: this.mobileWallet.transactionId,
+        accountNumber: this.mobileWallet.accountNumber,
+        merchantCode: this.mobileWallet.merchantCode,
+        // Note: pin is omitted for security
+      } : undefined,
+      status: this.status,
+      paymentDate: this.paymentDate.toISOString(),
+      reference: this.reference,
+      reconciledAt: this.reconciledAt?.toISOString(),
+      transactionReference: this.transactionReference,
+      tenantId: this.tenantId.value,
+      checkNumber: this.checkNumber,
+    };
+  }
+
+  /**
+   * Deserialize a snapshot back to a Payment aggregate.
+   * Reconstructs all value objects and nested objects from plain JSON.
+   *
+   * @param state - Snapshot state object
+   * @returns Reconstructed Payment aggregate
+   */
+  static fromSnapshot(state: any): Payment {
+    const payment = new Payment(undefined, state.paymentId);
+
+    // Restore internal state
+    payment.paymentId = new PaymentId(state.paymentId);
+    payment.paymentNumber = state.paymentNumber;
+    payment.invoiceId = new InvoiceId(state.invoiceId);
+    payment.amount = Money.fromAmount(state.amount.amount, state.amount.currency);
+    payment.paymentMethod = state.paymentMethod;
+    payment.bankAccount = state.bankAccount ? new BankAccountId(state.bankAccount) : undefined;
+    payment.mobileWallet = state.mobileWallet ? {
+      provider: state.mobileWallet.provider,
+      mobileNumber: state.mobileWallet.mobileNumber,
+      transactionId: state.mobileWallet.transactionId,
+      accountNumber: state.mobileWallet.accountNumber,
+      merchantCode: state.mobileWallet.merchantCode,
+    } : undefined;
+    payment.status = state.status;
+    payment.paymentDate = new Date(state.paymentDate);
+    payment.reference = state.reference;
+    payment.reconciledAt = state.reconciledAt ? new Date(state.reconciledAt) : undefined;
+    payment.transactionReference = state.transactionReference;
+    payment.tenantId = new TenantId(state.tenantId);
+    payment.checkNumber = state.checkNumber;
+
+    return payment;
+  }
 }

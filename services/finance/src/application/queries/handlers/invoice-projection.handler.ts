@@ -10,7 +10,7 @@ import {
   InvoiceCalculatedEvent,
 } from '../../../domain/aggregates/invoice/invoice.aggregate';
 import { InvoiceProjection, FinancialSummaryProjection, EntityTransactionProjection } from '../projections/invoice.projection';
-import { MasterDataClient } from '../../../infrastructure/integrations/master-data.client';
+import { MasterDataDataLoader } from '../../../infrastructure/integrations/master-data.dataloader';
 
 @EventsHandler(InvoiceCreatedEvent, InvoiceApprovedEvent, LineItemAddedEvent, InvoiceCalculatedEvent, InvoiceCancelledEvent)
 export class InvoiceProjectionHandler implements IEventHandler {
@@ -23,7 +23,7 @@ export class InvoiceProjectionHandler implements IEventHandler {
     private readonly summaryRepository: Repository<FinancialSummaryProjection>,
     @InjectRepository(EntityTransactionProjection)
     private readonly entityTransactionRepository: Repository<EntityTransactionProjection>,
-    private readonly masterDataClient: MasterDataClient,
+    private readonly masterDataLoader: MasterDataDataLoader,
   ) {}
 
   async handle(event: any): Promise<void> {
@@ -80,9 +80,9 @@ export class InvoiceProjectionHandler implements IEventHandler {
     projection.paidAmount = 0;
     projection.balanceAmount = 0;
 
-    // Fetch vendor details
+    // Fetch vendor details (batched via DataLoader)
     try {
-      const vendor = await this.masterDataClient.getVendor(event.vendorId.value);
+      const vendor = await this.masterDataLoader.loadVendor(event.vendorId.value);
       if (vendor) {
         projection.vendorName = vendor.name;
         projection.vendorTin = vendor.tin;
@@ -92,9 +92,9 @@ export class InvoiceProjectionHandler implements IEventHandler {
       this.logger.warn(`Failed to fetch vendor details for ${event.vendorId.value}:`, error);
     }
 
-    // Fetch customer details
+    // Fetch customer details (batched via DataLoader)
     try {
-      const customer = await this.masterDataClient.getCustomer(event.customerId.value);
+      const customer = await this.masterDataLoader.loadCustomer(event.customerId.value);
       if (customer) {
         projection.customerName = customer.name;
         projection.customerTin = customer.tin;

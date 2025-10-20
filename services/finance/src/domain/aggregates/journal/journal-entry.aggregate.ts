@@ -623,4 +623,96 @@ export class JournalEntry extends AggregateRoot<JournalId> {
   isPosted(): boolean {
     return this.status === JournalStatus.POSTED;
   }
+
+  /**
+   * Serialize aggregate state to a snapshot for event sourcing optimization.
+   * Converts all value objects and nested objects to plain JSON-serializable format.
+   *
+   * @returns Snapshot object containing all aggregate state
+   */
+  toSnapshot(): any {
+    return {
+      journalId: this.journalId.value,
+      journalNumber: this.journalNumber,
+      journalDate: this.journalDate.toISOString(),
+      journalType: this.journalType,
+      description: this.description,
+      reference: this.reference,
+      entries: this.entries.map(entry => ({
+        lineId: entry.lineId.value,
+        accountId: entry.accountId.value,
+        debitAmount: {
+          amount: entry.debitAmount.getAmount(),
+          currency: entry.debitAmount.getCurrency(),
+        },
+        creditAmount: {
+          amount: entry.creditAmount.getAmount(),
+          currency: entry.creditAmount.getCurrency(),
+        },
+        description: entry.description,
+        costCenter: entry.costCenter,
+        project: entry.project,
+        reference: entry.reference,
+        taxCode: entry.taxCode,
+      })),
+      totalDebit: {
+        amount: this.totalDebit.getAmount(),
+        currency: this.totalDebit.getCurrency(),
+      },
+      totalCredit: {
+        amount: this.totalCredit.getAmount(),
+        currency: this.totalCredit.getCurrency(),
+      },
+      status: this.status,
+      isReversing: this.isReversing,
+      reversingDate: this.reversingDate?.toISOString(),
+      originalJournalId: this.originalJournalId?.value,
+      tenantId: this.tenantId.value,
+      fiscalPeriod: this.fiscalPeriod,
+      postedAt: this.postedAt?.toISOString(),
+      postedBy: this.postedBy?.value,
+    };
+  }
+
+  /**
+   * Deserialize a snapshot back to a JournalEntry aggregate.
+   * Reconstructs all value objects and nested objects from plain JSON.
+   *
+   * @param state - Snapshot state object
+   * @returns Reconstructed JournalEntry aggregate
+   */
+  static fromSnapshot(state: any): JournalEntry {
+    const journal = new JournalEntry(undefined, state.journalId);
+
+    // Restore internal state
+    journal.journalId = new JournalId(state.journalId);
+    journal.journalNumber = state.journalNumber;
+    journal.journalDate = new Date(state.journalDate);
+    journal.journalType = state.journalType;
+    journal.description = state.description;
+    journal.reference = state.reference;
+    journal.entries = state.entries.map((entry: any) => ({
+      lineId: new JournalLineId(entry.lineId),
+      accountId: new AccountId(entry.accountId),
+      debitAmount: Money.fromAmount(entry.debitAmount.amount, entry.debitAmount.currency),
+      creditAmount: Money.fromAmount(entry.creditAmount.amount, entry.creditAmount.currency),
+      description: entry.description,
+      costCenter: entry.costCenter,
+      project: entry.project,
+      reference: entry.reference,
+      taxCode: entry.taxCode,
+    }));
+    journal.totalDebit = Money.fromAmount(state.totalDebit.amount, state.totalDebit.currency);
+    journal.totalCredit = Money.fromAmount(state.totalCredit.amount, state.totalCredit.currency);
+    journal.status = state.status;
+    journal.isReversing = state.isReversing;
+    journal.reversingDate = state.reversingDate ? new Date(state.reversingDate) : undefined;
+    journal.originalJournalId = state.originalJournalId ? new JournalId(state.originalJournalId) : undefined;
+    journal.tenantId = new TenantId(state.tenantId);
+    journal.fiscalPeriod = state.fiscalPeriod;
+    journal.postedAt = state.postedAt ? new Date(state.postedAt) : undefined;
+    journal.postedBy = state.postedBy ? new UserId(state.postedBy) : undefined;
+
+    return journal;
+  }
 }

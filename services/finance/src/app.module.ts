@@ -40,14 +40,16 @@ import { APP_GUARD } from '@nestjs/core';
       password: process.env.DATABASE_PASSWORD,  // NO FALLBACK - Required via environment variable
       database: process.env.DATABASE_NAME,
       autoLoadEntities: true,
-      synchronize: false, // NEVER auto-sync schema (use migrations instead)
+      synchronize: false, // PRODUCTION-READY: Use migrations only (see typeorm.config.ts)
       logging: process.env.NODE_ENV === 'development',
       extra: {
         connectionTimeoutMillis: 5000,
         max: 20,  // Connection pool size
-        ssl: process.env.NODE_ENV === 'production' ? {
-          rejectUnauthorized: true
-        } : false
+        ssl: process.env.DATABASE_SSL_ENABLED === 'false' ? false : (
+          process.env.NODE_ENV === 'production' ? {
+            rejectUnauthorized: true
+          } : false
+        )
       }
     }),
 

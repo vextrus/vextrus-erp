@@ -8,6 +8,9 @@ import { FailPaymentInput } from '../inputs/fail-payment.input';
 import { ReconcilePaymentInput } from '../inputs/reconcile-payment.input';
 import { ReversePaymentInput } from '../inputs/reverse-payment.input';
 import { JwtAuthGuard } from '../../../infrastructure/guards/jwt-auth.guard';
+import { RbacGuard } from '../../../infrastructure/guards/rbac.guard';
+import { Permissions } from '../../../infrastructure/decorators/permissions.decorator';
+import { Public } from '../../../infrastructure/decorators/public.decorator';
 import { CurrentUser, CurrentUserContext } from '../../../infrastructure/decorators/current-user.decorator';
 import { CreatePaymentCommand } from '../../../application/commands/create-payment.command';
 import { CompletePaymentCommand } from '../../../application/commands/complete-payment.command';
@@ -55,7 +58,8 @@ export class PaymentResolver {
    * Query: Get single payment by ID
    */
   @Query(() => PaymentDto, { nullable: true, name: 'payment' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('payment:read')
   async getPayment(
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: CurrentUserContext,
@@ -77,7 +81,8 @@ export class PaymentResolver {
    * Query: Get payments with optional filters
    */
   @Query(() => [PaymentDto], { name: 'payments' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('payment:read')
   async getPayments(
     @CurrentUser() user: CurrentUserContext,
     @Args('invoiceId', { nullable: true }) invoiceId?: string,
@@ -102,7 +107,8 @@ export class PaymentResolver {
    * Query: Get all payments for specific invoice
    */
   @Query(() => [PaymentDto], { name: 'paymentsByInvoice' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('payment:read')
   async getPaymentsByInvoice(
     @Args('invoiceId', { type: () => ID }) invoiceId: string,
     @CurrentUser() user: CurrentUserContext,
@@ -120,7 +126,8 @@ export class PaymentResolver {
    * Query: Get payments by status
    */
   @Query(() => [PaymentDto], { name: 'paymentsByStatus' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('payment:read')
   async getPaymentsByStatus(
     @Args('status', { type: () => PaymentStatus }) status: PaymentStatus,
     @CurrentUser() user: CurrentUserContext,
@@ -142,7 +149,8 @@ export class PaymentResolver {
    * Mutation: Create new payment
    */
   @Mutation(() => PaymentDto, { name: 'createPayment' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('payment:create')
   async createPayment(
     @Args('input') input: CreatePaymentInput,
     @CurrentUser() user: CurrentUserContext,
@@ -187,7 +195,8 @@ export class PaymentResolver {
    * Mutation: Complete payment
    */
   @Mutation(() => PaymentDto, { name: 'completePayment' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('payment:process')
   async completePayment(
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: CompletePaymentInput,
@@ -214,7 +223,8 @@ export class PaymentResolver {
    * Mutation: Fail payment
    */
   @Mutation(() => PaymentDto, { name: 'failPayment' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('payment:process')
   async failPayment(
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: FailPaymentInput,
@@ -241,7 +251,8 @@ export class PaymentResolver {
    * Mutation: Reconcile payment with bank statement
    */
   @Mutation(() => PaymentDto, { name: 'reconcilePayment' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('payment:reconcile')
   async reconcilePayment(
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: ReconcilePaymentInput,
@@ -270,7 +281,8 @@ export class PaymentResolver {
    * Mutation: Reverse payment (refund/chargeback)
    */
   @Mutation(() => PaymentDto, { name: 'reversePayment' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('payment:refund')
   async reversePayment(
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: ReversePaymentInput,

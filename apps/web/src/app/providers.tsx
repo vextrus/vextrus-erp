@@ -5,8 +5,8 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { type ThemeProviderProps } from 'next-themes/dist/types'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { ApolloProvider } from '@apollo/client'
-import { apolloClient } from '@/lib/apollo/client'
+import { ApolloWrapper } from '@/lib/apollo/apollo-provider'
+import { AuthProvider } from '@/lib/auth/auth-context'
 import { Toaster } from 'sonner'
 import { registerWebVitals } from '@/lib/vitals'
 
@@ -34,24 +34,26 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <ApolloProvider client={apolloClient}>
-        <QueryClientProvider client={queryClient}>
-          {children}
-          <ReactQueryDevtools initialIsOpen={false} />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: 'rgba(255, 255, 255, 0.15)',
-                backdropFilter: 'blur(30px)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: 'inherit',
-              },
-            }}
-          />
-        </QueryClientProvider>
-      </ApolloProvider>
+      <AuthProvider>
+        <ApolloWrapper>
+          <QueryClientProvider client={queryClient}>
+            {children}
+            <ReactQueryDevtools initialIsOpen={false} />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(30px)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: 'inherit',
+                },
+              }}
+            />
+          </QueryClientProvider>
+        </ApolloWrapper>
+      </AuthProvider>
     </NextThemesProvider>
   )
 }

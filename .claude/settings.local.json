@@ -1,182 +1,26 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(./daic)",
-      "Bash(cat:*)",
-      "mcp__serena__activate_project",
-      "mcp__serena__search_for_pattern",
-      "mcp__serena__get_symbols_overview",
-      "mcp__sequential-thinking__sequentialthinking",
-      "mcp__serena__find_symbol",
-      "mcp__serena__list_dir",
-      "mcp__brave-search__brave_web_search",
-      "mcp__serena__find_file",
-      "Bash(npm run build:*)",
-      "Bash(npx tsc:*)",
-      "mcp__filesystem__read_text_file",
-      "mcp__filesystem__list_directory",
-      "Bash(docker-compose config:*)"
-    ],
-    "deny": [],
-    "ask": []
-  },
-  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "playwright",
-    "brave-search",
+    "filesystem",
+    "postgres",
+    "sequential-thinking",
     "context7",
     "consult7",
+    "docker",
+    "playwright",
+    "brave-search",
     "serena",
-    "filesystem",
     "github",
     "memory",
-    "sequential-thinking",
     "prisma-local",
     "prisma-remote",
-    "postgres",
     "sqlite",
     "brightdata",
     "notion",
     "reddit"
   ],
-  "hooks": {},
-  "environment": {
-    "platform": "windows_gitbash_mingw",
-    "python": {
-      "command": "python",
-      "fallback": "python3",
-      "encoding": "utf-8"
-    },
-    "shell": {
-      "type": "bash",
-      "executable": "/usr/bin/bash",
-      "windows_path_conversion": true
-    },
-    "paths": {
-      "normalize_windows": true,
-      "use_forward_slash": true,
-      "case_sensitive": false
-    },
-    "terminal": {
-      "supports_ansi": true,
-      "encoding": "utf-8",
-      "color_support": "256"
-    }
-  },
-  "performance": {
-    "parallel_tool_calls": true,
-    "batch_file_operations": true,
-    "context_window": {
-      "sonnet_limit": 800000,
-      "opus_limit": 160000,
-      "auto_compact_threshold": 0.8
-    },
-    "caching": {
-      "enable_mcp_cache": true,
-      "cache_duration_minutes": 15
-    }
-  },
-  "mcp_server_config": {
-    "filesystem": {
-      "allowed_directories": [
-        "C:/Users/riz/vextrus-erp",
-        "C:/Users/riz/vextrus-erp/apps",
-        "C:/Users/riz/vextrus-erp/services",
-        "C:/Users/riz/vextrus-erp/shared",
-        "C:/Users/riz/vextrus-erp/sessions",
-        "C:/Users/riz/vextrus-erp/.claude"
-      ],
-      "path_normalization": "windows",
-      "encoding": "utf-8"
-    },
-    "github": {
-      "api_timeout": 30000,
-      "max_retries": 3,
-      "rate_limit_handling": "auto"
-    },
-    "sqlite": {
-      "database_path": "C:/Users/riz/vextrus-erp/data/vextrus.db",
-      "connection_timeout": 5000,
-      "busy_timeout": 10000
-    },
-    "serena": {
-      "project_root": "C:/Users/riz/vextrus-erp",
-      "ignore_patterns": [
-        "node_modules",
-        ".git",
-        "dist",
-        "build",
-        ".next",
-        ".turbo"
-      ],
-      "max_file_size_mb": 5,
-      "encoding": "utf-8"
-    },
-    "memory": {
-      "knowledge_base_path": "C:/Users/riz/vextrus-erp/.serena/memory",
-      "graph_db_path": "C:/Users/riz/vextrus-erp/.serena/knowledge.db",
-      "auto_save": true
-    },
-    "playwright": {
-      "browser": "chromium",
-      "headless": true,
-      "timeout": 30000,
-      "download_path": "C:/Users/riz/Downloads"
-    },
-    "brightdata": {
-      "timeout": 60000,
-      "max_concurrent": 3
-    },
-    "context7": {
-      "cache_enabled": true,
-      "cache_duration": 3600,
-      "default_tokens": 10000
-    },
-    "consult7": {
-      "default_model": "gemini-2.5-flash",
-      "enable_thinking": false,
-      "max_files": 10
-    },
-    "notion": {
-      "page_size": 100,
-      "timeout": 30000
-    },
-    "reddit": {
-      "default_limit": 10,
-      "cache_duration": 300
-    },
-    "sequential-thinking": {
-      "max_thoughts": 50,
-      "enable_branching": true
-    },
-    "brave-search": {
-      "results_per_page": 10,
-      "safe_search": "moderate"
-    }
-  },
-  "git": {
-    "autocrlf": "input",
-    "core_editor": "vim",
-    "default_branch": "main",
-    "pull_rebase": true
-  },
-  "development": {
-    "enable_debug_logs": false,
-    "verbose_errors": true,
-    "timing_metrics": false,
-    "mcp_server_logs": false
-  },
-  "shortcuts": {
-    "task_dir": "sessions/tasks",
-    "state_dir": ".claude/state",
-    "hooks_dir": ".claude/hooks",
-    "protocols_dir": "sessions/protocols"
-  },
-  "auto_operations": {
-    "auto_save_state": true,
-    "auto_update_task_status": true,
-    "auto_compact_context": true,
-    "auto_run_tests": false,
-    "auto_lint": false
+  "permissions": {
+    "allow": [
+      "mcp__sequential-thinking__sequentialthinking"
+    ]
   }
 }

@@ -5,6 +5,9 @@ import { ChartOfAccountDto } from '../dto/chart-of-account.dto';
 import { CreateAccountInput } from '../inputs/create-account.input';
 import { AccountType } from '../dto/enums.dto';
 import { JwtAuthGuard } from '../../../infrastructure/guards/jwt-auth.guard';
+import { RbacGuard } from '../../../infrastructure/guards/rbac.guard';
+import { Permissions } from '../../../infrastructure/decorators/permissions.decorator';
+import { Public } from '../../../infrastructure/decorators/public.decorator';
 import { CurrentUser, CurrentUserContext } from '../../../infrastructure/decorators/current-user.decorator';
 import { CreateAccountCommand } from '../../../application/commands/create-account.command';
 import { DeactivateAccountCommand } from '../../../application/commands/deactivate-account.command';
@@ -35,7 +38,8 @@ export class ChartOfAccountResolver {
   ) {}
 
   @Query(() => ChartOfAccountDto, { nullable: true, name: 'chartOfAccount' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('account:read')
   async getChartOfAccount(
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: CurrentUserContext,
@@ -45,7 +49,8 @@ export class ChartOfAccountResolver {
   }
 
   @Query(() => [ChartOfAccountDto], { name: 'chartOfAccounts' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('account:read')
   async getChartOfAccounts(
     @CurrentUser() user: CurrentUserContext,
     @Args('accountType', { type: () => AccountType, nullable: true }) accountType?: AccountType,
@@ -63,7 +68,8 @@ export class ChartOfAccountResolver {
   }
 
   @Query(() => ChartOfAccountDto, { nullable: true, name: 'accountByCode' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('account:read')
   async getAccountByCode(
     @Args('accountCode') accountCode: string,
     @CurrentUser() user: CurrentUserContext,
@@ -73,7 +79,8 @@ export class ChartOfAccountResolver {
   }
 
   @Mutation(() => ChartOfAccountDto, { name: 'createAccount' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('account:create')
   async createAccount(
     @Args('input') input: CreateAccountInput,
     @CurrentUser() user: CurrentUserContext,
@@ -102,7 +109,8 @@ export class ChartOfAccountResolver {
   }
 
   @Mutation(() => ChartOfAccountDto, { name: 'deactivateAccount' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('account:deactivate')
   async deactivateAccount(
     @Args('id', { type: () => ID }) id: string,
     @Args('reason') reason: string,

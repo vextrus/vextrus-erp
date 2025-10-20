@@ -27,12 +27,17 @@ COPY shared/ ./shared/
 COPY services/finance/package.json ./services/finance/
 COPY services/finance/ ./services/finance/
 
-# Install dependencies
+# Install dependencies for the entire workspace (skip optional deps that need native builds)
 WORKDIR /app
-RUN pnpm install --filter @vextrus/finance-service... || pnpm install
+RUN pnpm install --frozen-lockfile --no-optional --ignore-scripts || pnpm install --no-optional --ignore-scripts
 
-# Build the application
+# Build shared packages first
+RUN cd shared/infrastructure && pnpm run build || echo "Shared infrastructure build skipped"
+RUN cd shared/cache && pnpm run build || echo "Shared cache build skipped"
+
+# Build the finance service
 WORKDIR /app/services/finance
+RUN pnpm install --frozen-lockfile --no-optional || pnpm install --no-optional
 RUN pnpm run build
 
 # Production stage
@@ -47,9 +52,13 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
-# Copy built application
-COPY --from=builder --chown=nodejs:nodejs /app/services/finance/dist ./dist
+# Copy built application, pnpm store, and service node_modules
+WORKDIR /app
+# Copy root node_modules with .pnpm store
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.pnpm ./node_modules/.pnpm
+# Copy service node_modules with symlinks to dependencies
 COPY --from=builder --chown=nodejs:nodejs /app/services/finance/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/services/finance/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/services/finance/package.json ./package.json
 
 # Set environment variables
@@ -70,4 +79,4 @@ EXPOSE 3014
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start application
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]

@@ -1,0 +1,146 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created": "2025-10-16T00:00:00Z",
+    "last_updated": "2025-10-16T23:00:47.550111"
+  },
+  "config": {
+    "monthly_budget_usd": 500.0,
+    "alert_threshold_pct": 80,
+    "model_costs": {
+      "sonnet-4.5": {
+        "input_per_1m_tokens": 3.0,
+        "output_per_1m_tokens": 15.0
+      },
+      "haiku-4.5": {
+        "input_per_1m_tokens": 0.8,
+        "output_per_1m_tokens": 4.0
+      }
+    }
+  },
+  "daily": {
+    "2025-10-16": {
+      "total_cost_usd": 0.2949,
+      "sonnet_cost_usd": 0.2625,
+      "haiku_cost_usd": 0.0324,
+      "sonnet_tokens_input": 30000,
+      "sonnet_tokens_output": 11500,
+      "haiku_tokens_input": 13000,
+      "haiku_tokens_output": 5500,
+      "by_agent_category": {
+        "backend-development": 0.21689999999999998,
+        "documentation": 0.012,
+        "compounding-engineering": 0.066
+      },
+      "by_agent": {
+        "backend-development:backend-architect": 0.08549999999999999,
+        "documentation:docs-architect": 0.012,
+        "backend-development:graphql-architect": 0.0204,
+        "compounding-engineering:architecture-strategist": 0.066,
+        "backend-development:backend-security-coder": 0.111
+      },
+      "invocations": [
+        {
+          "timestamp": "2025-10-16T22:04:13.982225",
+          "agent": "backend-development:backend-architect",
+          "model": "sonnet-4.5",
+          "tokens_input": 8500,
+          "tokens_output": 4000,
+          "cost_usd": 0.08549999999999999,
+          "duration_seconds": 45.2
+        },
+        {
+          "timestamp": "2025-10-16T23:00:47.507746",
+          "agent": "documentation:docs-architect",
+          "model": "haiku-4.5",
+          "tokens_input": 5000,
+          "tokens_output": 2000,
+          "cost_usd": 0.012,
+          "duration_seconds": 12.3
+        },
+        {
+          "timestamp": "2025-10-16T23:00:47.515369",
+          "agent": "backend-development:graphql-architect",
+          "model": "haiku-4.5",
+          "tokens_input": 8000,
+          "tokens_output": 3500,
+          "cost_usd": 0.0204,
+          "duration_seconds": 25.7
+        },
+        {
+          "timestamp": "2025-10-16T23:00:47.523962",
+          "agent": "compounding-engineering:architecture-strategist",
+          "model": "sonnet-4.5",
+          "tokens_input": 9500,
+          "tokens_output": 2500,
+          "cost_usd": 0.066,
+          "duration_seconds": 18.4
+        },
+        {
+          "timestamp": "2025-10-16T23:00:47.550111",
+          "agent": "backend-development:backend-security-coder",
+          "model": "sonnet-4.5",
+          "tokens_input": 12000,
+          "tokens_output": 5000,
+          "cost_usd": 0.111,
+          "duration_seconds": 45.2
+        }
+      ]
+    }
+  },
+  "monthly": {
+    "2025-10": {
+      "total_cost_usd": 0.2949,
+      "sonnet_cost_usd": 0.2625,
+      "haiku_cost_usd": 0.0324,
+      "sonnet_tokens_input": 30000,
+      "sonnet_tokens_output": 11500,
+      "haiku_tokens_input": 13000,
+      "haiku_tokens_output": 5500,
+      "by_agent_category": {
+        "backend-development": 0.21689999999999998,
+        "documentation": 0.012,
+        "compounding-engineering": 0.066
+      },
+      "by_agent": {
+        "backend-development:backend-architect": {
+          "cost_usd": 0.08549999999999999,
+          "invocations": 1,
+          "tokens_input": 8500,
+          "tokens_output": 4000
+        },
+        "documentation:docs-architect": {
+          "cost_usd": 0.012,
+          "invocations": 1,
+          "tokens_input": 5000,
+          "tokens_output": 2000
+        },
+        "backend-development:graphql-architect": {
+          "cost_usd": 0.0204,
+          "invocations": 1,
+          "tokens_input": 8000,
+          "tokens_output": 3500
+        },
+        "compounding-engineering:architecture-strategist": {
+          "cost_usd": 0.066,
+          "invocations": 1,
+          "tokens_input": 9500,
+          "tokens_output": 2500
+        },
+        "backend-development:backend-security-coder": {
+          "cost_usd": 0.111,
+          "invocations": 1,
+          "tokens_input": 12000,
+          "tokens_output": 5000
+        }
+      },
+      "alerts": []
+    }
+  },
+  "statistics": {
+    "total_invocations": 5,
+    "avg_cost_per_invocation": 0.05898,
+    "sonnet_usage_pct": 89.01322482197355,
+    "haiku_usage_pct": 10.986775178026448
+  }
+}

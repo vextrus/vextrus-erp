@@ -355,4 +355,53 @@ export class ChartOfAccount extends AggregateRoot<AccountId> {
   getParentAccountId(): AccountId | undefined {
     return this.parentAccountId;
   }
+
+  /**
+   * Serialize aggregate state to a snapshot for event sourcing optimization.
+   * Converts all value objects and nested objects to plain JSON-serializable format.
+   *
+   * @returns Snapshot object containing all aggregate state
+   */
+  toSnapshot(): any {
+    return {
+      accountId: this.accountId.value,
+      accountCode: this.accountCode.value,
+      accountName: this.accountName,
+      accountType: this.accountType,
+      parentAccountId: this.parentAccountId?.value,
+      balance: {
+        amount: this.balance.getAmount(),
+        currency: this.balance.getCurrency(),
+      },
+      currency: this.currency,
+      isActive: this.isActive,
+      tenantId: this.tenantId.value,
+      children: this.children.map(child => child.value),
+    };
+  }
+
+  /**
+   * Deserialize a snapshot back to a ChartOfAccount aggregate.
+   * Reconstructs all value objects and nested objects from plain JSON.
+   *
+   * @param state - Snapshot state object
+   * @returns Reconstructed ChartOfAccount aggregate
+   */
+  static fromSnapshot(state: any): ChartOfAccount {
+    const account = new ChartOfAccount(undefined, state.accountId);
+
+    // Restore internal state
+    account.accountId = new AccountId(state.accountId);
+    account.accountCode = new AccountCode(state.accountCode);
+    account.accountName = state.accountName;
+    account.accountType = state.accountType;
+    account.parentAccountId = state.parentAccountId ? new AccountId(state.parentAccountId) : undefined;
+    account.balance = Money.fromAmount(state.balance.amount, state.balance.currency);
+    account.currency = state.currency;
+    account.isActive = state.isActive;
+    account.tenantId = new TenantId(state.tenantId);
+    account.children = state.children.map((childId: string) => new AccountId(childId));
+
+    return account;
+  }
 }

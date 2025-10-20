@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "codegen:watch": "graphql-codegen --config codegen.ts --watch",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test": "vitest",
@@ -27,6 +29,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.11.4",
+    "@apollo/experimental-nextjs-app-support": "^0.14.0",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -77,6 +80,11 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
+    "@graphql-codegen/cli": "^6.0.0",
+    "@graphql-codegen/client-preset": "^5.1.0",
+    "@graphql-codegen/typescript": "^5.0.2",
+    "@graphql-codegen/typescript-operations": "^5.0.2",
+    "@graphql-codegen/typescript-react-apollo": "^4.3.3",
     "@lhci/cli": "^0.15.1",
     "@next/bundle-analyzer": "^15.5.4",
     "@storybook/addon-a11y": "8.6.14",

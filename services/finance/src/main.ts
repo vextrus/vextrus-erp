@@ -3,6 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 
 import * as express from 'express';
 
@@ -17,6 +19,45 @@ async function bootstrap() {
     expressApp.use(express.json());
     expressApp.use(express.urlencoded({ extended: true }));
   }
+
+  // Security: Add Helmet for security headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Required for GraphQL Playground
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
+      },
+      hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true,
+      },
+      frameguard: {
+        action: 'deny',
+      },
+      noSniff: true,
+    }),
+  );
+
+  // Security: Rate limiting - 100 requests per 15 minutes per IP
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    skip: (req) => {
+      // Skip rate limiting for health checks
+      return req.path.startsWith('/health');
+    },
+  });
+
+  // Apply rate limiter globally
+  app.use(limiter);
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3014);
@@ -44,7 +85,7 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: true, // Strict validation - reject unknown properties
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,

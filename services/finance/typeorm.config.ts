@@ -1,28 +1,22 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
+import { join } from 'path';
 
 // Load environment variables
-config();
+config({ path: ['.env.local', '.env'] });
 
 /**
- * TypeORM Configuration for Migrations
+ * TypeORM DataSource configuration for migrations
  *
- * This configuration is used for generating and running database migrations.
- * It's separate from the runtime TypeORM configuration in AppModule.
+ * This configuration is used by the TypeORM CLI for migration operations.
+ * It must match the configuration in app.module.ts for production consistency.
  *
  * Usage:
- * - npm run migration:generate -- -n MigrationName
- * - npm run migration:run
- * - npm run migration:revert
- *
- * Environment Variables:
- * - DATABASE_HOST: PostgreSQL host (default: localhost)
- * - DATABASE_PORT: PostgreSQL port (default: 5432)
- * - DATABASE_USERNAME: Database username (default: vextrus)
- * - DATABASE_PASSWORD: Database password (default: vextrus_dev_2024)
- * - DATABASE_NAME: Database name (default: vextrus_finance)
+ *   npm run migration:generate -- src/infrastructure/persistence/typeorm/migrations/MigrationName
+ *   npm run migration:run
+ *   npm run migration:revert
  */
-export const AppDataSource = new DataSource({
+export default new DataSource({
   type: 'postgres',
   host: process.env.DATABASE_HOST || 'localhost',
   port: parseInt(process.env.DATABASE_PORT || '5432', 10),
@@ -30,18 +24,31 @@ export const AppDataSource = new DataSource({
   password: process.env.DATABASE_PASSWORD || 'vextrus_dev_2024',
   database: process.env.DATABASE_NAME || 'vextrus_finance',
 
-  // Entity paths for TypeORM CLI
-  entities: ['src/**/entities/*.entity.ts'],
+  // Entity locations
+  entities: [
+    join(__dirname, 'src/infrastructure/persistence/typeorm/entities/**/*.entity.ts'),
+    join(__dirname, 'src/infrastructure/persistence/typeorm/entities/**/*.entity.js'),
+  ],
 
-  // Migration paths
-  migrations: ['src/infrastructure/persistence/migrations/*.ts'],
+  // Migration locations
+  migrations: [
+    join(__dirname, 'src/infrastructure/persistence/typeorm/migrations/**/*.ts'),
+    join(__dirname, 'src/infrastructure/persistence/typeorm/migrations/**/*.js'),
+  ],
 
-  // Subscribers (optional)
+  // Subscribers (if any)
   subscribers: [],
 
-  // Logging
-  logging: process.env.NODE_ENV === 'development',
-
-  // Synchronize disabled for migrations
+  // IMPORTANT: Must be false for production
+  // Migrations handle schema changes, not synchronize
   synchronize: false,
+
+  // Enable logging for migration operations
+  logging: true,
+
+  // Migration table name
+  migrationsTableName: 'typeorm_migrations',
+
+  // Run migrations automatically on startup (set to false for manual control)
+  migrationsRun: false,
 });

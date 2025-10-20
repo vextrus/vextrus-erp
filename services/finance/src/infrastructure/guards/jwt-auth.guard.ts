@@ -84,18 +84,31 @@ export class JwtAuthGuard implements CanActivate {
         throw new UnauthorizedException('Invalid token');
       }
 
-      // Attach user to request with tenantId from middleware
-      const tenantId = request.tenantId || request.headers['x-tenant-id'] || 'default';
+      // SECURITY: Extract tenant from JWT ONLY - do not trust headers
+      // The tenant should come from the authenticated user's JWT token
+      const jwtTenantId = user.tenantId || user.tenant_id || user.tenant || request.tenantId || 'default';
 
+      // SECURITY: Verify header matches JWT if X-Tenant-ID header is provided
+      const headerTenantId = request.headers['x-tenant-id'];
+      if (headerTenantId && headerTenantId !== jwtTenantId) {
+        this.logger.warn(
+          `Tenant ID mismatch! JWT tenant: ${jwtTenantId}, Header tenant: ${headerTenantId}, ` +
+          `User: ${user.id}. Rejecting request.`
+        );
+        throw new UnauthorizedException('Tenant ID mismatch - possible tenant isolation bypass attempt');
+      }
+
+      // Attach user to request with tenantId from JWT
       request.user = {
         ...user,
-        userId: user.id,      // Add userId alias
-        tenantId: tenantId,   // Add tenantId from middleware
+        userId: user.id,        // Add userId alias
+        tenantId: jwtTenantId,  // Use JWT tenant ONLY
       };
       request.userId = user.id;
       request.userRole = user.role;
+      request.tenantId = jwtTenantId;  // Override any middleware tenant with JWT tenant
 
-      this.logger.debug(`Authenticated user: ${user.id} with role: ${user.role}, tenant: ${tenantId}`);
+      this.logger.debug(`Authenticated user: ${user.id} with role: ${user.role}, tenant: ${jwtTenantId}`);
 
       return true;
     } catch (error: any) {

@@ -23,7 +23,7 @@ spec:
       containers:
       - name: finance-service
         image: vextrus/finance:week1-staging
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3014
           name: http
