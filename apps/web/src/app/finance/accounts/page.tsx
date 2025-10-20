@@ -190,11 +190,15 @@ function AccountRow({
   getAccountTypeBadge,
   level,
 }: AccountRowProps) {
+  const router = useRouter();
   const indent = level * 24;
 
   return (
     <>
-      <tr className="hover:bg-gray-50 dark:hover:bg-gray-800">
+      <tr
+        className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+        onClick={() => router.push(`/finance/accounts/${account.id}`)}
+      >
         <td className="px-6 py-4 whitespace-nowrap">
           <div
             className="text-sm font-mono text-gray-900 dark:text-gray-100"
