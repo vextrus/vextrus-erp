@@ -1,45 +1,79 @@
 /**
  * Journal Entries List Page
  *
- * Displays all journal entries with filtering and actions.
+ * Displays all journal entries with DataTable, filtering and search.
  *
  * Features:
- * - List all journal entries with pagination
+ * - DataTable with pagination and sorting
+ * - Search by journal number or description
  * - Filter by status (DRAFT, POSTED, REVERSED)
+ * - Real-time balance checking
  * - Create new journal entry
  * - View journal details
- * - Real-time balance checking
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { type ColumnDef } from '@tanstack/react-table';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { AppLayout } from '@/components/layout/app-layout';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Spinner } from '@/components/ui/spinner';
-import { Alert } from '@/components/ui/alert';
+import { DataTable } from '@/components/ui/data-table';
+import { TableToolbar } from '@/components/ui/table-toolbar';
 import { Select } from '@/components/ui/select';
 import { useGetJournalsQuery } from '@/lib/graphql/generated/types';
-import { Plus, FileText } from 'lucide-react';
+import { Plus } from 'lucide-react';
+
+// Journal type for the table
+type Journal = {
+  id: string;
+  journalNumber: string;
+  journalDate: string;
+  journalType: string;
+  description: string;
+  reference?: string | null;
+  totalDebit: number;
+  totalCredit: number;
+  currency: string;
+  status: string;
+  fiscalPeriod: string;
+  isReversing: boolean;
+  originalJournalId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 function JournalListContent() {
   const router = useRouter();
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Fetch journals
-  const { data, loading, error } = useGetJournalsQuery({
+  // Fetch journals with optional status filter
+  const { data, loading, error, refetch } = useGetJournalsQuery({
     variables: {
-      limit: 50,
+      limit: 100, // Load more for client-side pagination
       offset: 0,
-      status: statusFilter as any,
+      status: statusFilter === 'all' ? undefined : (statusFilter as any),
     },
   });
 
-  const journals = data?.journals || [];
+  const journals = (data?.journals || []) as Journal[];
+
+  // Filter journals based on search
+  const filteredJournals = useMemo(() => {
+    return journals.filter(journal => {
+      const matchesSearch =
+        searchQuery === '' ||
+        journal.journalNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        journal.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (journal.reference && journal.reference.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      return matchesSearch;
+    });
+  }, [journals, searchQuery]);
 
   // Format currency
   const formatCurrency = (amount: number, currency: string = 'BDT') => {
@@ -74,6 +108,89 @@ function JournalListContent() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+  // Column definitions
+  const columns: ColumnDef<Journal>[] = useMemo(() => [
+    {
+      accessorKey: 'journalNumber',
+      header: 'Journal #',
+      cell: ({ row }) => (
+        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {row.original.journalNumber}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'journalDate',
+      header: 'Date',
+      cell: ({ row }) => (
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          {formatDate(row.original.journalDate)}
+        </div>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: 'description',
+      header: 'Description',
+      cell: ({ row }) => (
+        <div>
+          <div className="text-sm text-gray-900 dark:text-gray-100 max-w-xs truncate">
+            {row.original.description}
+          </div>
+          {row.original.reference && (
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Ref: {row.original.reference}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'totalDebit',
+      header: 'Total Debit',
+      cell: ({ row }) => (
+        <div className="text-sm font-medium text-right text-gray-900 dark:text-gray-100">
+          {formatCurrency(row.original.totalDebit, row.original.currency)}
+        </div>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: 'totalCredit',
+      header: 'Total Credit',
+      cell: ({ row }) => (
+        <div className="text-sm font-medium text-right text-gray-900 dark:text-gray-100">
+          {formatCurrency(row.original.totalCredit, row.original.currency)}
+        </div>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => getStatusBadge(row.original.status),
+      enableSorting: true,
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <div className="text-right">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/finance/journal/${row.original.id}`);
+            }}
+          >
+            View
+          </Button>
+        </div>
+      ),
+    },
+  ], [router]);
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
@@ -93,154 +210,64 @@ function JournalListContent() {
           </Button>
         </div>
 
-        {/* Filters */}
-        <Card className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">
-                Filter by Status
-              </label>
-              <Select
-                value={statusFilter || 'all'}
-                onValueChange={(value) => setStatusFilter(value === 'all' ? undefined : value)}
-                options={[
-                  { value: 'all', label: 'All Statuses' },
-                  { value: 'DRAFT', label: 'Draft' },
-                  { value: 'POSTED', label: 'Posted' },
-                  { value: 'REVERSED', label: 'Reversed' },
-                ]}
-                placeholder="All Statuses"
-              />
-            </div>
-          </div>
-        </Card>
-
         {/* Error State */}
         {error && (
-          <Alert variant="destructive">
-            <p className="text-sm">
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-800 dark:text-red-200">
               Failed to load journals: {error.message}
             </p>
-          </Alert>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <Spinner />
-            <span className="ml-3 text-sm text-gray-500">Loading journals...</span>
           </div>
         )}
 
-        {/* Empty State */}
-        {!loading && !error && journals.length === 0 && (
-          <Card className="p-12 text-center">
-            <FileText className="mx-auto h-16 w-16 text-gray-400" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">
-              No journal entries found
-            </h3>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              {statusFilter
-                ? `No journal entries with status: ${statusFilter}`
-                : 'Get started by creating your first journal entry.'}
-            </p>
-            <div className="mt-6">
-              <Button onClick={() => router.push('/finance/journal/new')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Journal Entry
-              </Button>
-            </div>
-          </Card>
-        )}
+        {/* Toolbar and Filters */}
+        <div className="flex flex-col gap-4">
+          <TableToolbar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search by journal # or description..."
+            showRefresh
+            onRefreshClick={() => refetch()}
+          />
 
-        {/* Journals Table */}
-        {!loading && !error && journals.length > 0 && (
-          <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Journal #
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Description
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Total Debit
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Total Credit
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {journals.map((journal) => (
-                    <tr
-                      key={journal.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                      onClick={() => router.push(`/finance/journal/${journal.id}`)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {journal.journalNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {formatDate(journal.journalDate)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                        <div className="max-w-xs truncate">{journal.description}</div>
-                        {journal.reference && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            Ref: {journal.reference}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900 dark:text-gray-100">
-                        {formatCurrency(journal.totalDebit, journal.currency)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900 dark:text-gray-100">
-                        {formatCurrency(journal.totalCredit, journal.currency)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(journal.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/finance/journal/${journal.id}`);
-                          }}
-                        >
-                          View
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        )}
-
-        {/* Pagination placeholder */}
-        {!loading && !error && journals.length > 0 && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Showing {journals.length} journal entries
-            </p>
+          {/* Status Filter */}
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Filter by Status:
+            </label>
+            <Select
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+              options={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'DRAFT', label: 'Draft' },
+                { value: 'POSTED', label: 'Posted' },
+                { value: 'REVERSED', label: 'Reversed' },
+              ]}
+              placeholder="All Statuses"
+            />
           </div>
-        )}
+        </div>
+
+        {/* Data Table */}
+        <DataTable
+          columns={columns}
+          data={filteredJournals}
+          loading={loading}
+          enablePagination={true}
+          defaultPageSize={20}
+          pageSizeOptions={[10, 20, 30, 50]}
+          enableSorting={true}
+          emptyState={{
+            title: 'No journal entries found',
+            description: searchQuery || statusFilter !== 'all'
+              ? 'Try adjusting your search or filters'
+              : 'Get started by creating your first journal entry.',
+            action: {
+              label: 'Create Journal Entry',
+              onClick: () => router.push('/finance/journal/new'),
+            },
+          }}
+        />
       </div>
     </AppLayout>
   );

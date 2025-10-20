@@ -1,40 +1,78 @@
 /**
  * Payments Page
  *
- * Displays list of payments with filtering by status.
+ * Displays list of payments with DataTable, filtering and search.
  *
  * Features:
- * - Payment list with status filtering
- * - Payment details
+ * - DataTable with pagination and sorting
+ * - Search by payment number or invoice
+ * - Filter by status and payment method
  * - Real-time data from backend
+ * - Payment details
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { type ColumnDef } from '@tanstack/react-table';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { AppLayout } from '@/components/layout/app-layout';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Spinner } from '@/components/ui/spinner';
-import { Alert } from '@/components/ui/alert';
+import { DataTable } from '@/components/ui/data-table';
+import { TableToolbar } from '@/components/ui/table-toolbar';
+import { Select } from '@/components/ui/select';
 import { useGetPaymentsByStatusQuery } from '@/lib/graphql/generated/types';
-import { Plus, CreditCard, Filter } from 'lucide-react';
+import { Plus } from 'lucide-react';
+
+// Payment type for the table
+type Payment = {
+  id: string;
+  paymentNumber: string;
+  invoiceId: string;
+  amount: { amount: number; currency: string };
+  paymentMethod: string;
+  status: string;
+  paymentDate: string;
+  reference?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 function PaymentsContent() {
   const router = useRouter();
-  const [status] = useState('PENDING');
-  const [limit] = useState(50);
-  const [offset] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('PENDING');
+  const [methodFilter, setMethodFilter] = useState<string>('all');
 
-  // Fetch payments
-  const { data, loading, error } = useGetPaymentsByStatusQuery({
-    variables: { status, limit, offset },
+  // Fetch payments by status
+  const { data, loading, error, refetch } = useGetPaymentsByStatusQuery({
+    variables: {
+      status: statusFilter as any,
+      limit: 100,
+      offset: 0,
+    },
+    skip: statusFilter === 'all', // Skip query if showing all
   });
 
-  const payments = data?.paymentsByStatus || [];
+  const payments = (data?.paymentsByStatus || []) as Payment[];
+
+  // Filter payments based on search and method
+  const filteredPayments = useMemo(() => {
+    return payments.filter(payment => {
+      const matchesSearch =
+        searchQuery === '' ||
+        payment.paymentNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        payment.invoiceId.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesMethod =
+        methodFilter === 'all' ||
+        payment.paymentMethod === methodFilter;
+
+      return matchesSearch && matchesMethod;
+    });
+  }, [payments, searchQuery, methodFilter]);
 
   // Format currency
   const formatCurrency = (amount: number, currency: string = 'BDT') => {
@@ -55,16 +93,88 @@ function PaymentsContent() {
 
   // Status badge
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { variant: any; label: string }> = {
-      PENDING: { variant: 'default', label: 'Pending' },
+    const statusMap: Record<string, { variant: 'default' | 'success' | 'warning' | 'error' | 'info'; label: string }> = {
+      PENDING: { variant: 'warning', label: 'Pending' },
       COMPLETED: { variant: 'success', label: 'Completed' },
       FAILED: { variant: 'error', label: 'Failed' },
-      REFUNDED: { variant: 'warning', label: 'Refunded' },
+      REFUNDED: { variant: 'info', label: 'Refunded' },
+      RECONCILED: { variant: 'success', label: 'Reconciled' },
+      REVERSED: { variant: 'error', label: 'Reversed' },
     };
 
     const config = statusMap[status] || { variant: 'default', label: status };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
+
+  // Method badge
+  const getMethodBadge = (method: string) => {
+    const methodMap: Record<string, { variant: 'default' | 'success' | 'warning' | 'error' | 'info'; label: string }> = {
+      BANK_TRANSFER: { variant: 'info', label: 'Bank Transfer' },
+      CASH: { variant: 'success', label: 'Cash' },
+      CHEQUE: { variant: 'default', label: 'Cheque' },
+      MOBILE_WALLET: { variant: 'info', label: 'Mobile Wallet' },
+    };
+
+    const config = methodMap[method] || { variant: 'default', label: method };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  // Column definitions
+  const columns: ColumnDef<Payment>[] = useMemo(() => [
+    {
+      accessorKey: 'paymentNumber',
+      header: 'Payment #',
+      cell: ({ row }) => (
+        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {row.original.paymentNumber}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'invoiceId',
+      header: 'Invoice',
+      cell: ({ row }) => (
+        <div className="text-sm text-gray-900 dark:text-gray-100">
+          {row.original.invoiceId}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'paymentDate',
+      header: 'Payment Date',
+      cell: ({ row }) => (
+        <div className="text-sm text-gray-900 dark:text-gray-100">
+          {formatDate(row.original.paymentDate)}
+        </div>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: 'paymentMethod',
+      header: 'Method',
+      cell: ({ row }) => getMethodBadge(row.original.paymentMethod),
+      enableSorting: true,
+    },
+    {
+      accessorKey: 'amount',
+      header: 'Amount',
+      cell: ({ row }) => (
+        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {formatCurrency(
+            row.original.amount.amount,
+            row.original.amount.currency
+          )}
+        </div>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => getStatusBadge(row.original.status),
+      enableSorting: true,
+    },
+  ], []);
 
   return (
     <AppLayout>
@@ -79,151 +189,90 @@ function PaymentsContent() {
               Track and manage payments
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" />
-              Filter
-            </Button>
-            <Button onClick={() => router.push('/finance/payments/new')}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Payment
-            </Button>
-          </div>
+          <Button onClick={() => router.push('/finance/payments/new')}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Payment
+          </Button>
         </div>
 
         {/* Error State */}
         {error && (
-          <Alert variant="error">
-            <p className="text-sm">Failed to load payments: {error.message}</p>
-          </Alert>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <Spinner />
-            <span className="ml-3 text-sm text-gray-500">
-              Loading payments...
-            </span>
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-800 dark:text-red-200">
+              Failed to load payments: {error.message}
+            </p>
           </div>
         )}
 
-        {/* Payments Table */}
-        {!loading && !error && (
-          <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Payment #
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Invoice
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Payment Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Method
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
-                  {payments.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
-                        <CreditCard className="mx-auto h-12 w-12 text-gray-400" />
-                        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                          No payments found
-                        </h3>
-                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                          Get started by recording a payment.
-                        </p>
-                        <div className="mt-6">
-                          <Button
-                            onClick={() => router.push('/finance/payments/new')}
-                            size="sm"
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            New Payment
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    payments.map((payment) => (
-                      <tr
-                        key={payment.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                        onClick={() =>
-                          router.push(`/finance/payments/${payment.id}`)
-                        }
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {payment.paymentNumber}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-gray-100">
-                            {payment.invoiceId}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-gray-100">
-                            {formatDate(payment.paymentDate)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-gray-100">
-                            {payment.paymentMethod}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {formatCurrency(
-                              payment.amount.amount,
-                              payment.amount.currency
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(payment.status)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+        {/* Toolbar and Filters */}
+        <div className="flex flex-col gap-4">
+          <TableToolbar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search by payment # or invoice..."
+            showRefresh
+            onRefreshClick={() => refetch()}
+          />
+
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Status:
+              </label>
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+                options={[
+                  { value: 'PENDING', label: 'Pending' },
+                  { value: 'COMPLETED', label: 'Completed' },
+                  { value: 'FAILED', label: 'Failed' },
+                  { value: 'REFUNDED', label: 'Refunded' },
+                ]}
+                placeholder="Select status"
+              />
             </div>
 
-            {/* Pagination */}
-            {payments.length > 0 && (
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Showing {payments.length} payments
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled>
-                      Previous
-                    </Button>
-                    <Button variant="outline" size="sm" disabled>
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </Card>
-        )}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Method:
+              </label>
+              <Select
+                value={methodFilter}
+                onValueChange={setMethodFilter}
+                options={[
+                  { value: 'all', label: 'All Methods' },
+                  { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
+                  { value: 'CASH', label: 'Cash' },
+                  { value: 'CHEQUE', label: 'Cheque' },
+                  { value: 'MOBILE_WALLET', label: 'Mobile Wallet' },
+                ]}
+                placeholder="All Methods"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <DataTable
+          columns={columns}
+          data={filteredPayments}
+          loading={loading}
+          enablePagination={true}
+          defaultPageSize={20}
+          pageSizeOptions={[10, 20, 30, 50]}
+          enableSorting={true}
+          emptyState={{
+            title: 'No payments found',
+            description: searchQuery || methodFilter !== 'all'
+              ? 'Try adjusting your search or filters'
+              : 'Get started by recording a payment.',
+            action: {
+              label: 'New Payment',
+              onClick: () => router.push('/finance/payments/new'),
+            },
+          }}
+        />
       </div>
     </AppLayout>
   );
