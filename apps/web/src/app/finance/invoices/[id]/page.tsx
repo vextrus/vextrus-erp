@@ -14,7 +14,9 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Card } from '@/components/ui/card';
@@ -23,7 +25,22 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { useGetInvoiceQuery } from '@/lib/graphql/generated/types';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import {
+  useGetInvoiceQuery,
+  useApproveInvoiceMutation,
+  useCancelInvoiceMutation,
+} from '@/lib/graphql/generated/types';
 import {
   ArrowLeft,
   Edit,
@@ -31,6 +48,8 @@ import {
   Printer,
   Download,
   Send,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 
 interface InvoiceDetailPageProps {
@@ -43,12 +62,64 @@ function InvoiceDetailContent({ params }: InvoiceDetailPageProps) {
   const router = useRouter();
   const { id } = params;
 
+  // Dialog state
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+
   // Fetch invoice details
-  const { data, loading, error } = useGetInvoiceQuery({
+  const { data, loading, error, refetch } = useGetInvoiceQuery({
     variables: { id },
   });
 
   const invoice = data?.invoice;
+
+  // Approve mutation
+  const [approveInvoice, { loading: approvingLoading }] = useApproveInvoiceMutation({
+    onCompleted: (data) => {
+      toast.success('Invoice approved successfully', {
+        description: `Mushak number: ${data.approveInvoice.mushakNumber || 'N/A'}`,
+      });
+      setShowApproveDialog(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error('Failed to approve invoice', {
+        description: error.message,
+      });
+    },
+    refetchQueries: ['GetInvoices', 'GetInvoice'],
+  });
+
+  // Cancel mutation
+  const [cancelInvoice, { loading: cancellingLoading }] = useCancelInvoiceMutation({
+    onCompleted: () => {
+      toast.success('Invoice cancelled successfully');
+      setShowCancelDialog(false);
+      setCancelReason('');
+      refetch();
+    },
+    onError: (error) => {
+      toast.error('Failed to cancel invoice', {
+        description: error.message,
+      });
+    },
+    refetchQueries: ['GetInvoices', 'GetInvoice'],
+  });
+
+  // Handle approve
+  const handleApprove = () => {
+    approveInvoice({ variables: { id } });
+  };
+
+  // Handle cancel
+  const handleCancel = () => {
+    if (!cancelReason.trim()) {
+      toast.error('Please provide a cancellation reason');
+      return;
+    }
+    cancelInvoice({ variables: { id, reason: cancelReason } });
+  };
 
   // Format currency
   const formatCurrency = (amount: number, currency: string = 'BDT') => {
@@ -69,16 +140,16 @@ function InvoiceDetailContent({ params }: InvoiceDetailPageProps) {
 
   // Status badge
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { variant: any; label: string }> = {
-      DRAFT: { variant: 'secondary', label: 'Draft' },
-      PENDING: { variant: 'default', label: 'Pending' },
-      APPROVED: { variant: 'default', label: 'Approved' },
-      PAID: { variant: 'default', label: 'Paid' },
-      CANCELLED: { variant: 'destructive', label: 'Cancelled' },
-      OVERDUE: { variant: 'destructive', label: 'Overdue' },
+    const statusMap: Record<string, { variant: 'default' | 'success' | 'warning' | 'error' | 'info'; label: string }> = {
+      DRAFT: { variant: 'default', label: 'Draft' },
+      PENDING: { variant: 'warning', label: 'Pending' },
+      APPROVED: { variant: 'info', label: 'Approved' },
+      PAID: { variant: 'success', label: 'Paid' },
+      CANCELLED: { variant: 'error', label: 'Cancelled' },
+      OVERDUE: { variant: 'error', label: 'Overdue' },
     };
 
-    const config = statusMap[status] || { variant: 'default', label: status };
+    const config = statusMap[status] || { variant: 'default' as const, label: status };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -107,6 +178,34 @@ function InvoiceDetailContent({ params }: InvoiceDetailPageProps) {
 
           {!loading && invoice && (
             <div className="flex items-center gap-2">
+              {/* Approve button - only show for DRAFT invoices */}
+              {invoice.status === 'DRAFT' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setShowApproveDialog(true)}
+                  disabled={approvingLoading}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {approvingLoading ? 'Approving...' : 'Approve'}
+                </Button>
+              )}
+
+              {/* Cancel button - show for non-cancelled invoices */}
+              {invoice.status !== 'CANCELLED' && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowCancelDialog(true)}
+                  disabled={cancellingLoading}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  {cancellingLoading ? 'Cancelling...' : 'Cancel Invoice'}
+                </Button>
+              )}
+
+              <Separator orientation="vertical" className="h-6" />
+
               <Button variant="outline" size="sm">
                 <Printer className="mr-2 h-4 w-4" />
                 Print
@@ -118,18 +217,6 @@ function InvoiceDetailContent({ params }: InvoiceDetailPageProps) {
               <Button variant="outline" size="sm">
                 <Send className="mr-2 h-4 w-4" />
                 Send
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push(`/finance/invoices/${id}/edit`)}
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
               </Button>
             </div>
           )}
@@ -399,6 +486,72 @@ function InvoiceDetailContent({ params }: InvoiceDetailPageProps) {
             </div>
           </div>
         )}
+
+        {/* Approve Invoice Dialog */}
+        <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Approve Invoice</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to approve this invoice? This will generate a Mushak number and
+                make the invoice immutable. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={approvingLoading}>
+                No, keep as draft
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleApprove}
+                disabled={approvingLoading}
+              >
+                {approvingLoading ? 'Approving...' : 'Yes, approve invoice'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Cancel Invoice Dialog */}
+        <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancel Invoice</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to cancel this invoice? Please provide a reason for cancellation.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+              <label className="text-sm font-medium mb-2 block">
+                Cancellation Reason *
+              </label>
+              <Input
+                placeholder="Enter reason for cancellation..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                disabled={cancellingLoading}
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                disabled={cancellingLoading}
+                onClick={() => {
+                  setShowCancelDialog(false);
+                  setCancelReason('');
+                }}
+              >
+                No, keep invoice
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={handleCancel}
+                disabled={cancellingLoading || !cancelReason.trim()}
+              >
+                {cancellingLoading ? 'Cancelling...' : 'Yes, cancel invoice'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );

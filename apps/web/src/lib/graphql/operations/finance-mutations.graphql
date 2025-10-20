@@ -1,0 +1,283 @@
+# Finance Module GraphQL Mutations
+# Mutations for invoice, payment, account, and journal operations
+
+# ==========================================
+# INVOICE MUTATIONS
+# ==========================================
+
+# Create new invoice
+mutation CreateInvoice($input: CreateInvoiceInput!) {
+  createInvoice(input: $input) {
+    id
+    invoiceNumber
+    status
+    customerId
+    customerTIN
+    customerBIN
+    vendorId
+    vendorTIN
+    vendorBIN
+    grandTotal {
+      amount
+      currency
+    }
+    subtotal {
+      amount
+      currency
+    }
+    vatAmount {
+      amount
+      currency
+    }
+    supplementaryDuty {
+      amount
+      currency
+    }
+    advanceIncomeTax {
+      amount
+      currency
+    }
+    invoiceDate
+    dueDate
+    fiscalYear
+    mushakNumber
+    challanNumber
+    lineItems {
+      description
+      quantity
+      unitPrice {
+        amount
+        currency
+      }
+    }
+    createdAt
+    updatedAt
+  }
+}
+
+# Approve invoice (generates Mushak number)
+mutation ApproveInvoice($id: ID!) {
+  approveInvoice(id: $id) {
+    id
+    invoiceNumber
+    status
+    mushakNumber
+    challanNumber
+    updatedAt
+  }
+}
+
+# Cancel invoice
+mutation CancelInvoice($id: ID!, $reason: String!) {
+  cancelInvoice(id: $id, reason: $reason) {
+    id
+    invoiceNumber
+    status
+    updatedAt
+  }
+}
+
+# ==========================================
+# PAYMENT MUTATIONS
+# ==========================================
+
+# Create new payment
+mutation CreatePayment($input: CreatePaymentInput!) {
+  createPayment(input: $input) {
+    id
+    paymentNumber
+    invoiceId
+    amount {
+      amount
+      currency
+    }
+    paymentMethod
+    status
+    paymentDate
+    reference
+    bankAccountId
+    checkNumber
+    mobileWallet {
+      provider
+      mobileNumber
+      transactionId
+      merchantCode
+    }
+    createdAt
+    updatedAt
+  }
+}
+
+# Complete payment (PENDING → COMPLETED)
+mutation CompletePayment($id: ID!, $input: CompletePaymentInput!) {
+  completePayment(id: $id, input: $input) {
+    id
+    paymentNumber
+    status
+    transactionReference
+    updatedAt
+  }
+}
+
+# Fail payment (PENDING → FAILED)
+mutation FailPayment($id: ID!, $input: FailPaymentInput!) {
+  failPayment(id: $id, input: $input) {
+    id
+    paymentNumber
+    status
+    failureReason
+    updatedAt
+  }
+}
+
+# Reconcile payment with bank statement
+mutation ReconcilePayment($id: ID!, $input: ReconcilePaymentInput!) {
+  reconcilePayment(id: $id, input: $input) {
+    id
+    paymentNumber
+    status
+    bankTransactionId
+    reconciledAt
+    reconciledBy
+    updatedAt
+  }
+}
+
+# Reverse payment (refund/chargeback)
+mutation ReversePayment($id: ID!, $input: ReversePaymentInput!) {
+  reversePayment(id: $id, input: $input) {
+    id
+    paymentNumber
+    status
+    reversalReason
+    reversedAt
+    reversedBy
+    updatedAt
+  }
+}
+
+# ==========================================
+# CHART OF ACCOUNTS MUTATIONS
+# ==========================================
+
+# Create new account
+mutation CreateAccount($input: CreateAccountInput!) {
+  createAccount(input: $input) {
+    id
+    accountCode
+    accountName
+    accountType
+    parentAccountId
+    balance {
+      amount
+      currency
+    }
+    currency
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+# Deactivate account
+mutation DeactivateAccount($id: ID!, $reason: String!) {
+  deactivateAccount(id: $id, reason: $reason) {
+    id
+    accountCode
+    accountName
+    isActive
+    updatedAt
+  }
+}
+
+# ==========================================
+# JOURNAL ENTRY MUTATIONS
+# ==========================================
+
+# Create new journal entry
+mutation CreateJournal($input: CreateJournalInput!) {
+  createJournal(input: $input) {
+    id
+    journalNumber
+    journalDate
+    journalType
+    description
+    reference
+    lines {
+      lineId
+      accountId
+      debitAmount
+      creditAmount
+      description
+      costCenter
+      project
+      reference
+      taxCode
+    }
+    totalDebit
+    totalCredit
+    currency
+    status
+    fiscalPeriod
+    isReversing
+    originalJournalId
+    createdAt
+    updatedAt
+  }
+}
+
+# Add line to journal entry (DRAFT only)
+mutation AddJournalLine($journalId: ID!, $input: AddJournalLineInput!) {
+  addJournalLine(journalId: $journalId, input: $input) {
+    id
+    journalNumber
+    lines {
+      lineId
+      accountId
+      debitAmount
+      creditAmount
+      description
+      costCenter
+      project
+    }
+    totalDebit
+    totalCredit
+    updatedAt
+  }
+}
+
+# Post journal to ledger (makes immutable)
+mutation PostJournal($id: ID!) {
+  postJournal(id: $id) {
+    id
+    journalNumber
+    status
+    postedAt
+    postedBy
+    updatedAt
+  }
+}
+
+# Reverse posted journal (creates offsetting entry)
+mutation ReverseJournal($id: ID!, $reversingDate: String!) {
+  reverseJournal(id: $id, reversingDate: $reversingDate) {
+    id
+    journalNumber
+    journalDate
+    journalType
+    description
+    lines {
+      lineId
+      accountId
+      debitAmount
+      creditAmount
+      description
+    }
+    totalDebit
+    totalCredit
+    status
+    isReversing
+    originalJournalId
+    createdAt
+  }
+}

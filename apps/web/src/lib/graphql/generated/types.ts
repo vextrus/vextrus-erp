@@ -3100,6 +3100,338 @@ export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
 
 export type HealthCheckQuery = { __typename: "Query" };
 
+export type CreateInvoiceMutationVariables = Exact<{
+  input: CreateInvoiceInput;
+}>;
+
+export type CreateInvoiceMutation = {
+  __typename?: "Mutation";
+  createInvoice: {
+    __typename?: "Invoice";
+    id: string;
+    invoiceNumber: string;
+    status: InvoiceStatus;
+    customerId: string;
+    customerTIN?: string | null;
+    customerBIN?: string | null;
+    vendorId: string;
+    vendorTIN?: string | null;
+    vendorBIN?: string | null;
+    invoiceDate: string;
+    dueDate: string;
+    fiscalYear: string;
+    mushakNumber?: string | null;
+    challanNumber?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    grandTotal: { __typename?: "MoneyDto"; amount: number; currency: string };
+    subtotal: { __typename?: "MoneyDto"; amount: number; currency: string };
+    vatAmount: { __typename?: "MoneyDto"; amount: number; currency: string };
+    supplementaryDuty: {
+      __typename?: "MoneyDto";
+      amount: number;
+      currency: string;
+    };
+    advanceIncomeTax: {
+      __typename?: "MoneyDto";
+      amount: number;
+      currency: string;
+    };
+    lineItems: Array<{
+      __typename?: "LineItem";
+      description: string;
+      quantity: number;
+      unitPrice: { __typename?: "MoneyDto"; amount: number; currency: string };
+    }>;
+  };
+};
+
+export type ApproveInvoiceMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+}>;
+
+export type ApproveInvoiceMutation = {
+  __typename?: "Mutation";
+  approveInvoice: {
+    __typename?: "Invoice";
+    id: string;
+    invoiceNumber: string;
+    status: InvoiceStatus;
+    mushakNumber?: string | null;
+    challanNumber?: string | null;
+    updatedAt: string;
+  };
+};
+
+export type CancelInvoiceMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  reason: Scalars["String"]["input"];
+}>;
+
+export type CancelInvoiceMutation = {
+  __typename?: "Mutation";
+  cancelInvoice: {
+    __typename?: "Invoice";
+    id: string;
+    invoiceNumber: string;
+    status: InvoiceStatus;
+    updatedAt: string;
+  };
+};
+
+export type CreatePaymentMutationVariables = Exact<{
+  input: CreatePaymentInput;
+}>;
+
+export type CreatePaymentMutation = {
+  __typename?: "Mutation";
+  createPayment: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    invoiceId: string;
+    paymentMethod: PaymentMethod;
+    status: PaymentStatus;
+    paymentDate: string;
+    reference?: string | null;
+    bankAccountId?: string | null;
+    checkNumber?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    amount: { __typename?: "MoneyDto"; amount: number; currency: string };
+    mobileWallet?: {
+      __typename?: "MobileWallet";
+      provider: MobileWalletProvider;
+      mobileNumber: string;
+      transactionId: string;
+      merchantCode?: string | null;
+    } | null;
+  };
+};
+
+export type CompletePaymentMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  input: CompletePaymentInput;
+}>;
+
+export type CompletePaymentMutation = {
+  __typename?: "Mutation";
+  completePayment: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    status: PaymentStatus;
+    transactionReference?: string | null;
+    updatedAt: string;
+  };
+};
+
+export type FailPaymentMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  input: FailPaymentInput;
+}>;
+
+export type FailPaymentMutation = {
+  __typename?: "Mutation";
+  failPayment: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    status: PaymentStatus;
+    failureReason?: string | null;
+    updatedAt: string;
+  };
+};
+
+export type ReconcilePaymentMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  input: ReconcilePaymentInput;
+}>;
+
+export type ReconcilePaymentMutation = {
+  __typename?: "Mutation";
+  reconcilePayment: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    status: PaymentStatus;
+    bankTransactionId?: string | null;
+    reconciledAt?: string | null;
+    reconciledBy?: string | null;
+    updatedAt: string;
+  };
+};
+
+export type ReversePaymentMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  input: ReversePaymentInput;
+}>;
+
+export type ReversePaymentMutation = {
+  __typename?: "Mutation";
+  reversePayment: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    status: PaymentStatus;
+    reversalReason?: string | null;
+    reversedAt?: string | null;
+    reversedBy?: string | null;
+    updatedAt: string;
+  };
+};
+
+export type CreateAccountMutationVariables = Exact<{
+  input: CreateAccountInput;
+}>;
+
+export type CreateAccountMutation = {
+  __typename?: "Mutation";
+  createAccount: {
+    __typename?: "ChartOfAccount";
+    id: string;
+    accountCode: string;
+    accountName: string;
+    accountType: AccountType;
+    parentAccountId?: string | null;
+    currency: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    balance: { __typename?: "MoneyDto"; amount: number; currency: string };
+  };
+};
+
+export type DeactivateAccountMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  reason: Scalars["String"]["input"];
+}>;
+
+export type DeactivateAccountMutation = {
+  __typename?: "Mutation";
+  deactivateAccount: {
+    __typename?: "ChartOfAccount";
+    id: string;
+    accountCode: string;
+    accountName: string;
+    isActive: boolean;
+    updatedAt: string;
+  };
+};
+
+export type CreateJournalMutationVariables = Exact<{
+  input: CreateJournalInput;
+}>;
+
+export type CreateJournalMutation = {
+  __typename?: "Mutation";
+  createJournal: {
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    journalDate: string;
+    journalType: JournalType;
+    description: string;
+    reference?: string | null;
+    totalDebit: number;
+    totalCredit: number;
+    currency: string;
+    status: JournalStatus;
+    fiscalPeriod: string;
+    isReversing: boolean;
+    originalJournalId?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    lines: Array<{
+      __typename?: "JournalLine";
+      lineId: string;
+      accountId: string;
+      debitAmount: number;
+      creditAmount: number;
+      description?: string | null;
+      costCenter?: string | null;
+      project?: string | null;
+      reference?: string | null;
+      taxCode?: string | null;
+    }>;
+  };
+};
+
+export type AddJournalLineMutationVariables = Exact<{
+  journalId: Scalars["ID"]["input"];
+  input: AddJournalLineInput;
+}>;
+
+export type AddJournalLineMutation = {
+  __typename?: "Mutation";
+  addJournalLine: {
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    totalDebit: number;
+    totalCredit: number;
+    updatedAt: string;
+    lines: Array<{
+      __typename?: "JournalLine";
+      lineId: string;
+      accountId: string;
+      debitAmount: number;
+      creditAmount: number;
+      description?: string | null;
+      costCenter?: string | null;
+      project?: string | null;
+    }>;
+  };
+};
+
+export type PostJournalMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+}>;
+
+export type PostJournalMutation = {
+  __typename?: "Mutation";
+  postJournal: {
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    status: JournalStatus;
+    postedAt?: string | null;
+    postedBy?: string | null;
+    updatedAt: string;
+  };
+};
+
+export type ReverseJournalMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  reversingDate: Scalars["String"]["input"];
+}>;
+
+export type ReverseJournalMutation = {
+  __typename?: "Mutation";
+  reverseJournal: {
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    journalDate: string;
+    journalType: JournalType;
+    description: string;
+    totalDebit: number;
+    totalCredit: number;
+    status: JournalStatus;
+    isReversing: boolean;
+    originalJournalId?: string | null;
+    createdAt: string;
+    lines: Array<{
+      __typename?: "JournalLine";
+      lineId: string;
+      accountId: string;
+      debitAmount: number;
+      creditAmount: number;
+      description?: string | null;
+    }>;
+  };
+};
+
 export const GetInvoicesDocument = gql`
   query GetInvoices($limit: Int = 50, $offset: Int = 0) {
     invoices(limit: $limit, offset: $offset) {
@@ -3573,4 +3905,879 @@ export type HealthCheckSuspenseQueryHookResult = ReturnType<
 export type HealthCheckQueryResult = Apollo.QueryResult<
   HealthCheckQuery,
   HealthCheckQueryVariables
+>;
+export const CreateInvoiceDocument = gql`
+  mutation CreateInvoice($input: CreateInvoiceInput!) {
+    createInvoice(input: $input) {
+      id
+      invoiceNumber
+      status
+      customerId
+      customerTIN
+      customerBIN
+      vendorId
+      vendorTIN
+      vendorBIN
+      grandTotal {
+        amount
+        currency
+      }
+      subtotal {
+        amount
+        currency
+      }
+      vatAmount {
+        amount
+        currency
+      }
+      supplementaryDuty {
+        amount
+        currency
+      }
+      advanceIncomeTax {
+        amount
+        currency
+      }
+      invoiceDate
+      dueDate
+      fiscalYear
+      mushakNumber
+      challanNumber
+      lineItems {
+        description
+        quantity
+        unitPrice {
+          amount
+          currency
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+export type CreateInvoiceMutationFn = Apollo.MutationFunction<
+  CreateInvoiceMutation,
+  CreateInvoiceMutationVariables
+>;
+
+/**
+ * __useCreateInvoiceMutation__
+ *
+ * To run a mutation, you first call `useCreateInvoiceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateInvoiceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createInvoiceMutation, { data, loading, error }] = useCreateInvoiceMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateInvoiceMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    CreateInvoiceMutation,
+    CreateInvoiceMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    CreateInvoiceMutation,
+    CreateInvoiceMutationVariables
+  >(CreateInvoiceDocument, options);
+}
+export type CreateInvoiceMutationHookResult = ReturnType<
+  typeof useCreateInvoiceMutation
+>;
+export type CreateInvoiceMutationResult =
+  Apollo.MutationResult<CreateInvoiceMutation>;
+export type CreateInvoiceMutationOptions = Apollo.BaseMutationOptions<
+  CreateInvoiceMutation,
+  CreateInvoiceMutationVariables
+>;
+export const ApproveInvoiceDocument = gql`
+  mutation ApproveInvoice($id: ID!) {
+    approveInvoice(id: $id) {
+      id
+      invoiceNumber
+      status
+      mushakNumber
+      challanNumber
+      updatedAt
+    }
+  }
+`;
+export type ApproveInvoiceMutationFn = Apollo.MutationFunction<
+  ApproveInvoiceMutation,
+  ApproveInvoiceMutationVariables
+>;
+
+/**
+ * __useApproveInvoiceMutation__
+ *
+ * To run a mutation, you first call `useApproveInvoiceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useApproveInvoiceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [approveInvoiceMutation, { data, loading, error }] = useApproveInvoiceMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useApproveInvoiceMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    ApproveInvoiceMutation,
+    ApproveInvoiceMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    ApproveInvoiceMutation,
+    ApproveInvoiceMutationVariables
+  >(ApproveInvoiceDocument, options);
+}
+export type ApproveInvoiceMutationHookResult = ReturnType<
+  typeof useApproveInvoiceMutation
+>;
+export type ApproveInvoiceMutationResult =
+  Apollo.MutationResult<ApproveInvoiceMutation>;
+export type ApproveInvoiceMutationOptions = Apollo.BaseMutationOptions<
+  ApproveInvoiceMutation,
+  ApproveInvoiceMutationVariables
+>;
+export const CancelInvoiceDocument = gql`
+  mutation CancelInvoice($id: ID!, $reason: String!) {
+    cancelInvoice(id: $id, reason: $reason) {
+      id
+      invoiceNumber
+      status
+      updatedAt
+    }
+  }
+`;
+export type CancelInvoiceMutationFn = Apollo.MutationFunction<
+  CancelInvoiceMutation,
+  CancelInvoiceMutationVariables
+>;
+
+/**
+ * __useCancelInvoiceMutation__
+ *
+ * To run a mutation, you first call `useCancelInvoiceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCancelInvoiceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [cancelInvoiceMutation, { data, loading, error }] = useCancelInvoiceMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      reason: // value for 'reason'
+ *   },
+ * });
+ */
+export function useCancelInvoiceMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    CancelInvoiceMutation,
+    CancelInvoiceMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    CancelInvoiceMutation,
+    CancelInvoiceMutationVariables
+  >(CancelInvoiceDocument, options);
+}
+export type CancelInvoiceMutationHookResult = ReturnType<
+  typeof useCancelInvoiceMutation
+>;
+export type CancelInvoiceMutationResult =
+  Apollo.MutationResult<CancelInvoiceMutation>;
+export type CancelInvoiceMutationOptions = Apollo.BaseMutationOptions<
+  CancelInvoiceMutation,
+  CancelInvoiceMutationVariables
+>;
+export const CreatePaymentDocument = gql`
+  mutation CreatePayment($input: CreatePaymentInput!) {
+    createPayment(input: $input) {
+      id
+      paymentNumber
+      invoiceId
+      amount {
+        amount
+        currency
+      }
+      paymentMethod
+      status
+      paymentDate
+      reference
+      bankAccountId
+      checkNumber
+      mobileWallet {
+        provider
+        mobileNumber
+        transactionId
+        merchantCode
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+export type CreatePaymentMutationFn = Apollo.MutationFunction<
+  CreatePaymentMutation,
+  CreatePaymentMutationVariables
+>;
+
+/**
+ * __useCreatePaymentMutation__
+ *
+ * To run a mutation, you first call `useCreatePaymentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreatePaymentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createPaymentMutation, { data, loading, error }] = useCreatePaymentMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreatePaymentMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    CreatePaymentMutation,
+    CreatePaymentMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    CreatePaymentMutation,
+    CreatePaymentMutationVariables
+  >(CreatePaymentDocument, options);
+}
+export type CreatePaymentMutationHookResult = ReturnType<
+  typeof useCreatePaymentMutation
+>;
+export type CreatePaymentMutationResult =
+  Apollo.MutationResult<CreatePaymentMutation>;
+export type CreatePaymentMutationOptions = Apollo.BaseMutationOptions<
+  CreatePaymentMutation,
+  CreatePaymentMutationVariables
+>;
+export const CompletePaymentDocument = gql`
+  mutation CompletePayment($id: ID!, $input: CompletePaymentInput!) {
+    completePayment(id: $id, input: $input) {
+      id
+      paymentNumber
+      status
+      transactionReference
+      updatedAt
+    }
+  }
+`;
+export type CompletePaymentMutationFn = Apollo.MutationFunction<
+  CompletePaymentMutation,
+  CompletePaymentMutationVariables
+>;
+
+/**
+ * __useCompletePaymentMutation__
+ *
+ * To run a mutation, you first call `useCompletePaymentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCompletePaymentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [completePaymentMutation, { data, loading, error }] = useCompletePaymentMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCompletePaymentMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    CompletePaymentMutation,
+    CompletePaymentMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    CompletePaymentMutation,
+    CompletePaymentMutationVariables
+  >(CompletePaymentDocument, options);
+}
+export type CompletePaymentMutationHookResult = ReturnType<
+  typeof useCompletePaymentMutation
+>;
+export type CompletePaymentMutationResult =
+  Apollo.MutationResult<CompletePaymentMutation>;
+export type CompletePaymentMutationOptions = Apollo.BaseMutationOptions<
+  CompletePaymentMutation,
+  CompletePaymentMutationVariables
+>;
+export const FailPaymentDocument = gql`
+  mutation FailPayment($id: ID!, $input: FailPaymentInput!) {
+    failPayment(id: $id, input: $input) {
+      id
+      paymentNumber
+      status
+      failureReason
+      updatedAt
+    }
+  }
+`;
+export type FailPaymentMutationFn = Apollo.MutationFunction<
+  FailPaymentMutation,
+  FailPaymentMutationVariables
+>;
+
+/**
+ * __useFailPaymentMutation__
+ *
+ * To run a mutation, you first call `useFailPaymentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useFailPaymentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [failPaymentMutation, { data, loading, error }] = useFailPaymentMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useFailPaymentMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    FailPaymentMutation,
+    FailPaymentMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<FailPaymentMutation, FailPaymentMutationVariables>(
+    FailPaymentDocument,
+    options,
+  );
+}
+export type FailPaymentMutationHookResult = ReturnType<
+  typeof useFailPaymentMutation
+>;
+export type FailPaymentMutationResult =
+  Apollo.MutationResult<FailPaymentMutation>;
+export type FailPaymentMutationOptions = Apollo.BaseMutationOptions<
+  FailPaymentMutation,
+  FailPaymentMutationVariables
+>;
+export const ReconcilePaymentDocument = gql`
+  mutation ReconcilePayment($id: ID!, $input: ReconcilePaymentInput!) {
+    reconcilePayment(id: $id, input: $input) {
+      id
+      paymentNumber
+      status
+      bankTransactionId
+      reconciledAt
+      reconciledBy
+      updatedAt
+    }
+  }
+`;
+export type ReconcilePaymentMutationFn = Apollo.MutationFunction<
+  ReconcilePaymentMutation,
+  ReconcilePaymentMutationVariables
+>;
+
+/**
+ * __useReconcilePaymentMutation__
+ *
+ * To run a mutation, you first call `useReconcilePaymentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useReconcilePaymentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [reconcilePaymentMutation, { data, loading, error }] = useReconcilePaymentMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useReconcilePaymentMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    ReconcilePaymentMutation,
+    ReconcilePaymentMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    ReconcilePaymentMutation,
+    ReconcilePaymentMutationVariables
+  >(ReconcilePaymentDocument, options);
+}
+export type ReconcilePaymentMutationHookResult = ReturnType<
+  typeof useReconcilePaymentMutation
+>;
+export type ReconcilePaymentMutationResult =
+  Apollo.MutationResult<ReconcilePaymentMutation>;
+export type ReconcilePaymentMutationOptions = Apollo.BaseMutationOptions<
+  ReconcilePaymentMutation,
+  ReconcilePaymentMutationVariables
+>;
+export const ReversePaymentDocument = gql`
+  mutation ReversePayment($id: ID!, $input: ReversePaymentInput!) {
+    reversePayment(id: $id, input: $input) {
+      id
+      paymentNumber
+      status
+      reversalReason
+      reversedAt
+      reversedBy
+      updatedAt
+    }
+  }
+`;
+export type ReversePaymentMutationFn = Apollo.MutationFunction<
+  ReversePaymentMutation,
+  ReversePaymentMutationVariables
+>;
+
+/**
+ * __useReversePaymentMutation__
+ *
+ * To run a mutation, you first call `useReversePaymentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useReversePaymentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [reversePaymentMutation, { data, loading, error }] = useReversePaymentMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useReversePaymentMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    ReversePaymentMutation,
+    ReversePaymentMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    ReversePaymentMutation,
+    ReversePaymentMutationVariables
+  >(ReversePaymentDocument, options);
+}
+export type ReversePaymentMutationHookResult = ReturnType<
+  typeof useReversePaymentMutation
+>;
+export type ReversePaymentMutationResult =
+  Apollo.MutationResult<ReversePaymentMutation>;
+export type ReversePaymentMutationOptions = Apollo.BaseMutationOptions<
+  ReversePaymentMutation,
+  ReversePaymentMutationVariables
+>;
+export const CreateAccountDocument = gql`
+  mutation CreateAccount($input: CreateAccountInput!) {
+    createAccount(input: $input) {
+      id
+      accountCode
+      accountName
+      accountType
+      parentAccountId
+      balance {
+        amount
+        currency
+      }
+      currency
+      isActive
+      createdAt
+      updatedAt
+    }
+  }
+`;
+export type CreateAccountMutationFn = Apollo.MutationFunction<
+  CreateAccountMutation,
+  CreateAccountMutationVariables
+>;
+
+/**
+ * __useCreateAccountMutation__
+ *
+ * To run a mutation, you first call `useCreateAccountMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateAccountMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createAccountMutation, { data, loading, error }] = useCreateAccountMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateAccountMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    CreateAccountMutation,
+    CreateAccountMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    CreateAccountMutation,
+    CreateAccountMutationVariables
+  >(CreateAccountDocument, options);
+}
+export type CreateAccountMutationHookResult = ReturnType<
+  typeof useCreateAccountMutation
+>;
+export type CreateAccountMutationResult =
+  Apollo.MutationResult<CreateAccountMutation>;
+export type CreateAccountMutationOptions = Apollo.BaseMutationOptions<
+  CreateAccountMutation,
+  CreateAccountMutationVariables
+>;
+export const DeactivateAccountDocument = gql`
+  mutation DeactivateAccount($id: ID!, $reason: String!) {
+    deactivateAccount(id: $id, reason: $reason) {
+      id
+      accountCode
+      accountName
+      isActive
+      updatedAt
+    }
+  }
+`;
+export type DeactivateAccountMutationFn = Apollo.MutationFunction<
+  DeactivateAccountMutation,
+  DeactivateAccountMutationVariables
+>;
+
+/**
+ * __useDeactivateAccountMutation__
+ *
+ * To run a mutation, you first call `useDeactivateAccountMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeactivateAccountMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deactivateAccountMutation, { data, loading, error }] = useDeactivateAccountMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      reason: // value for 'reason'
+ *   },
+ * });
+ */
+export function useDeactivateAccountMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    DeactivateAccountMutation,
+    DeactivateAccountMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    DeactivateAccountMutation,
+    DeactivateAccountMutationVariables
+  >(DeactivateAccountDocument, options);
+}
+export type DeactivateAccountMutationHookResult = ReturnType<
+  typeof useDeactivateAccountMutation
+>;
+export type DeactivateAccountMutationResult =
+  Apollo.MutationResult<DeactivateAccountMutation>;
+export type DeactivateAccountMutationOptions = Apollo.BaseMutationOptions<
+  DeactivateAccountMutation,
+  DeactivateAccountMutationVariables
+>;
+export const CreateJournalDocument = gql`
+  mutation CreateJournal($input: CreateJournalInput!) {
+    createJournal(input: $input) {
+      id
+      journalNumber
+      journalDate
+      journalType
+      description
+      reference
+      lines {
+        lineId
+        accountId
+        debitAmount
+        creditAmount
+        description
+        costCenter
+        project
+        reference
+        taxCode
+      }
+      totalDebit
+      totalCredit
+      currency
+      status
+      fiscalPeriod
+      isReversing
+      originalJournalId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+export type CreateJournalMutationFn = Apollo.MutationFunction<
+  CreateJournalMutation,
+  CreateJournalMutationVariables
+>;
+
+/**
+ * __useCreateJournalMutation__
+ *
+ * To run a mutation, you first call `useCreateJournalMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateJournalMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createJournalMutation, { data, loading, error }] = useCreateJournalMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateJournalMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    CreateJournalMutation,
+    CreateJournalMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    CreateJournalMutation,
+    CreateJournalMutationVariables
+  >(CreateJournalDocument, options);
+}
+export type CreateJournalMutationHookResult = ReturnType<
+  typeof useCreateJournalMutation
+>;
+export type CreateJournalMutationResult =
+  Apollo.MutationResult<CreateJournalMutation>;
+export type CreateJournalMutationOptions = Apollo.BaseMutationOptions<
+  CreateJournalMutation,
+  CreateJournalMutationVariables
+>;
+export const AddJournalLineDocument = gql`
+  mutation AddJournalLine($journalId: ID!, $input: AddJournalLineInput!) {
+    addJournalLine(journalId: $journalId, input: $input) {
+      id
+      journalNumber
+      lines {
+        lineId
+        accountId
+        debitAmount
+        creditAmount
+        description
+        costCenter
+        project
+      }
+      totalDebit
+      totalCredit
+      updatedAt
+    }
+  }
+`;
+export type AddJournalLineMutationFn = Apollo.MutationFunction<
+  AddJournalLineMutation,
+  AddJournalLineMutationVariables
+>;
+
+/**
+ * __useAddJournalLineMutation__
+ *
+ * To run a mutation, you first call `useAddJournalLineMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAddJournalLineMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [addJournalLineMutation, { data, loading, error }] = useAddJournalLineMutation({
+ *   variables: {
+ *      journalId: // value for 'journalId'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useAddJournalLineMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    AddJournalLineMutation,
+    AddJournalLineMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    AddJournalLineMutation,
+    AddJournalLineMutationVariables
+  >(AddJournalLineDocument, options);
+}
+export type AddJournalLineMutationHookResult = ReturnType<
+  typeof useAddJournalLineMutation
+>;
+export type AddJournalLineMutationResult =
+  Apollo.MutationResult<AddJournalLineMutation>;
+export type AddJournalLineMutationOptions = Apollo.BaseMutationOptions<
+  AddJournalLineMutation,
+  AddJournalLineMutationVariables
+>;
+export const PostJournalDocument = gql`
+  mutation PostJournal($id: ID!) {
+    postJournal(id: $id) {
+      id
+      journalNumber
+      status
+      postedAt
+      postedBy
+      updatedAt
+    }
+  }
+`;
+export type PostJournalMutationFn = Apollo.MutationFunction<
+  PostJournalMutation,
+  PostJournalMutationVariables
+>;
+
+/**
+ * __usePostJournalMutation__
+ *
+ * To run a mutation, you first call `usePostJournalMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `usePostJournalMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [postJournalMutation, { data, loading, error }] = usePostJournalMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function usePostJournalMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    PostJournalMutation,
+    PostJournalMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<PostJournalMutation, PostJournalMutationVariables>(
+    PostJournalDocument,
+    options,
+  );
+}
+export type PostJournalMutationHookResult = ReturnType<
+  typeof usePostJournalMutation
+>;
+export type PostJournalMutationResult =
+  Apollo.MutationResult<PostJournalMutation>;
+export type PostJournalMutationOptions = Apollo.BaseMutationOptions<
+  PostJournalMutation,
+  PostJournalMutationVariables
+>;
+export const ReverseJournalDocument = gql`
+  mutation ReverseJournal($id: ID!, $reversingDate: String!) {
+    reverseJournal(id: $id, reversingDate: $reversingDate) {
+      id
+      journalNumber
+      journalDate
+      journalType
+      description
+      lines {
+        lineId
+        accountId
+        debitAmount
+        creditAmount
+        description
+      }
+      totalDebit
+      totalCredit
+      status
+      isReversing
+      originalJournalId
+      createdAt
+    }
+  }
+`;
+export type ReverseJournalMutationFn = Apollo.MutationFunction<
+  ReverseJournalMutation,
+  ReverseJournalMutationVariables
+>;
+
+/**
+ * __useReverseJournalMutation__
+ *
+ * To run a mutation, you first call `useReverseJournalMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useReverseJournalMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [reverseJournalMutation, { data, loading, error }] = useReverseJournalMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      reversingDate: // value for 'reversingDate'
+ *   },
+ * });
+ */
+export function useReverseJournalMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    ReverseJournalMutation,
+    ReverseJournalMutationVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    ReverseJournalMutation,
+    ReverseJournalMutationVariables
+  >(ReverseJournalDocument, options);
+}
+export type ReverseJournalMutationHookResult = ReturnType<
+  typeof useReverseJournalMutation
+>;
+export type ReverseJournalMutationResult =
+  Apollo.MutationResult<ReverseJournalMutation>;
+export type ReverseJournalMutationOptions = Apollo.BaseMutationOptions<
+  ReverseJournalMutation,
+  ReverseJournalMutationVariables
 >;
