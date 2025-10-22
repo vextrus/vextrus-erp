@@ -9,10 +9,23 @@ import {
   LineItemAddedEvent,
   InvoiceCalculatedEvent,
 } from '../../../domain/aggregates/invoice/invoice.aggregate';
+import {
+  InvoicePaymentRecordedEvent,
+  InvoiceFullyPaidEvent,
+} from '../../../domain/aggregates/invoice/events/invoice-payment-recorded.event';
 import { InvoiceProjection, FinancialSummaryProjection, EntityTransactionProjection } from '../projections/invoice.projection';
 import { MasterDataDataLoader } from '../../../infrastructure/integrations/master-data.dataloader';
+import { FinanceCacheService } from '../../../infrastructure/cache/cache.service';
 
-@EventsHandler(InvoiceCreatedEvent, InvoiceApprovedEvent, LineItemAddedEvent, InvoiceCalculatedEvent, InvoiceCancelledEvent)
+@EventsHandler(
+  InvoiceCreatedEvent,
+  InvoiceApprovedEvent,
+  LineItemAddedEvent,
+  InvoiceCalculatedEvent,
+  InvoiceCancelledEvent,
+  InvoicePaymentRecordedEvent,
+  InvoiceFullyPaidEvent,
+)
 export class InvoiceProjectionHandler implements IEventHandler {
   private readonly logger = new Logger(InvoiceProjectionHandler.name);
 
@@ -24,6 +37,7 @@ export class InvoiceProjectionHandler implements IEventHandler {
     @InjectRepository(EntityTransactionProjection)
     private readonly entityTransactionRepository: Repository<EntityTransactionProjection>,
     private readonly masterDataLoader: MasterDataDataLoader,
+    private readonly cacheService: FinanceCacheService,
   ) {}
 
   async handle(event: any): Promise<void> {
@@ -43,6 +57,12 @@ export class InvoiceProjectionHandler implements IEventHandler {
           break;
         case 'InvoiceCancelledEvent':
           await this.handleInvoiceCancelled(event as InvoiceCancelledEvent);
+          break;
+        case 'InvoicePaymentRecordedEvent':
+          await this.handleInvoicePaymentRecorded(event as InvoicePaymentRecordedEvent);
+          break;
+        case 'InvoiceFullyPaidEvent':
+          await this.handleInvoiceFullyPaid(event as InvoiceFullyPaidEvent);
           break;
       }
     } catch (error) {
@@ -106,6 +126,10 @@ export class InvoiceProjectionHandler implements IEventHandler {
 
     await this.invoiceRepository.save(projection);
 
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateInvoice(event.tenantId, event.invoiceId.value);
+    this.logger.debug(`Invalidated cache for invoice ${event.invoiceId.value}`);
+
     // Initialize entity transaction projection for the customer
     await this.updateEntityTransactionProjection(
       event.tenantId,
@@ -143,6 +167,10 @@ export class InvoiceProjectionHandler implements IEventHandler {
 
     projection.lineItems = [...projection.lineItems, lineItem];
     await this.invoiceRepository.save(projection);
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateInvoice(event.tenantId, event.invoiceId.value);
+    this.logger.debug(`Invalidated cache for invoice ${event.invoiceId.value}`);
   }
 
   private async handleInvoiceCalculated(event: InvoiceCalculatedEvent): Promise<void> {
@@ -163,6 +191,10 @@ export class InvoiceProjectionHandler implements IEventHandler {
     projection.balanceAmount = event.grandTotal.getAmount();
 
     await this.invoiceRepository.save(projection);
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateInvoice(event.tenantId, event.invoiceId.value);
+    this.logger.debug(`Invalidated cache for invoice ${event.invoiceId.value}`);
 
     // Update financial summary
     await this.updateFinancialSummary(projection);
@@ -185,6 +217,10 @@ export class InvoiceProjectionHandler implements IEventHandler {
 
     await this.invoiceRepository.save(projection);
 
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateInvoice(event.tenantId, event.invoiceId.value);
+    this.logger.debug(`Invalidated cache for invoice ${event.invoiceId.value}`);
+
     // Update entity transaction summary
     await this.updateEntityTransactionOnApproval(projection);
   }
@@ -203,6 +239,10 @@ export class InvoiceProjectionHandler implements IEventHandler {
     projection.status = 'CANCELLED';
 
     await this.invoiceRepository.save(projection);
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateInvoice(event.tenantId, event.invoiceId.value);
+    this.logger.debug(`Invalidated cache for invoice ${event.invoiceId.value}`);
 
     // Reverse financial summary if invoice was approved
     if (previousStatus === 'APPROVED') {
@@ -323,6 +363,124 @@ export class InvoiceProjectionHandler implements IEventHandler {
     }
 
     await this.entityTransactionRepository.save(projection);
+  }
+
+  /**
+   * Handle InvoicePaymentRecordedEvent
+   * Updates paid amount and balance amount in the projection
+   */
+  private async handleInvoicePaymentRecorded(event: InvoicePaymentRecordedEvent): Promise<void> {
+    const projection = await this.invoiceRepository.findOne({
+      where: { id: event.invoiceId.value }
+    });
+
+    if (!projection) {
+      this.logger.warn(`Invoice projection not found for ${event.invoiceId.value}`);
+      return;
+    }
+
+    // Update paid amount and balance
+    projection.paidAmount = event.newPaidAmount.getAmount();
+    projection.balanceAmount = event.remainingAmount.getAmount();
+
+    await this.invoiceRepository.save(projection);
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateInvoice(event.tenantId, event.invoiceId.value);
+    this.logger.debug(
+      `Updated invoice ${event.invoiceId.value} payment: ` +
+      `paidAmount=${projection.paidAmount}, balanceAmount=${projection.balanceAmount}`
+    );
+
+    // Update entity transaction projection (customer payment tracking)
+    await this.updateEntityTransactionOnPayment(projection, event.paymentAmount.getAmount());
+  }
+
+  /**
+   * Handle InvoiceFullyPaidEvent
+   * Transitions invoice status to PAID and updates financial summaries
+   */
+  private async handleInvoiceFullyPaid(event: InvoiceFullyPaidEvent): Promise<void> {
+    const projection = await this.invoiceRepository.findOne({
+      where: { id: event.invoiceId.value }
+    });
+
+    if (!projection) {
+      this.logger.warn(`Invoice projection not found for ${event.invoiceId.value}`);
+      return;
+    }
+
+    // Transition to PAID status
+    projection.status = 'PAID';
+    projection.paidAt = event.paidAt;
+
+    await this.invoiceRepository.save(projection);
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateInvoice(event.tenantId, event.invoiceId.value);
+    this.logger.log(`Invoice ${event.invoiceId.value} fully paid and status updated to PAID`);
+
+    // Update financial summary (reduce accounts receivable)
+    await this.updateFinancialSummaryOnPayment(projection);
+  }
+
+  /**
+   * Update entity transaction projection when payment is recorded
+   * Tracks customer payment activity
+   */
+  private async updateEntityTransactionOnPayment(
+    invoice: InvoiceProjection,
+    paymentAmount: number,
+  ): Promise<void> {
+    const period = this.getPeriod(invoice.invoiceDate);
+    const projectionId = `${invoice.tenantId}-CUSTOMER-${invoice.customerId}-${period}`;
+
+    const projection = await this.entityTransactionRepository.findOne({
+      where: { id: projectionId }
+    });
+
+    if (!projection) {
+      return;
+    }
+
+    // Update payment tracking
+    projection.totalPaid += paymentAmount;
+    projection.closingBalance = projection.openingBalance + projection.totalInvoiced - projection.totalPaid;
+
+    // Update overdue if this payment reduced overdue amount
+    if (invoice.balanceAmount === 0 && new Date() > invoice.dueDate) {
+      projection.overdueCount = Math.max(0, projection.overdueCount - 1);
+      projection.overdueAmount = Math.max(0, projection.overdueAmount - paymentAmount);
+    }
+
+    await this.entityTransactionRepository.save(projection);
+  }
+
+  /**
+   * Update financial summary when invoice is fully paid
+   * Reduces accounts receivable
+   */
+  private async updateFinancialSummaryOnPayment(invoice: InvoiceProjection): Promise<void> {
+    const period = this.getPeriod(invoice.invoiceDate);
+    const summaryId = `${invoice.tenantId}-${period}`;
+
+    const summary = await this.summaryRepository.findOne({
+      where: { id: summaryId }
+    });
+
+    if (!summary) {
+      return;
+    }
+
+    // Reduce accounts receivable (invoice is now paid)
+    summary.accountsReceivable = Math.max(0, summary.accountsReceivable - invoice.grandTotal);
+
+    // Reduce overdue count if invoice was overdue
+    if (new Date() > invoice.dueDate) {
+      summary.overdueInvoices = Math.max(0, summary.overdueInvoices - 1);
+    }
+
+    await this.summaryRepository.save(summary);
   }
 
   private getPeriod(date: Date): string {

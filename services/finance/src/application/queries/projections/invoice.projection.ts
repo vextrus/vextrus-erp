@@ -112,6 +112,9 @@ export class InvoiceProjection {
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   balanceAmount!: number;
 
+  @Column({ nullable: true })
+  paidAt?: Date;
+
   @CreateDateColumn()
   createdAt!: Date;
 

@@ -5,6 +5,15 @@ import { TIN } from '../../value-objects/tin.value-object';
 import { BIN } from '../../value-objects/bin.value-object';
 import { InvoiceNumber } from '../../value-objects/invoice-number.value-object';
 import { TenantId } from '../chart-of-account/chart-of-account.aggregate';
+import {
+  InvoiceLineItemsUpdatedEvent,
+  InvoiceDatesUpdatedEvent,
+  InvoiceCustomerUpdatedEvent,
+  InvoiceVendorUpdatedEvent,
+  InvoiceTaxInfoUpdatedEvent,
+} from './events/invoice-updated.events';
+import { InvoicePaymentRecordedEvent, InvoiceFullyPaidEvent } from './events/invoice-payment-recorded.event';
+import { PaymentId } from '../payment/payment.aggregate';
 
 // Value Objects
 export class InvoiceId {
@@ -223,6 +232,15 @@ export class InvalidFiscalYearException extends Error {
   }
 }
 
+export class InvoiceOverpaymentException extends Error {
+  constructor(grandTotal: Money, attemptedPayment: Money) {
+    super(
+      `Cannot overpay invoice. Grand total: ${grandTotal.getAmount()}, ` +
+      `Attempted total payment: ${attemptedPayment.getAmount()}`,
+    );
+  }
+}
+
 // Invoice props interface
 export interface InvoiceProps {
   invoiceId: InvoiceId;
@@ -271,6 +289,7 @@ export class Invoice extends AggregateRoot<InvoiceProps> {
   private vendorBIN?: BIN;
   private customerTIN?: TIN;
   private customerBIN?: BIN;
+  private paidAmount: Money = Money.zero('BDT'); // Track total payments received
 
   // Static sequence counter (in production, this would be from database)
   private static mushakSequence = 0;
@@ -505,6 +524,166 @@ export class Invoice extends AggregateRoot<InvoiceProps> {
     ));
   }
 
+  /**
+   * Update line items (DRAFT only)
+   * Replaces all line items and recalculates totals
+   */
+  updateLineItems(lineItems: LineItemDto[], updatedBy: UserId): void {
+    if (this.status !== InvoiceStatus.DRAFT) {
+      throw new InvalidInvoiceStatusException(this.status, InvoiceStatus.DRAFT);
+    }
+
+    this.apply(new InvoiceLineItemsUpdatedEvent(
+      this.invoiceId,
+      lineItems,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update invoice and due dates (DRAFT only)
+   * May trigger fiscal year recalculation
+   */
+  updateDates(invoiceDate?: Date, dueDate?: Date, updatedBy?: UserId): void {
+    if (this.status !== InvoiceStatus.DRAFT) {
+      throw new InvalidInvoiceStatusException(this.status, InvoiceStatus.DRAFT);
+    }
+
+    this.apply(new InvoiceDatesUpdatedEvent(
+      this.invoiceId,
+      invoiceDate || this.invoiceDate,
+      dueDate || this.dueDate,
+      updatedBy || new UserId('system'),
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update customer (DRAFT only)
+   */
+  updateCustomer(customerId: CustomerId, updatedBy: UserId): void {
+    if (this.status !== InvoiceStatus.DRAFT) {
+      throw new InvalidInvoiceStatusException(this.status, InvoiceStatus.DRAFT);
+    }
+
+    this.apply(new InvoiceCustomerUpdatedEvent(
+      this.invoiceId,
+      customerId,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update vendor (DRAFT only)
+   */
+  updateVendor(vendorId: VendorId, updatedBy: UserId): void {
+    if (this.status !== InvoiceStatus.DRAFT) {
+      throw new InvalidInvoiceStatusException(this.status, InvoiceStatus.DRAFT);
+    }
+
+    this.apply(new InvoiceVendorUpdatedEvent(
+      this.invoiceId,
+      vendorId,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update tax information (TIN/BIN)
+   * Bangladesh NBR compliance requirement
+   */
+  updateTaxInfo(
+    vendorTIN?: string,
+    vendorBIN?: string,
+    customerTIN?: string,
+    customerBIN?: string,
+    updatedBy?: UserId
+  ): void {
+    if (this.status !== InvoiceStatus.DRAFT) {
+      throw new InvalidInvoiceStatusException(this.status, InvoiceStatus.DRAFT);
+    }
+
+    this.apply(new InvoiceTaxInfoUpdatedEvent(
+      this.invoiceId,
+      vendorTIN,
+      vendorBIN,
+      customerTIN,
+      customerBIN,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Record Payment Against Invoice
+   *
+   * Records a payment that has been applied to this invoice.
+   * Updates the paid amount and automatically transitions to PAID
+   * status if the invoice is fully paid.
+   *
+   * Business Rules:
+   * - Can only record payment on APPROVED invoices
+   * - Cannot record payment on DRAFT or CANCELLED invoices
+   * - Cannot overpay (total paid cannot exceed grand total)
+   * - Auto-transitions to PAID when remaining amount === 0
+   *
+   * @param paymentId - Payment that was applied
+   * @param paymentAmount - Amount of this specific payment
+   * @throws Error if invoice status invalid
+   * @throws InvoiceOverpaymentException if payment would exceed grand total
+   */
+  recordPayment(paymentId: PaymentId, paymentAmount: Money): void {
+    // Validation: Can only record payment on APPROVED invoices
+    // CRITICAL FIX #3: Use InvalidInvoiceStatusException for consistency
+    if (this.status === InvoiceStatus.DRAFT) {
+      throw new InvalidInvoiceStatusException(
+        this.status,
+        InvoiceStatus.APPROVED,
+      );
+    }
+
+    if (this.status === InvoiceStatus.CANCELLED) {
+      throw new Error('Cannot record payment for CANCELLED invoice');
+    }
+
+    // Calculate new paid amount
+    const previousPaidAmount = this.paidAmount || Money.zero('BDT');
+    const newPaidAmount = previousPaidAmount.add(paymentAmount);
+
+    // Validate: Cannot overpay
+    if (newPaidAmount.getAmount() > this.grandTotal.getAmount()) {
+      throw new InvoiceOverpaymentException(this.grandTotal, newPaidAmount);
+    }
+
+    // Calculate remaining amount
+    const remainingAmount = this.grandTotal.subtract(newPaidAmount);
+
+    // Emit payment recorded event
+    this.apply(new InvoicePaymentRecordedEvent(
+      this.invoiceId,
+      paymentId,
+      paymentAmount,
+      previousPaidAmount,
+      newPaidAmount,
+      remainingAmount,
+      this.tenantId.value,
+    ));
+
+    // If fully paid, emit fully paid event
+    if (remainingAmount.isZero()) {
+      this.apply(new InvoiceFullyPaidEvent(
+        this.invoiceId,
+        paymentId,
+        newPaidAmount,
+        new Date(),
+        this.tenantId.value,
+      ));
+    }
+  }
+
   // Event handlers
   protected when(event: DomainEvent): void {
     switch (event.constructor) {
@@ -522,6 +701,27 @@ export class Invoice extends AggregateRoot<InvoiceProps> {
         break;
       case InvoiceCancelledEvent:
         this.onInvoiceCancelledEvent(event as InvoiceCancelledEvent);
+        break;
+      case InvoiceLineItemsUpdatedEvent:
+        this.onInvoiceLineItemsUpdated(event as InvoiceLineItemsUpdatedEvent);
+        break;
+      case InvoiceDatesUpdatedEvent:
+        this.onInvoiceDatesUpdated(event as InvoiceDatesUpdatedEvent);
+        break;
+      case InvoiceCustomerUpdatedEvent:
+        this.onInvoiceCustomerUpdated(event as InvoiceCustomerUpdatedEvent);
+        break;
+      case InvoiceVendorUpdatedEvent:
+        this.onInvoiceVendorUpdated(event as InvoiceVendorUpdatedEvent);
+        break;
+      case InvoiceTaxInfoUpdatedEvent:
+        this.onInvoiceTaxInfoUpdated(event as InvoiceTaxInfoUpdatedEvent);
+        break;
+      case InvoicePaymentRecordedEvent:
+        this.onInvoicePaymentRecorded(event as InvoicePaymentRecordedEvent);
+        break;
+      case InvoiceFullyPaidEvent:
+        this.onInvoiceFullyPaid(event as InvoiceFullyPaidEvent);
         break;
     }
   }
@@ -563,6 +763,100 @@ export class Invoice extends AggregateRoot<InvoiceProps> {
 
   private onInvoiceCancelledEvent(event: InvoiceCancelledEvent): void {
     this.status = InvoiceStatus.CANCELLED;
+  }
+
+  private onInvoiceLineItemsUpdated(event: InvoiceLineItemsUpdatedEvent): void {
+    // Clear existing line items and recreate from DTOs
+    this.lineItems = [];
+
+    event.lineItems.forEach(itemDto => {
+      // Calculate VAT based on category
+      const vatCategory = itemDto.vatCategory || VATCategory.STANDARD;
+      const vatRate = this.getVATRate(vatCategory);
+
+      // Calculate amounts
+      const amount = itemDto.amount || itemDto.unitPrice.multiply(itemDto.quantity);
+      const vatAmount = amount.multiply(vatRate);
+
+      // Calculate supplementary duty if applicable
+      const supplementaryDuty = itemDto.supplementaryDutyRate
+        ? amount.multiply(itemDto.supplementaryDutyRate)
+        : Money.zero(amount.getCurrency());
+
+      // Calculate advance income tax if applicable
+      const advanceIncomeTax = itemDto.advanceIncomeTaxRate
+        ? amount.multiply(itemDto.advanceIncomeTaxRate)
+        : Money.zero(amount.getCurrency());
+
+      const lineItem: LineItem = {
+        id: LineItemId.generate(),
+        description: itemDto.description,
+        quantity: itemDto.quantity,
+        unitPrice: itemDto.unitPrice,
+        amount,
+        vatCategory,
+        vatRate,
+        vatAmount,
+        hsCode: itemDto.hsCode,
+        supplementaryDuty,
+        advanceIncomeTax,
+      };
+
+      this.lineItems.push(lineItem);
+    });
+
+    // Recalculate totals
+    this.recalculateTotals();
+  }
+
+  private onInvoiceDatesUpdated(event: InvoiceDatesUpdatedEvent): void {
+    this.invoiceDate = event.invoiceDate;
+    this.dueDate = event.dueDate;
+
+    // Recalculate fiscal year if invoice date changed
+    const newFiscalYear = Invoice.calculateFiscalYear(event.invoiceDate);
+    if (newFiscalYear !== this.fiscalYear) {
+      this.fiscalYear = newFiscalYear;
+    }
+  }
+
+  private onInvoiceCustomerUpdated(event: InvoiceCustomerUpdatedEvent): void {
+    this.customerId = event.customerId;
+  }
+
+  private onInvoiceVendorUpdated(event: InvoiceVendorUpdatedEvent): void {
+    this.vendorId = event.vendorId;
+  }
+
+  private onInvoiceTaxInfoUpdated(event: InvoiceTaxInfoUpdatedEvent): void {
+    if (event.vendorTIN !== undefined) {
+      this.vendorTIN = event.vendorTIN ? TIN.create(event.vendorTIN) : undefined;
+    }
+    if (event.vendorBIN !== undefined) {
+      this.vendorBIN = event.vendorBIN ? BIN.create(event.vendorBIN) : undefined;
+    }
+    if (event.customerTIN !== undefined) {
+      this.customerTIN = event.customerTIN ? TIN.create(event.customerTIN) : undefined;
+    }
+    if (event.customerBIN !== undefined) {
+      this.customerBIN = event.customerBIN ? BIN.create(event.customerBIN) : undefined;
+    }
+  }
+
+  /**
+   * Handle InvoicePaymentRecordedEvent
+   * Updates the paid amount on the invoice
+   */
+  private onInvoicePaymentRecorded(event: InvoicePaymentRecordedEvent): void {
+    this.paidAmount = event.newPaidAmount;
+  }
+
+  /**
+   * Handle InvoiceFullyPaidEvent
+   * Transitions invoice status to PAID
+   */
+  private onInvoiceFullyPaid(event: InvoiceFullyPaidEvent): void {
+    this.status = InvoiceStatus.PAID;
   }
 
   // Getters

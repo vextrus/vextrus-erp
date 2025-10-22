@@ -1,4 +1,26 @@
 {
+  "permissions": {
+    "allow": [
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(pnpm build)",
+      "Bash(npm test -- account-balance.service.spec.ts)",
+      "Bash(npm test -- invoice.aggregate.spec.ts)",
+      "Bash(npm test)",
+      "Bash(npm test -- get-trial-balance.performance.spec.ts)",
+      "Bash(tree:*)",
+      "Skill(haiku-explorer)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Read(//c/c/Users/riz/vextrus-erp/**)",
+      "Bash(npm run codegen:*)",
+      "Bash(pnpm run codegen:*)",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker restart:*)"
+    ]
+  },
   "enabledMcpjsonServers": [
     "filesystem",
     "postgres",
@@ -17,10 +39,5 @@
     "brightdata",
     "notion",
     "reddit"
-  ],
-  "permissions": {
-    "allow": [
-      "mcp__sequential-thinking__sequentialthinking"
-    ]
-  }
+  ]
 }

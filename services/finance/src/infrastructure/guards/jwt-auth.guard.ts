@@ -86,7 +86,8 @@ export class JwtAuthGuard implements CanActivate {
 
       // SECURITY: Extract tenant from JWT ONLY - do not trust headers
       // The tenant should come from the authenticated user's JWT token
-      const jwtTenantId = user.tenantId || user.tenant_id || user.tenant || request.tenantId || 'default';
+      // GAP-001B Fix: Also check organizationId (Auth service /me response field)
+      const jwtTenantId = user.tenantId || user.tenant_id || user.tenant || user.organizationId || request.tenantId || 'default';
 
       // SECURITY: Verify header matches JWT if X-Tenant-ID header is provided
       const headerTenantId = request.headers['x-tenant-id'];

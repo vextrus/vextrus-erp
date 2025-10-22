@@ -1,0 +1,3 @@
+{
+  "query": "query GetCustomers { customers { data { id code name tin bin nid email phone status customer_type } total page limit totalPages hasNext hasPrevious } }"
+}

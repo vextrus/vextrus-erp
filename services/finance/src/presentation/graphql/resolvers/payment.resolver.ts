@@ -3,6 +3,7 @@ import { UseGuards, Logger, NotFoundException } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { PaymentDto, MobileWalletDto } from '../dto/payment.dto';
 import { CreatePaymentInput } from '../inputs/create-payment.input';
+import { UpdatePaymentInput } from '../inputs/update-payment.input';
 import { CompletePaymentInput } from '../inputs/complete-payment.input';
 import { FailPaymentInput } from '../inputs/fail-payment.input';
 import { ReconcilePaymentInput } from '../inputs/reconcile-payment.input';
@@ -13,6 +14,7 @@ import { Permissions } from '../../../infrastructure/decorators/permissions.deco
 import { Public } from '../../../infrastructure/decorators/public.decorator';
 import { CurrentUser, CurrentUserContext } from '../../../infrastructure/decorators/current-user.decorator';
 import { CreatePaymentCommand } from '../../../application/commands/create-payment.command';
+import { UpdatePaymentCommand } from '../../../application/commands/update-payment.command';
 import { CompletePaymentCommand } from '../../../application/commands/complete-payment.command';
 import { FailPaymentCommand } from '../../../application/commands/fail-payment.command';
 import { ReconcilePaymentCommand } from '../../../application/commands/reconcile-payment.command';
@@ -186,6 +188,46 @@ export class PaymentResolver {
 
     if (!payment) {
       throw new NotFoundException(`Payment ${paymentId} was created but could not be retrieved`);
+    }
+
+    return this.mapToDto(payment);
+  }
+
+  /**
+   * Mutation: Update payment (PENDING only)
+   */
+  @Mutation(() => PaymentDto, { name: 'updatePayment' })
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('payment:update')
+  async updatePayment(
+    @Args('id', { type: () => ID }) id: string,
+    @Args('input') input: UpdatePaymentInput,
+    @CurrentUser() user: CurrentUserContext,
+  ): Promise<PaymentDto> {
+    this.logger.log(`Updating payment ${id}, user ${user.userId}`);
+
+    const command = new UpdatePaymentCommand(
+      id,
+      user.userId,
+      user.tenantId,
+      input.amount,
+      input.currency,
+      input.paymentDate ? new Date(input.paymentDate) : undefined,
+      input.paymentMethod,
+      input.reference,
+      input.bankAccountId,
+      input.checkNumber,
+    );
+
+    await this.commandBus.execute(command);
+
+    // Query the updated payment to return it
+    const payment = await this.queryBus.execute<GetPaymentQuery, PaymentReadModel | null>(
+      new GetPaymentQuery(id)
+    );
+
+    if (!payment) {
+      throw new NotFoundException(`Payment ${id} not found after update`);
     }
 
     return this.mapToDto(payment);

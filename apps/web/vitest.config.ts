@@ -51,7 +51,7 @@ export default defineConfig(async () => {
 
     // Test files
     include: ['**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['node_modules', '.next', 'dist', '.storybook'],
+    exclude: ['node_modules', '.next', 'dist', '.storybook', 'e2e/**', 'test-e2e/**', 'playwright.config.ts'],
 
     // Timeouts (longer for browser mode)
     testTimeout: useBrowserMode ? 30000 : 10000,

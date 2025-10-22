@@ -3432,6 +3432,139 @@ export type ReverseJournalMutation = {
   };
 };
 
+export type GetPaymentQueryVariables = Exact<{
+  id: Scalars["ID"]["input"];
+}>;
+
+export type GetPaymentQuery = {
+  __typename?: "Query";
+  payment?: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    invoiceId: string;
+    paymentMethod: PaymentMethod;
+    bankAccountId?: string | null;
+    checkNumber?: string | null;
+    status: PaymentStatus;
+    paymentDate: string;
+    reference?: string | null;
+    transactionReference?: string | null;
+    reconciledAt?: string | null;
+    reconciledBy?: string | null;
+    bankTransactionId?: string | null;
+    reversedAt?: string | null;
+    reversedBy?: string | null;
+    reversalReason?: string | null;
+    failureReason?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    amount: { __typename?: "MoneyDto"; amount: number; currency: string };
+    mobileWallet?: {
+      __typename?: "MobileWallet";
+      provider: MobileWalletProvider;
+      mobileNumber: string;
+      transactionId: string;
+      merchantCode?: string | null;
+    } | null;
+  } | null;
+};
+
+export type GetJournalsQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  offset?: InputMaybe<Scalars["Int"]["input"]>;
+  status?: InputMaybe<JournalStatus>;
+}>;
+
+export type GetJournalsQuery = {
+  __typename?: "Query";
+  journals: Array<{
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    journalDate: string;
+    journalType: JournalType;
+    description: string;
+    reference?: string | null;
+    totalDebit: number;
+    totalCredit: number;
+    currency: string;
+    status: JournalStatus;
+    fiscalPeriod: string;
+    isReversing: boolean;
+    originalJournalId?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};
+
+export type GetJournalQueryVariables = Exact<{
+  id: Scalars["ID"]["input"];
+}>;
+
+export type GetJournalQuery = {
+  __typename?: "Query";
+  journal?: {
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    journalDate: string;
+    journalType: JournalType;
+    description: string;
+    reference?: string | null;
+    totalDebit: number;
+    totalCredit: number;
+    currency: string;
+    status: JournalStatus;
+    fiscalPeriod: string;
+    isReversing: boolean;
+    originalJournalId?: string | null;
+    postedAt?: string | null;
+    postedBy?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    lines: Array<{
+      __typename?: "JournalLine";
+      lineId: string;
+      accountId: string;
+      debitAmount: number;
+      creditAmount: number;
+      description?: string | null;
+      costCenter?: string | null;
+      project?: string | null;
+      reference?: string | null;
+      taxCode?: string | null;
+    }>;
+  } | null;
+};
+
+export type GetChartOfAccountQueryVariables = Exact<{
+  id: Scalars["ID"]["input"];
+}>;
+
+export type GetChartOfAccountQuery = {
+  __typename?: "Query";
+  chartOfAccount?: {
+    __typename?: "ChartOfAccount";
+    id: string;
+    accountCode: string;
+    accountName: string;
+    accountType: AccountType;
+    parentAccountId?: string | null;
+    currency: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    parentAccount?: {
+      __typename?: "ChartOfAccount";
+      id: string;
+      accountCode: string;
+      accountName: string;
+    } | null;
+    balance: { __typename?: "MoneyDto"; amount: number; currency: string };
+  } | null;
+};
+
 export const GetInvoicesDocument = gql`
   query GetInvoices($limit: Int = 50, $offset: Int = 0) {
     invoices(limit: $limit, offset: $offset) {
@@ -4780,4 +4913,414 @@ export type ReverseJournalMutationResult =
 export type ReverseJournalMutationOptions = Apollo.BaseMutationOptions<
   ReverseJournalMutation,
   ReverseJournalMutationVariables
+>;
+export const GetPaymentDocument = gql`
+  query GetPayment($id: ID!) {
+    payment(id: $id) {
+      id
+      paymentNumber
+      invoiceId
+      amount {
+        amount
+        currency
+      }
+      paymentMethod
+      bankAccountId
+      checkNumber
+      mobileWallet {
+        provider
+        mobileNumber
+        transactionId
+        merchantCode
+      }
+      status
+      paymentDate
+      reference
+      transactionReference
+      reconciledAt
+      reconciledBy
+      bankTransactionId
+      reversedAt
+      reversedBy
+      reversalReason
+      failureReason
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+/**
+ * __useGetPaymentQuery__
+ *
+ * To run a query within a React component, call `useGetPaymentQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetPaymentQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetPaymentQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetPaymentQuery(
+  baseOptions: Apollo.QueryHookOptions<
+    GetPaymentQuery,
+    GetPaymentQueryVariables
+  > &
+    (
+      | { variables: GetPaymentQueryVariables; skip?: boolean }
+      | { skip: boolean }
+    ),
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useQuery<GetPaymentQuery, GetPaymentQueryVariables>(
+    GetPaymentDocument,
+    options,
+  );
+}
+export function useGetPaymentLazyQuery(
+  baseOptions?: Apollo.LazyQueryHookOptions<
+    GetPaymentQuery,
+    GetPaymentQueryVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useLazyQuery<GetPaymentQuery, GetPaymentQueryVariables>(
+    GetPaymentDocument,
+    options,
+  );
+}
+export function useGetPaymentSuspenseQuery(
+  baseOptions?:
+    | Apollo.SkipToken
+    | Apollo.SuspenseQueryHookOptions<
+        GetPaymentQuery,
+        GetPaymentQueryVariables
+      >,
+) {
+  const options =
+    baseOptions === Apollo.skipToken
+      ? baseOptions
+      : { ...defaultOptions, ...baseOptions };
+  return Apollo.useSuspenseQuery<GetPaymentQuery, GetPaymentQueryVariables>(
+    GetPaymentDocument,
+    options,
+  );
+}
+export type GetPaymentQueryHookResult = ReturnType<typeof useGetPaymentQuery>;
+export type GetPaymentLazyQueryHookResult = ReturnType<
+  typeof useGetPaymentLazyQuery
+>;
+export type GetPaymentSuspenseQueryHookResult = ReturnType<
+  typeof useGetPaymentSuspenseQuery
+>;
+export type GetPaymentQueryResult = Apollo.QueryResult<
+  GetPaymentQuery,
+  GetPaymentQueryVariables
+>;
+export const GetJournalsDocument = gql`
+  query GetJournals(
+    $limit: Int = 50
+    $offset: Int = 0
+    $status: JournalStatus
+  ) {
+    journals(limit: $limit, offset: $offset, status: $status) {
+      id
+      journalNumber
+      journalDate
+      journalType
+      description
+      reference
+      totalDebit
+      totalCredit
+      currency
+      status
+      fiscalPeriod
+      isReversing
+      originalJournalId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+/**
+ * __useGetJournalsQuery__
+ *
+ * To run a query within a React component, call `useGetJournalsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetJournalsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetJournalsQuery({
+ *   variables: {
+ *      limit: // value for 'limit'
+ *      offset: // value for 'offset'
+ *      status: // value for 'status'
+ *   },
+ * });
+ */
+export function useGetJournalsQuery(
+  baseOptions?: Apollo.QueryHookOptions<
+    GetJournalsQuery,
+    GetJournalsQueryVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useQuery<GetJournalsQuery, GetJournalsQueryVariables>(
+    GetJournalsDocument,
+    options,
+  );
+}
+export function useGetJournalsLazyQuery(
+  baseOptions?: Apollo.LazyQueryHookOptions<
+    GetJournalsQuery,
+    GetJournalsQueryVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useLazyQuery<GetJournalsQuery, GetJournalsQueryVariables>(
+    GetJournalsDocument,
+    options,
+  );
+}
+export function useGetJournalsSuspenseQuery(
+  baseOptions?:
+    | Apollo.SkipToken
+    | Apollo.SuspenseQueryHookOptions<
+        GetJournalsQuery,
+        GetJournalsQueryVariables
+      >,
+) {
+  const options =
+    baseOptions === Apollo.skipToken
+      ? baseOptions
+      : { ...defaultOptions, ...baseOptions };
+  return Apollo.useSuspenseQuery<GetJournalsQuery, GetJournalsQueryVariables>(
+    GetJournalsDocument,
+    options,
+  );
+}
+export type GetJournalsQueryHookResult = ReturnType<typeof useGetJournalsQuery>;
+export type GetJournalsLazyQueryHookResult = ReturnType<
+  typeof useGetJournalsLazyQuery
+>;
+export type GetJournalsSuspenseQueryHookResult = ReturnType<
+  typeof useGetJournalsSuspenseQuery
+>;
+export type GetJournalsQueryResult = Apollo.QueryResult<
+  GetJournalsQuery,
+  GetJournalsQueryVariables
+>;
+export const GetJournalDocument = gql`
+  query GetJournal($id: ID!) {
+    journal(id: $id) {
+      id
+      journalNumber
+      journalDate
+      journalType
+      description
+      reference
+      lines {
+        lineId
+        accountId
+        debitAmount
+        creditAmount
+        description
+        costCenter
+        project
+        reference
+        taxCode
+      }
+      totalDebit
+      totalCredit
+      currency
+      status
+      fiscalPeriod
+      isReversing
+      originalJournalId
+      postedAt
+      postedBy
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+/**
+ * __useGetJournalQuery__
+ *
+ * To run a query within a React component, call `useGetJournalQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetJournalQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetJournalQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetJournalQuery(
+  baseOptions: Apollo.QueryHookOptions<
+    GetJournalQuery,
+    GetJournalQueryVariables
+  > &
+    (
+      | { variables: GetJournalQueryVariables; skip?: boolean }
+      | { skip: boolean }
+    ),
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useQuery<GetJournalQuery, GetJournalQueryVariables>(
+    GetJournalDocument,
+    options,
+  );
+}
+export function useGetJournalLazyQuery(
+  baseOptions?: Apollo.LazyQueryHookOptions<
+    GetJournalQuery,
+    GetJournalQueryVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useLazyQuery<GetJournalQuery, GetJournalQueryVariables>(
+    GetJournalDocument,
+    options,
+  );
+}
+export function useGetJournalSuspenseQuery(
+  baseOptions?:
+    | Apollo.SkipToken
+    | Apollo.SuspenseQueryHookOptions<
+        GetJournalQuery,
+        GetJournalQueryVariables
+      >,
+) {
+  const options =
+    baseOptions === Apollo.skipToken
+      ? baseOptions
+      : { ...defaultOptions, ...baseOptions };
+  return Apollo.useSuspenseQuery<GetJournalQuery, GetJournalQueryVariables>(
+    GetJournalDocument,
+    options,
+  );
+}
+export type GetJournalQueryHookResult = ReturnType<typeof useGetJournalQuery>;
+export type GetJournalLazyQueryHookResult = ReturnType<
+  typeof useGetJournalLazyQuery
+>;
+export type GetJournalSuspenseQueryHookResult = ReturnType<
+  typeof useGetJournalSuspenseQuery
+>;
+export type GetJournalQueryResult = Apollo.QueryResult<
+  GetJournalQuery,
+  GetJournalQueryVariables
+>;
+export const GetChartOfAccountDocument = gql`
+  query GetChartOfAccount($id: ID!) {
+    chartOfAccount(id: $id) {
+      id
+      accountCode
+      accountName
+      accountType
+      parentAccountId
+      parentAccount {
+        id
+        accountCode
+        accountName
+      }
+      balance {
+        amount
+        currency
+      }
+      currency
+      isActive
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+/**
+ * __useGetChartOfAccountQuery__
+ *
+ * To run a query within a React component, call `useGetChartOfAccountQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetChartOfAccountQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetChartOfAccountQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetChartOfAccountQuery(
+  baseOptions: Apollo.QueryHookOptions<
+    GetChartOfAccountQuery,
+    GetChartOfAccountQueryVariables
+  > &
+    (
+      | { variables: GetChartOfAccountQueryVariables; skip?: boolean }
+      | { skip: boolean }
+    ),
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useQuery<
+    GetChartOfAccountQuery,
+    GetChartOfAccountQueryVariables
+  >(GetChartOfAccountDocument, options);
+}
+export function useGetChartOfAccountLazyQuery(
+  baseOptions?: Apollo.LazyQueryHookOptions<
+    GetChartOfAccountQuery,
+    GetChartOfAccountQueryVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useLazyQuery<
+    GetChartOfAccountQuery,
+    GetChartOfAccountQueryVariables
+  >(GetChartOfAccountDocument, options);
+}
+export function useGetChartOfAccountSuspenseQuery(
+  baseOptions?:
+    | Apollo.SkipToken
+    | Apollo.SuspenseQueryHookOptions<
+        GetChartOfAccountQuery,
+        GetChartOfAccountQueryVariables
+      >,
+) {
+  const options =
+    baseOptions === Apollo.skipToken
+      ? baseOptions
+      : { ...defaultOptions, ...baseOptions };
+  return Apollo.useSuspenseQuery<
+    GetChartOfAccountQuery,
+    GetChartOfAccountQueryVariables
+  >(GetChartOfAccountDocument, options);
+}
+export type GetChartOfAccountQueryHookResult = ReturnType<
+  typeof useGetChartOfAccountQuery
+>;
+export type GetChartOfAccountLazyQueryHookResult = ReturnType<
+  typeof useGetChartOfAccountLazyQuery
+>;
+export type GetChartOfAccountSuspenseQueryHookResult = ReturnType<
+  typeof useGetChartOfAccountSuspenseQuery
+>;
+export type GetChartOfAccountQueryResult = Apollo.QueryResult<
+  GetChartOfAccountQuery,
+  GetChartOfAccountQueryVariables
 >;

@@ -2986,6 +2986,338 @@ export type WorkflowResponse = {
   variables?: Maybe<Scalars["String"]["output"]>;
 };
 
+export type CreateInvoiceMutationVariables = Exact<{
+  input: CreateInvoiceInput;
+}>;
+
+export type CreateInvoiceMutation = {
+  __typename?: "Mutation";
+  createInvoice: {
+    __typename?: "Invoice";
+    id: string;
+    invoiceNumber: string;
+    status: InvoiceStatus;
+    customerId: string;
+    customerTIN?: string | null;
+    customerBIN?: string | null;
+    vendorId: string;
+    vendorTIN?: string | null;
+    vendorBIN?: string | null;
+    invoiceDate: any;
+    dueDate: any;
+    fiscalYear: string;
+    mushakNumber?: string | null;
+    challanNumber?: string | null;
+    createdAt: any;
+    updatedAt: any;
+    grandTotal: { __typename?: "MoneyDto"; amount: number; currency: string };
+    subtotal: { __typename?: "MoneyDto"; amount: number; currency: string };
+    vatAmount: { __typename?: "MoneyDto"; amount: number; currency: string };
+    supplementaryDuty: {
+      __typename?: "MoneyDto";
+      amount: number;
+      currency: string;
+    };
+    advanceIncomeTax: {
+      __typename?: "MoneyDto";
+      amount: number;
+      currency: string;
+    };
+    lineItems: Array<{
+      __typename?: "LineItem";
+      description: string;
+      quantity: number;
+      unitPrice: { __typename?: "MoneyDto"; amount: number; currency: string };
+    }>;
+  };
+};
+
+export type ApproveInvoiceMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+}>;
+
+export type ApproveInvoiceMutation = {
+  __typename?: "Mutation";
+  approveInvoice: {
+    __typename?: "Invoice";
+    id: string;
+    invoiceNumber: string;
+    status: InvoiceStatus;
+    mushakNumber?: string | null;
+    challanNumber?: string | null;
+    updatedAt: any;
+  };
+};
+
+export type CancelInvoiceMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  reason: Scalars["String"]["input"];
+}>;
+
+export type CancelInvoiceMutation = {
+  __typename?: "Mutation";
+  cancelInvoice: {
+    __typename?: "Invoice";
+    id: string;
+    invoiceNumber: string;
+    status: InvoiceStatus;
+    updatedAt: any;
+  };
+};
+
+export type CreatePaymentMutationVariables = Exact<{
+  input: CreatePaymentInput;
+}>;
+
+export type CreatePaymentMutation = {
+  __typename?: "Mutation";
+  createPayment: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    invoiceId: string;
+    paymentMethod: PaymentMethod;
+    status: PaymentStatus;
+    paymentDate: any;
+    reference?: string | null;
+    bankAccountId?: string | null;
+    checkNumber?: string | null;
+    createdAt: any;
+    updatedAt: any;
+    amount: { __typename?: "MoneyDto"; amount: number; currency: string };
+    mobileWallet?: {
+      __typename?: "MobileWallet";
+      provider: MobileWalletProvider;
+      mobileNumber: string;
+      transactionId: string;
+      merchantCode?: string | null;
+    } | null;
+  };
+};
+
+export type CompletePaymentMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  input: CompletePaymentInput;
+}>;
+
+export type CompletePaymentMutation = {
+  __typename?: "Mutation";
+  completePayment: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    status: PaymentStatus;
+    transactionReference?: string | null;
+    updatedAt: any;
+  };
+};
+
+export type FailPaymentMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  input: FailPaymentInput;
+}>;
+
+export type FailPaymentMutation = {
+  __typename?: "Mutation";
+  failPayment: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    status: PaymentStatus;
+    failureReason?: string | null;
+    updatedAt: any;
+  };
+};
+
+export type ReconcilePaymentMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  input: ReconcilePaymentInput;
+}>;
+
+export type ReconcilePaymentMutation = {
+  __typename?: "Mutation";
+  reconcilePayment: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    status: PaymentStatus;
+    bankTransactionId?: string | null;
+    reconciledAt?: any | null;
+    reconciledBy?: string | null;
+    updatedAt: any;
+  };
+};
+
+export type ReversePaymentMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  input: ReversePaymentInput;
+}>;
+
+export type ReversePaymentMutation = {
+  __typename?: "Mutation";
+  reversePayment: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    status: PaymentStatus;
+    reversalReason?: string | null;
+    reversedAt?: any | null;
+    reversedBy?: string | null;
+    updatedAt: any;
+  };
+};
+
+export type CreateAccountMutationVariables = Exact<{
+  input: CreateAccountInput;
+}>;
+
+export type CreateAccountMutation = {
+  __typename?: "Mutation";
+  createAccount: {
+    __typename?: "ChartOfAccount";
+    id: string;
+    accountCode: string;
+    accountName: string;
+    accountType: AccountType;
+    parentAccountId?: string | null;
+    currency: string;
+    isActive: boolean;
+    createdAt: any;
+    updatedAt: any;
+    balance: { __typename?: "MoneyDto"; amount: number; currency: string };
+  };
+};
+
+export type DeactivateAccountMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  reason: Scalars["String"]["input"];
+}>;
+
+export type DeactivateAccountMutation = {
+  __typename?: "Mutation";
+  deactivateAccount: {
+    __typename?: "ChartOfAccount";
+    id: string;
+    accountCode: string;
+    accountName: string;
+    isActive: boolean;
+    updatedAt: any;
+  };
+};
+
+export type CreateJournalMutationVariables = Exact<{
+  input: CreateJournalInput;
+}>;
+
+export type CreateJournalMutation = {
+  __typename?: "Mutation";
+  createJournal: {
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    journalDate: any;
+    journalType: JournalType;
+    description: string;
+    reference?: string | null;
+    totalDebit: number;
+    totalCredit: number;
+    currency: string;
+    status: JournalStatus;
+    fiscalPeriod: string;
+    isReversing: boolean;
+    originalJournalId?: string | null;
+    createdAt: any;
+    updatedAt: any;
+    lines: Array<{
+      __typename?: "JournalLine";
+      lineId: string;
+      accountId: string;
+      debitAmount: number;
+      creditAmount: number;
+      description?: string | null;
+      costCenter?: string | null;
+      project?: string | null;
+      reference?: string | null;
+      taxCode?: string | null;
+    }>;
+  };
+};
+
+export type AddJournalLineMutationVariables = Exact<{
+  journalId: Scalars["ID"]["input"];
+  input: AddJournalLineInput;
+}>;
+
+export type AddJournalLineMutation = {
+  __typename?: "Mutation";
+  addJournalLine: {
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    totalDebit: number;
+    totalCredit: number;
+    updatedAt: any;
+    lines: Array<{
+      __typename?: "JournalLine";
+      lineId: string;
+      accountId: string;
+      debitAmount: number;
+      creditAmount: number;
+      description?: string | null;
+      costCenter?: string | null;
+      project?: string | null;
+    }>;
+  };
+};
+
+export type PostJournalMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+}>;
+
+export type PostJournalMutation = {
+  __typename?: "Mutation";
+  postJournal: {
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    status: JournalStatus;
+    postedAt?: any | null;
+    postedBy?: string | null;
+    updatedAt: any;
+  };
+};
+
+export type ReverseJournalMutationVariables = Exact<{
+  id: Scalars["ID"]["input"];
+  reversingDate: Scalars["String"]["input"];
+}>;
+
+export type ReverseJournalMutation = {
+  __typename?: "Mutation";
+  reverseJournal: {
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    journalDate: any;
+    journalType: JournalType;
+    description: string;
+    totalDebit: number;
+    totalCredit: number;
+    status: JournalStatus;
+    isReversing: boolean;
+    originalJournalId?: string | null;
+    createdAt: any;
+    lines: Array<{
+      __typename?: "JournalLine";
+      lineId: string;
+      accountId: string;
+      debitAmount: number;
+      creditAmount: number;
+      description?: string | null;
+    }>;
+  };
+};
+
 export type GetInvoicesQueryVariables = Exact<{
   limit?: InputMaybe<Scalars["Int"]["input"]>;
   offset?: InputMaybe<Scalars["Int"]["input"]>;
@@ -3073,6 +3405,44 @@ export type GetChartOfAccountsQuery = {
   }>;
 };
 
+export type GetPaymentQueryVariables = Exact<{
+  id: Scalars["ID"]["input"];
+}>;
+
+export type GetPaymentQuery = {
+  __typename?: "Query";
+  payment?: {
+    __typename?: "Payment";
+    id: string;
+    paymentNumber: string;
+    invoiceId: string;
+    paymentMethod: PaymentMethod;
+    bankAccountId?: string | null;
+    checkNumber?: string | null;
+    status: PaymentStatus;
+    paymentDate: any;
+    reference?: string | null;
+    transactionReference?: string | null;
+    reconciledAt?: any | null;
+    reconciledBy?: string | null;
+    bankTransactionId?: string | null;
+    reversedAt?: any | null;
+    reversedBy?: string | null;
+    reversalReason?: string | null;
+    failureReason?: string | null;
+    createdAt: any;
+    updatedAt: any;
+    amount: { __typename?: "MoneyDto"; amount: number; currency: string };
+    mobileWallet?: {
+      __typename?: "MobileWallet";
+      provider: MobileWalletProvider;
+      mobileNumber: string;
+      transactionId: string;
+      merchantCode?: string | null;
+    } | null;
+  } | null;
+};
+
 export type GetPaymentsByStatusQueryVariables = Exact<{
   status: PaymentStatus;
   limit?: InputMaybe<Scalars["Int"]["input"]>;
@@ -3094,6 +3464,101 @@ export type GetPaymentsByStatusQuery = {
     updatedAt: any;
     amount: { __typename?: "MoneyDto"; amount: number; currency: string };
   }>;
+};
+
+export type GetJournalsQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  offset?: InputMaybe<Scalars["Int"]["input"]>;
+  status?: InputMaybe<JournalStatus>;
+}>;
+
+export type GetJournalsQuery = {
+  __typename?: "Query";
+  journals: Array<{
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    journalDate: any;
+    journalType: JournalType;
+    description: string;
+    reference?: string | null;
+    totalDebit: number;
+    totalCredit: number;
+    currency: string;
+    status: JournalStatus;
+    fiscalPeriod: string;
+    isReversing: boolean;
+    originalJournalId?: string | null;
+    createdAt: any;
+    updatedAt: any;
+  }>;
+};
+
+export type GetJournalQueryVariables = Exact<{
+  id: Scalars["ID"]["input"];
+}>;
+
+export type GetJournalQuery = {
+  __typename?: "Query";
+  journal?: {
+    __typename?: "JournalEntry";
+    id: string;
+    journalNumber: string;
+    journalDate: any;
+    journalType: JournalType;
+    description: string;
+    reference?: string | null;
+    totalDebit: number;
+    totalCredit: number;
+    currency: string;
+    status: JournalStatus;
+    fiscalPeriod: string;
+    isReversing: boolean;
+    originalJournalId?: string | null;
+    postedAt?: any | null;
+    postedBy?: string | null;
+    createdAt: any;
+    updatedAt: any;
+    lines: Array<{
+      __typename?: "JournalLine";
+      lineId: string;
+      accountId: string;
+      debitAmount: number;
+      creditAmount: number;
+      description?: string | null;
+      costCenter?: string | null;
+      project?: string | null;
+      reference?: string | null;
+      taxCode?: string | null;
+    }>;
+  } | null;
+};
+
+export type GetChartOfAccountQueryVariables = Exact<{
+  id: Scalars["ID"]["input"];
+}>;
+
+export type GetChartOfAccountQuery = {
+  __typename?: "Query";
+  chartOfAccount?: {
+    __typename?: "ChartOfAccount";
+    id: string;
+    accountCode: string;
+    accountName: string;
+    accountType: AccountType;
+    parentAccountId?: string | null;
+    currency: string;
+    isActive: boolean;
+    createdAt: any;
+    updatedAt: any;
+    parentAccount?: {
+      __typename?: "ChartOfAccount";
+      id: string;
+      accountCode: string;
+      accountName: string;
+    } | null;
+    balance: { __typename?: "MoneyDto"; amount: number; currency: string };
+  } | null;
 };
 
 export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
@@ -3121,6 +3586,313 @@ export class TypedDocumentString<TResult, TVariables>
   }
 }
 
+export const CreateInvoiceDocument = new TypedDocumentString(`
+    mutation CreateInvoice($input: CreateInvoiceInput!) {
+  createInvoice(input: $input) {
+    id
+    invoiceNumber
+    status
+    customerId
+    customerTIN
+    customerBIN
+    vendorId
+    vendorTIN
+    vendorBIN
+    grandTotal {
+      amount
+      currency
+    }
+    subtotal {
+      amount
+      currency
+    }
+    vatAmount {
+      amount
+      currency
+    }
+    supplementaryDuty {
+      amount
+      currency
+    }
+    advanceIncomeTax {
+      amount
+      currency
+    }
+    invoiceDate
+    dueDate
+    fiscalYear
+    mushakNumber
+    challanNumber
+    lineItems {
+      description
+      quantity
+      unitPrice {
+        amount
+        currency
+      }
+    }
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  CreateInvoiceMutation,
+  CreateInvoiceMutationVariables
+>;
+export const ApproveInvoiceDocument = new TypedDocumentString(`
+    mutation ApproveInvoice($id: ID!) {
+  approveInvoice(id: $id) {
+    id
+    invoiceNumber
+    status
+    mushakNumber
+    challanNumber
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  ApproveInvoiceMutation,
+  ApproveInvoiceMutationVariables
+>;
+export const CancelInvoiceDocument = new TypedDocumentString(`
+    mutation CancelInvoice($id: ID!, $reason: String!) {
+  cancelInvoice(id: $id, reason: $reason) {
+    id
+    invoiceNumber
+    status
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  CancelInvoiceMutation,
+  CancelInvoiceMutationVariables
+>;
+export const CreatePaymentDocument = new TypedDocumentString(`
+    mutation CreatePayment($input: CreatePaymentInput!) {
+  createPayment(input: $input) {
+    id
+    paymentNumber
+    invoiceId
+    amount {
+      amount
+      currency
+    }
+    paymentMethod
+    status
+    paymentDate
+    reference
+    bankAccountId
+    checkNumber
+    mobileWallet {
+      provider
+      mobileNumber
+      transactionId
+      merchantCode
+    }
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  CreatePaymentMutation,
+  CreatePaymentMutationVariables
+>;
+export const CompletePaymentDocument = new TypedDocumentString(`
+    mutation CompletePayment($id: ID!, $input: CompletePaymentInput!) {
+  completePayment(id: $id, input: $input) {
+    id
+    paymentNumber
+    status
+    transactionReference
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  CompletePaymentMutation,
+  CompletePaymentMutationVariables
+>;
+export const FailPaymentDocument = new TypedDocumentString(`
+    mutation FailPayment($id: ID!, $input: FailPaymentInput!) {
+  failPayment(id: $id, input: $input) {
+    id
+    paymentNumber
+    status
+    failureReason
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  FailPaymentMutation,
+  FailPaymentMutationVariables
+>;
+export const ReconcilePaymentDocument = new TypedDocumentString(`
+    mutation ReconcilePayment($id: ID!, $input: ReconcilePaymentInput!) {
+  reconcilePayment(id: $id, input: $input) {
+    id
+    paymentNumber
+    status
+    bankTransactionId
+    reconciledAt
+    reconciledBy
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  ReconcilePaymentMutation,
+  ReconcilePaymentMutationVariables
+>;
+export const ReversePaymentDocument = new TypedDocumentString(`
+    mutation ReversePayment($id: ID!, $input: ReversePaymentInput!) {
+  reversePayment(id: $id, input: $input) {
+    id
+    paymentNumber
+    status
+    reversalReason
+    reversedAt
+    reversedBy
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  ReversePaymentMutation,
+  ReversePaymentMutationVariables
+>;
+export const CreateAccountDocument = new TypedDocumentString(`
+    mutation CreateAccount($input: CreateAccountInput!) {
+  createAccount(input: $input) {
+    id
+    accountCode
+    accountName
+    accountType
+    parentAccountId
+    balance {
+      amount
+      currency
+    }
+    currency
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  CreateAccountMutation,
+  CreateAccountMutationVariables
+>;
+export const DeactivateAccountDocument = new TypedDocumentString(`
+    mutation DeactivateAccount($id: ID!, $reason: String!) {
+  deactivateAccount(id: $id, reason: $reason) {
+    id
+    accountCode
+    accountName
+    isActive
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  DeactivateAccountMutation,
+  DeactivateAccountMutationVariables
+>;
+export const CreateJournalDocument = new TypedDocumentString(`
+    mutation CreateJournal($input: CreateJournalInput!) {
+  createJournal(input: $input) {
+    id
+    journalNumber
+    journalDate
+    journalType
+    description
+    reference
+    lines {
+      lineId
+      accountId
+      debitAmount
+      creditAmount
+      description
+      costCenter
+      project
+      reference
+      taxCode
+    }
+    totalDebit
+    totalCredit
+    currency
+    status
+    fiscalPeriod
+    isReversing
+    originalJournalId
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  CreateJournalMutation,
+  CreateJournalMutationVariables
+>;
+export const AddJournalLineDocument = new TypedDocumentString(`
+    mutation AddJournalLine($journalId: ID!, $input: AddJournalLineInput!) {
+  addJournalLine(journalId: $journalId, input: $input) {
+    id
+    journalNumber
+    lines {
+      lineId
+      accountId
+      debitAmount
+      creditAmount
+      description
+      costCenter
+      project
+    }
+    totalDebit
+    totalCredit
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  AddJournalLineMutation,
+  AddJournalLineMutationVariables
+>;
+export const PostJournalDocument = new TypedDocumentString(`
+    mutation PostJournal($id: ID!) {
+  postJournal(id: $id) {
+    id
+    journalNumber
+    status
+    postedAt
+    postedBy
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  PostJournalMutation,
+  PostJournalMutationVariables
+>;
+export const ReverseJournalDocument = new TypedDocumentString(`
+    mutation ReverseJournal($id: ID!, $reversingDate: String!) {
+  reverseJournal(id: $id, reversingDate: $reversingDate) {
+    id
+    journalNumber
+    journalDate
+    journalType
+    description
+    lines {
+      lineId
+      accountId
+      debitAmount
+      creditAmount
+      description
+    }
+    totalDebit
+    totalCredit
+    status
+    isReversing
+    originalJournalId
+    createdAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  ReverseJournalMutation,
+  ReverseJournalMutationVariables
+>;
 export const GetInvoicesDocument = new TypedDocumentString(`
     query GetInvoices($limit: Int = 50, $offset: Int = 0) {
   invoices(limit: $limit, offset: $offset) {
@@ -3218,6 +3990,44 @@ export const GetChartOfAccountsDocument = new TypedDocumentString(`
   GetChartOfAccountsQuery,
   GetChartOfAccountsQueryVariables
 >;
+export const GetPaymentDocument = new TypedDocumentString(`
+    query GetPayment($id: ID!) {
+  payment(id: $id) {
+    id
+    paymentNumber
+    invoiceId
+    amount {
+      amount
+      currency
+    }
+    paymentMethod
+    bankAccountId
+    checkNumber
+    mobileWallet {
+      provider
+      mobileNumber
+      transactionId
+      merchantCode
+    }
+    status
+    paymentDate
+    reference
+    transactionReference
+    reconciledAt
+    reconciledBy
+    bankTransactionId
+    reversedAt
+    reversedBy
+    reversalReason
+    failureReason
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  GetPaymentQuery,
+  GetPaymentQueryVariables
+>;
 export const GetPaymentsByStatusDocument = new TypedDocumentString(`
     query GetPaymentsByStatus($status: PaymentStatus!, $limit: Int = 50, $offset: Int = 0) {
   paymentsByStatus(status: $status, limit: $limit, offset: $offset) {
@@ -3239,6 +4049,94 @@ export const GetPaymentsByStatusDocument = new TypedDocumentString(`
     `) as unknown as TypedDocumentString<
   GetPaymentsByStatusQuery,
   GetPaymentsByStatusQueryVariables
+>;
+export const GetJournalsDocument = new TypedDocumentString(`
+    query GetJournals($limit: Int = 50, $offset: Int = 0, $status: JournalStatus) {
+  journals(limit: $limit, offset: $offset, status: $status) {
+    id
+    journalNumber
+    journalDate
+    journalType
+    description
+    reference
+    totalDebit
+    totalCredit
+    currency
+    status
+    fiscalPeriod
+    isReversing
+    originalJournalId
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  GetJournalsQuery,
+  GetJournalsQueryVariables
+>;
+export const GetJournalDocument = new TypedDocumentString(`
+    query GetJournal($id: ID!) {
+  journal(id: $id) {
+    id
+    journalNumber
+    journalDate
+    journalType
+    description
+    reference
+    lines {
+      lineId
+      accountId
+      debitAmount
+      creditAmount
+      description
+      costCenter
+      project
+      reference
+      taxCode
+    }
+    totalDebit
+    totalCredit
+    currency
+    status
+    fiscalPeriod
+    isReversing
+    originalJournalId
+    postedAt
+    postedBy
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  GetJournalQuery,
+  GetJournalQueryVariables
+>;
+export const GetChartOfAccountDocument = new TypedDocumentString(`
+    query GetChartOfAccount($id: ID!) {
+  chartOfAccount(id: $id) {
+    id
+    accountCode
+    accountName
+    accountType
+    parentAccountId
+    parentAccount {
+      id
+      accountCode
+      accountName
+    }
+    balance {
+      amount
+      currency
+    }
+    currency
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<
+  GetChartOfAccountQuery,
+  GetChartOfAccountQueryVariables
 >;
 export const HealthCheckDocument = new TypedDocumentString(`
     query HealthCheck {

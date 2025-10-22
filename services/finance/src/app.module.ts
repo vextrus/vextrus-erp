@@ -14,6 +14,7 @@ import { GraphQLFederationConfig } from '@infrastructure/graphql/federation.conf
 import { TenantMiddleware } from '@infrastructure/middleware/tenant.middleware';
 import { TenantContextService } from '@infrastructure/context/tenant-context.service';
 import { AuthModule } from '@infrastructure/auth/auth.module';
+import { FinanceCacheModule } from '@infrastructure/cache';
 
 // Presentation layer
 import { HealthController } from '@presentation/health/health.controller';
@@ -65,6 +66,7 @@ import { APP_GUARD } from '@nestjs/core';
     KafkaModule,
     TelemetryModule.forRoot(),
     AuthModule,
+    FinanceCacheModule,
 
     // Presentation layer
     FinanceGraphQLModule,

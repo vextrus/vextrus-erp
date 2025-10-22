@@ -3,12 +3,14 @@ import { UseGuards, Logger, NotFoundException } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { InvoiceDto } from '../dto/invoice.dto';
 import { CreateInvoiceInput } from '../inputs/create-invoice.input';
+import { UpdateInvoiceInput } from '../inputs/update-invoice.input';
 import { JwtAuthGuard } from '../../../infrastructure/guards/jwt-auth.guard';
 import { RbacGuard } from '../../../infrastructure/guards/rbac.guard';
 import { Permissions } from '../../../infrastructure/decorators/permissions.decorator';
 import { Public } from '../../../infrastructure/decorators/public.decorator';
 import { CurrentUser, CurrentUserContext } from '../../../infrastructure/decorators/current-user.decorator';
 import { CreateInvoiceCommand } from '../../../application/commands/create-invoice.command';
+import { UpdateInvoiceCommand } from '../../../application/commands/update-invoice.command';
 import { ApproveInvoiceCommand } from '../../../application/commands/approve-invoice.command';
 import { CancelInvoiceCommand } from '../../../application/commands/cancel-invoice.command';
 import { GetInvoiceQuery } from '../../../application/queries/get-invoice.query';
@@ -98,6 +100,53 @@ export class InvoiceResolver {
     const invoice = await this.queryBus.execute(new GetInvoiceQuery(invoiceId));
     if (!invoice) {
       throw new NotFoundException(`Invoice ${invoiceId} was created but could not be retrieved`);
+    }
+
+    return invoice;
+  }
+
+  @Mutation(() => InvoiceDto, { name: 'updateInvoice' })
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('invoice:update')
+  async updateInvoice(
+    @Args('id', { type: () => ID }) id: string,
+    @Args('input') input: UpdateInvoiceInput,
+    @CurrentUser() user: CurrentUserContext,
+  ): Promise<InvoiceDto> {
+    this.logger.log(`Updating invoice ${id}, user ${user.userId}`);
+
+    // Convert LineItemInput to LineItemDto (number → Money conversion) if provided
+    const lineItemDtos: LineItemDto[] | undefined = input.lineItems?.map(item => ({
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: Money.create(item.unitPrice, item.currency),
+      vatCategory: item.vatCategory,
+      hsCode: item.hsCode,
+      supplementaryDutyRate: item.supplementaryDutyRate,
+      advanceIncomeTaxRate: item.advanceIncomeTaxRate,
+    } as LineItemDto));
+
+    const command = new UpdateInvoiceCommand(
+      id,
+      user.userId,
+      user.tenantId,
+      input.customerId,
+      input.vendorId,
+      input.invoiceDate ? new Date(input.invoiceDate) : undefined,
+      input.dueDate ? new Date(input.dueDate) : undefined,
+      lineItemDtos,
+      input.vendorTIN,
+      input.vendorBIN,
+      input.customerTIN,
+      input.customerBIN,
+    );
+
+    await this.commandBus.execute(command);
+
+    // Query the updated invoice to return it
+    const invoice = await this.queryBus.execute(new GetInvoiceQuery(id));
+    if (!invoice) {
+      throw new NotFoundException(`Invoice ${id} not found after update`);
     }
 
     return invoice;

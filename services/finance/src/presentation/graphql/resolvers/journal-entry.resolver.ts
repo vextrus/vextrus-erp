@@ -5,6 +5,7 @@ import { JournalEntryDto } from '../dto/journal-entry.dto';
 import { JournalLineDto } from '../dto/journal-line.dto';
 import { CreateJournalInput } from '../inputs/create-journal.input';
 import { AddJournalLineInput } from '../inputs/add-journal-line.input';
+import { UpdateJournalInput } from '../inputs/update-journal.input';
 import { JournalType, JournalStatus } from '../dto/enums.dto';
 import { JwtAuthGuard } from '../../../infrastructure/guards/jwt-auth.guard';
 import { RbacGuard } from '../../../infrastructure/guards/rbac.guard';
@@ -12,6 +13,7 @@ import { Permissions } from '../../../infrastructure/decorators/permissions.deco
 import { CurrentUser, CurrentUserContext } from '../../../infrastructure/decorators/current-user.decorator';
 import { CreateJournalCommand } from '../../../application/commands/create-journal.command';
 import { AddJournalLineCommand } from '../../../application/commands/add-journal-line.command';
+import { UpdateJournalCommand } from '../../../application/commands/update-journal.command';
 import { PostJournalCommand } from '../../../application/commands/post-journal.command';
 import { ReverseJournalCommand } from '../../../application/commands/reverse-journal.command';
 import { GetJournalQuery } from '../../../application/queries/get-journal.query';
@@ -230,6 +232,43 @@ export class JournalEntryResolver {
 
     if (!journal) {
       throw new NotFoundException(`Journal ${journalId} not found after adding line`);
+    }
+
+    return this.mapToDto(journal);
+  }
+
+  /**
+   * Mutation: Update journal entry (DRAFT only)
+   */
+  @Mutation(() => JournalEntryDto, { name: 'updateJournal' })
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions('journal:update')
+  async updateJournal(
+    @Args('id', { type: () => ID }) id: string,
+    @Args('input') input: UpdateJournalInput,
+    @CurrentUser() user: CurrentUserContext,
+  ): Promise<JournalEntryDto> {
+    this.logger.log(`Updating journal ${id}, user ${user.userId}`);
+
+    const command = new UpdateJournalCommand(
+      id,
+      user.userId,
+      user.tenantId,
+      input.description,
+      input.reference,
+      input.journalDate ? new Date(input.journalDate) : undefined,
+      input.lines,
+    );
+
+    await this.commandBus.execute(command);
+
+    // Query the updated journal to return it
+    const journal = await this.queryBus.execute<GetJournalQuery, JournalEntryReadModel | null>(
+      new GetJournalQuery(id)
+    );
+
+    if (!journal) {
+      throw new NotFoundException(`Journal ${id} not found after update`);
     }
 
     return this.mapToDto(journal);

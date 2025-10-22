@@ -3,6 +3,13 @@ import { DomainEvent } from '../../base/domain-event.base';
 import { Money } from '../../value-objects/money.value-object';
 import { InvoiceId, UserId } from '../invoice/invoice.aggregate';
 import { TenantId } from '../chart-of-account/chart-of-account.aggregate';
+import {
+  PaymentAmountUpdatedEvent,
+  PaymentDateUpdatedEvent,
+  PaymentMethodUpdatedEvent,
+  PaymentReferenceUpdatedEvent,
+  PaymentBankDetailsUpdatedEvent,
+} from './events/payment-updated.events';
 
 // Value Objects
 export class PaymentId {
@@ -239,6 +246,12 @@ export class PaymentAlreadyCompletedException extends Error {
   }
 }
 
+export class InvalidPaymentStatusForUpdateException extends Error {
+  constructor(current: PaymentStatus, expected: PaymentStatus) {
+    super(`Invalid payment status for update. Current: ${current}, Expected: ${expected}`);
+  }
+}
+
 // Aggregate
 export class Payment extends AggregateRoot<PaymentId> {
   private paymentId!: PaymentId;
@@ -448,6 +461,92 @@ export class Payment extends AggregateRoot<PaymentId> {
     ));
   }
 
+  /**
+   * Update payment amount (PENDING only)
+   */
+  updateAmount(amount: Money, updatedBy: UserId): void {
+    if (this.status !== PaymentStatus.PENDING) {
+      throw new InvalidPaymentStatusForUpdateException(this.status, PaymentStatus.PENDING);
+    }
+
+    this.apply(new PaymentAmountUpdatedEvent(
+      this.paymentId,
+      amount,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update payment date (PENDING only)
+   */
+  updatePaymentDate(paymentDate: Date, updatedBy: UserId): void {
+    if (this.status !== PaymentStatus.PENDING) {
+      throw new InvalidPaymentStatusForUpdateException(this.status, PaymentStatus.PENDING);
+    }
+
+    this.apply(new PaymentDateUpdatedEvent(
+      this.paymentId,
+      paymentDate,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update payment method (PENDING only)
+   */
+  updatePaymentMethod(paymentMethod: PaymentMethod, updatedBy: UserId): void {
+    if (this.status !== PaymentStatus.PENDING) {
+      throw new InvalidPaymentStatusForUpdateException(this.status, PaymentStatus.PENDING);
+    }
+
+    if (!Payment.isValidPaymentMethod(paymentMethod)) {
+      throw new InvalidPaymentMethodException(paymentMethod);
+    }
+
+    this.apply(new PaymentMethodUpdatedEvent(
+      this.paymentId,
+      paymentMethod,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update payment reference (PENDING only)
+   */
+  updateReference(reference: string, updatedBy: UserId): void {
+    if (this.status !== PaymentStatus.PENDING) {
+      throw new InvalidPaymentStatusForUpdateException(this.status, PaymentStatus.PENDING);
+    }
+
+    this.apply(new PaymentReferenceUpdatedEvent(
+      this.paymentId,
+      reference,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update bank details (bank account ID or check number)
+   * PENDING only
+   */
+  updateBankDetails(bankAccountId?: string, checkNumber?: string, updatedBy?: UserId): void {
+    if (this.status !== PaymentStatus.PENDING) {
+      throw new InvalidPaymentStatusForUpdateException(this.status, PaymentStatus.PENDING);
+    }
+
+    this.apply(new PaymentBankDetailsUpdatedEvent(
+      this.paymentId,
+      bankAccountId ? new BankAccountId(bankAccountId) : undefined,
+      checkNumber,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
   // Event handlers
   protected when(event: DomainEvent): void {
     switch (event.constructor) {
@@ -468,6 +567,21 @@ export class Payment extends AggregateRoot<PaymentId> {
         break;
       case PaymentReversedEvent:
         this.onPaymentReversedEvent(event as PaymentReversedEvent);
+        break;
+      case PaymentAmountUpdatedEvent:
+        this.onPaymentAmountUpdated(event as PaymentAmountUpdatedEvent);
+        break;
+      case PaymentDateUpdatedEvent:
+        this.onPaymentDateUpdated(event as PaymentDateUpdatedEvent);
+        break;
+      case PaymentMethodUpdatedEvent:
+        this.onPaymentMethodUpdated(event as PaymentMethodUpdatedEvent);
+        break;
+      case PaymentReferenceUpdatedEvent:
+        this.onPaymentReferenceUpdated(event as PaymentReferenceUpdatedEvent);
+        break;
+      case PaymentBankDetailsUpdatedEvent:
+        this.onPaymentBankDetailsUpdated(event as PaymentBankDetailsUpdatedEvent);
         break;
     }
   }
@@ -510,6 +624,31 @@ export class Payment extends AggregateRoot<PaymentId> {
 
   private onPaymentReversedEvent(event: PaymentReversedEvent): void {
     this.status = PaymentStatus.REVERSED;
+  }
+
+  private onPaymentAmountUpdated(event: PaymentAmountUpdatedEvent): void {
+    this.amount = event.amount;
+  }
+
+  private onPaymentDateUpdated(event: PaymentDateUpdatedEvent): void {
+    this.paymentDate = event.paymentDate;
+  }
+
+  private onPaymentMethodUpdated(event: PaymentMethodUpdatedEvent): void {
+    this.paymentMethod = event.paymentMethod;
+  }
+
+  private onPaymentReferenceUpdated(event: PaymentReferenceUpdatedEvent): void {
+    this.reference = event.reference;
+  }
+
+  private onPaymentBankDetailsUpdated(event: PaymentBankDetailsUpdatedEvent): void {
+    if (event.bankAccountId !== undefined) {
+      this.bankAccount = event.bankAccountId;
+    }
+    if (event.checkNumber !== undefined) {
+      this.checkNumber = event.checkNumber;
+    }
   }
 
   // Getters

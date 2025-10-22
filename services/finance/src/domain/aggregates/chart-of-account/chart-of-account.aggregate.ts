@@ -1,6 +1,7 @@
 import { AggregateRoot } from '../../base/aggregate-root.base';
 import { DomainEvent } from '../../base/domain-event.base';
 import { Money } from '../../value-objects/money.value-object';
+import { AccountNameUpdatedEvent, AccountParentUpdatedEvent } from './account-updated.events';
 
 // Value Objects
 export class AccountId {
@@ -124,6 +125,12 @@ export class InsufficientBalanceException extends Error {
   }
 }
 
+export class InactiveAccountException extends Error {
+  constructor(accountId: string) {
+    super(`Cannot update inactive account: ${accountId}`);
+  }
+}
+
 // Aggregate
 export class ChartOfAccount extends AggregateRoot<AccountId> {
   private accountId!: AccountId;
@@ -194,10 +201,10 @@ export class ChartOfAccount extends AggregateRoot<AccountId> {
       throw new CurrencyMismatchException(this.currency, amount.getCurrency() as Currency);
     }
 
-    const newBalance = this.accountType === AccountType.ASSET ||
-                      this.accountType === AccountType.EXPENSE
-      ? this.balance.add(amount)
-      : this.balance.subtract(amount);
+    // updateBalance is only called when increasing balance
+    // (debit for ASSET/EXPENSE, credit for LIABILITY/EQUITY/REVENUE)
+    // so we always ADD the amount
+    const newBalance = this.balance.add(amount);
 
     this.apply(new AccountBalanceUpdatedEvent(
       this.accountId,
@@ -279,6 +286,53 @@ export class ChartOfAccount extends AggregateRoot<AccountId> {
     ));
   }
 
+  /**
+   * Update account name (ACTIVE accounts only)
+   */
+  updateAccountName(accountName: string, updatedBy: string): void {
+    if (!this.isActive) {
+      throw new InactiveAccountException(this.accountId.value);
+    }
+
+    if (accountName.length < 3) {
+      throw new Error('Account name must be at least 3 characters');
+    }
+
+    if (accountName.length > 255) {
+      throw new Error('Account name must not exceed 255 characters');
+    }
+
+    this.apply(new AccountNameUpdatedEvent(
+      this.accountId,
+      accountName,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update parent account (ACTIVE accounts only)
+   * Used for reclassifying accounts in the hierarchy
+   */
+  updateParentAccount(newParentId: AccountId | undefined, updatedBy: string): void {
+    if (!this.isActive) {
+      throw new InactiveAccountException(this.accountId.value);
+    }
+
+    // Prevent self-referencing
+    if (newParentId && newParentId.value === this.accountId.value) {
+      throw new Error('Account cannot be its own parent');
+    }
+
+    this.apply(new AccountParentUpdatedEvent(
+      this.accountId,
+      this.parentAccountId,
+      newParentId,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
   private allowsNegativeBalance(): boolean {
     // Some accounts like bank overdrafts can have negative balances
     return this.accountCode.value.startsWith('1120'); // Bank overdraft accounts
@@ -295,6 +349,12 @@ export class ChartOfAccount extends AggregateRoot<AccountId> {
         break;
       case AccountDeactivatedEvent:
         this.onAccountDeactivatedEvent(event as AccountDeactivatedEvent);
+        break;
+      case AccountNameUpdatedEvent:
+        this.onAccountNameUpdated(event as AccountNameUpdatedEvent);
+        break;
+      case AccountParentUpdatedEvent:
+        this.onAccountParentUpdated(event as AccountParentUpdatedEvent);
         break;
     }
   }
@@ -317,6 +377,14 @@ export class ChartOfAccount extends AggregateRoot<AccountId> {
 
   private onAccountDeactivatedEvent(event: AccountDeactivatedEvent): void {
     this.isActive = false;
+  }
+
+  private onAccountNameUpdated(event: AccountNameUpdatedEvent): void {
+    this.accountName = event.accountName;
+  }
+
+  private onAccountParentUpdated(event: AccountParentUpdatedEvent): void {
+    this.parentAccountId = event.newParentId;
   }
 
   // Getters

@@ -3,6 +3,13 @@ import { DomainEvent } from '../../base/domain-event.base';
 import { Money } from '../../value-objects/money.value-object';
 import { TenantId, AccountId } from '../chart-of-account/chart-of-account.aggregate';
 import { UserId } from '../invoice/invoice.aggregate';
+import {
+  JournalDescriptionUpdatedEvent,
+  JournalReferenceUpdatedEvent,
+  JournalDateUpdatedEvent,
+  JournalLinesReplacedEvent,
+  JournalLineRemovedEvent,
+} from './events/journal-updated.events';
 
 // Value Objects
 export class JournalId {
@@ -170,6 +177,24 @@ export interface JournalLineDto {
   accountId: AccountId;
   debitAmount?: Money;
   creditAmount?: Money;
+  description?: string;
+  costCenter?: string;
+  project?: string;
+  reference?: string;
+  taxCode?: string;
+}
+
+/**
+ * JournalLineInput Interface
+ *
+ * Simplified input format for journal lines from GraphQL/commands.
+ * Uses primitive types (string, number) instead of value objects.
+ * Converted to domain objects (AccountId, Money) by the aggregate.
+ */
+export interface JournalLineInput {
+  accountId: string;
+  debitAmount?: number;
+  creditAmount?: number;
   description?: string;
   costCenter?: string;
   project?: string;
@@ -452,6 +477,114 @@ export class JournalEntry extends AggregateRoot<JournalId> {
     return reversingJournal;
   }
 
+  /**
+   * Update journal description (DRAFT only)
+   */
+  updateDescription(description: string, updatedBy: UserId): void {
+    if (this.status !== JournalStatus.DRAFT) {
+      throw new InvalidJournalStatusException(this.status, JournalStatus.DRAFT);
+    }
+
+    this.apply(new JournalDescriptionUpdatedEvent(
+      this.journalId,
+      description,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update journal reference (DRAFT only)
+   */
+  updateReference(reference: string, updatedBy: UserId): void {
+    if (this.status !== JournalStatus.DRAFT) {
+      throw new InvalidJournalStatusException(this.status, JournalStatus.DRAFT);
+    }
+
+    this.apply(new JournalReferenceUpdatedEvent(
+      this.journalId,
+      reference,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update journal date (DRAFT only)
+   * Recalculates fiscal period
+   */
+  updateJournalDate(journalDate: Date, updatedBy: UserId): void {
+    if (this.status !== JournalStatus.DRAFT) {
+      throw new InvalidJournalStatusException(this.status, JournalStatus.DRAFT);
+    }
+
+    // Validate new date is in open period
+    if (!JournalEntry.isAccountingPeriodOpen(journalDate)) {
+      throw new InvalidAccountingPeriodException(journalDate);
+    }
+
+    const newFiscalPeriod = JournalEntry.calculateFiscalPeriod(journalDate);
+
+    this.apply(new JournalDateUpdatedEvent(
+      this.journalId,
+      journalDate,
+      newFiscalPeriod,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Update journal lines (DRAFT only)
+   * Replaces all existing lines with new ones
+   */
+  updateLines(lines: JournalLineDto[] | JournalLineInput[], updatedBy: UserId): void {
+    if (this.status !== JournalStatus.DRAFT) {
+      throw new InvalidJournalStatusException(this.status, JournalStatus.DRAFT);
+    }
+
+    // Convert DTOs to domain objects
+    const journalLines: JournalLine[] = lines.map(line => ({
+      lineId: JournalLineId.generate(),
+      accountId: typeof line.accountId === 'string' ? new AccountId(line.accountId) : line.accountId,
+      debitAmount: line.debitAmount instanceof Money ? line.debitAmount : (line.debitAmount ? Money.create(line.debitAmount, 'BDT') : Money.zero('BDT')),
+      creditAmount: line.creditAmount instanceof Money ? line.creditAmount : (line.creditAmount ? Money.create(line.creditAmount, 'BDT') : Money.zero('BDT')),
+      description: line.description,
+      costCenter: line.costCenter,
+      project: line.project,
+      reference: line.reference,
+      taxCode: line.taxCode,
+    }));
+
+    this.apply(new JournalLinesReplacedEvent(
+      this.journalId,
+      journalLines,
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
+  /**
+   * Remove a specific journal line (DRAFT only)
+   */
+  removeLine(lineId: string, updatedBy: UserId): void {
+    if (this.status !== JournalStatus.DRAFT) {
+      throw new InvalidJournalStatusException(this.status, JournalStatus.DRAFT);
+    }
+
+    const line = this.entries.find(e => e.lineId.value === lineId);
+    if (!line) {
+      throw new Error(`Journal line ${lineId} not found`);
+    }
+
+    this.apply(new JournalLineRemovedEvent(
+      this.journalId,
+      new JournalLineId(lineId),
+      updatedBy,
+      this.tenantId.value
+    ));
+  }
+
   // Batch operations for period-end processing
   static createClosingEntries(
     accountBalances: Map<AccountId, Money>,
@@ -520,6 +653,21 @@ export class JournalEntry extends AggregateRoot<JournalId> {
       case JournalValidatedEvent:
         this.onJournalValidatedEvent(event as JournalValidatedEvent);
         break;
+      case JournalDescriptionUpdatedEvent:
+        this.onJournalDescriptionUpdated(event as JournalDescriptionUpdatedEvent);
+        break;
+      case JournalReferenceUpdatedEvent:
+        this.onJournalReferenceUpdated(event as JournalReferenceUpdatedEvent);
+        break;
+      case JournalDateUpdatedEvent:
+        this.onJournalDateUpdated(event as JournalDateUpdatedEvent);
+        break;
+      case JournalLinesReplacedEvent:
+        this.onJournalLinesReplaced(event as JournalLinesReplacedEvent);
+        break;
+      case JournalLineRemovedEvent:
+        this.onJournalLineRemoved(event as JournalLineRemovedEvent);
+        break;
     }
   }
 
@@ -581,6 +729,49 @@ export class JournalEntry extends AggregateRoot<JournalId> {
 
   private onJournalValidatedEvent(event: JournalValidatedEvent): void {
     // Validation state could be tracked here if needed
+  }
+
+  private onJournalDescriptionUpdated(event: JournalDescriptionUpdatedEvent): void {
+    this.description = event.description;
+  }
+
+  private onJournalReferenceUpdated(event: JournalReferenceUpdatedEvent): void {
+    this.reference = event.reference;
+  }
+
+  private onJournalDateUpdated(event: JournalDateUpdatedEvent): void {
+    this.journalDate = event.journalDate;
+    this.fiscalPeriod = event.fiscalPeriod;
+  }
+
+  private onJournalLinesReplaced(event: JournalLinesReplacedEvent): void {
+    this.entries = event.lines;
+
+    // Recalculate totals
+    this.totalDebit = this.entries.reduce(
+      (sum, entry) => sum.add(entry.debitAmount),
+      Money.zero('BDT')
+    );
+
+    this.totalCredit = this.entries.reduce(
+      (sum, entry) => sum.add(entry.creditAmount),
+      Money.zero('BDT')
+    );
+  }
+
+  private onJournalLineRemoved(event: JournalLineRemovedEvent): void {
+    this.entries = this.entries.filter(e => e.lineId.value !== event.lineId.value);
+
+    // Recalculate totals
+    this.totalDebit = this.entries.reduce(
+      (sum, entry) => sum.add(entry.debitAmount),
+      Money.zero('BDT')
+    );
+
+    this.totalCredit = this.entries.reduce(
+      (sum, entry) => sum.add(entry.creditAmount),
+      Money.zero('BDT')
+    );
   }
 
   // Getters

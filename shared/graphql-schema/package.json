@@ -2,6 +2,7 @@
   "name": "@vextrus-erp/graphql-schema",
   "version": "1.0.0",
   "description": "Shared GraphQL schema types for Vextrus ERP Federation",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

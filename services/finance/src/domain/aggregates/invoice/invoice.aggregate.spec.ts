@@ -1155,4 +1155,327 @@ describe('Invoice Aggregate', () => {
       expect(items[0].amount.getAmount()).toBe(99.99);
     });
   });
+
+  describe('Payment Recording', () => {
+    // Import payment-related types at the top of the file
+    const PaymentId = class {
+      constructor(public readonly value: string) {}
+    };
+
+    const InvoicePaymentRecordedEvent = class {
+      constructor(public eventType: string) {}
+    };
+
+    const InvoiceFullyPaidEvent = class {
+      constructor(public eventType: string) {}
+    };
+
+    describe('recordPayment', () => {
+      it('should record payment on approved invoice', () => {
+        // Arrange
+        const command: CreateInvoiceCommand = {
+          vendorId: new VendorId('vendor-123'),
+          customerId: new CustomerId('customer-456'),
+          invoiceDate: new Date('2024-10-15'),
+          dueDate: new Date('2024-11-15'),
+          tenantId: new TenantId('tenant-789'),
+        };
+        const invoice = Invoice.create(command);
+        invoice.addLineItem({
+          description: 'Construction Materials',
+          quantity: 10,
+          unitPrice: Money.create(1000, 'BDT'),
+        }, 'tenant-789');
+        invoice.approve(new UserId('user-123'));
+        invoice.clearEvents(); // Clear previous events to test payment events only
+
+        const paymentId = new PaymentId('payment-456');
+        const paymentAmount = Money.create(5000, 'BDT'); // Partial payment
+
+        // Act
+        invoice.recordPayment(paymentId as any, paymentAmount);
+
+        // Assert
+        const events = invoice.getUncommittedEvents();
+        expect(events).toHaveLength(1);
+        expect(events[0].eventType).toBe('InvoicePaymentRecorded');
+      });
+
+      it('should record full payment and emit InvoiceFullyPaidEvent', () => {
+        // Arrange
+        const command: CreateInvoiceCommand = {
+          vendorId: new VendorId('vendor-123'),
+          customerId: new CustomerId('customer-456'),
+          invoiceDate: new Date('2024-10-15'),
+          dueDate: new Date('2024-11-15'),
+          tenantId: new TenantId('tenant-789'),
+        };
+        const invoice = Invoice.create(command);
+        invoice.addLineItem({
+          description: 'Construction Materials',
+          quantity: 10,
+          unitPrice: Money.create(1000, 'BDT'), // Subtotal: 10,000 BDT
+        }, 'tenant-789');
+        // Grand total: 11,500 BDT (with 15% VAT) - calculated automatically
+        invoice.approve(new UserId('user-123'));
+        invoice.clearEvents();
+
+        const paymentId = new PaymentId('payment-456');
+        const paymentAmount = Money.create(11500, 'BDT'); // Full payment
+
+        // Act
+        invoice.recordPayment(paymentId as any, paymentAmount);
+
+        // Assert
+        const events = invoice.getUncommittedEvents();
+        expect(events).toHaveLength(2); // InvoicePaymentRecorded + InvoiceFullyPaid
+        expect(events[0].eventType).toBe('InvoicePaymentRecorded');
+        expect(events[1].eventType).toBe('InvoiceFullyPaid');
+        expect(invoice.getStatus()).toBe(InvoiceStatus.PAID);
+      });
+
+      it('should record multiple partial payments', () => {
+        // Arrange
+        const command: CreateInvoiceCommand = {
+          vendorId: new VendorId('vendor-123'),
+          customerId: new CustomerId('customer-456'),
+          invoiceDate: new Date('2024-10-15'),
+          dueDate: new Date('2024-11-15'),
+          tenantId: new TenantId('tenant-789'),
+        };
+        const invoice = Invoice.create(command);
+        invoice.addLineItem({
+          description: 'Construction Materials',
+          quantity: 10,
+          unitPrice: Money.create(1000, 'BDT'), // Grand total: 11,500 BDT
+        }, 'tenant-789');
+        invoice.approve(new UserId('user-123'));
+        invoice.clearEvents();
+
+        const payment1 = new PaymentId('payment-1');
+        const payment2 = new PaymentId('payment-2');
+        const payment3 = new PaymentId('payment-3');
+
+        // Act - Record three partial payments
+        invoice.recordPayment(payment1 as any, Money.create(5000, 'BDT'));
+        invoice.clearEvents();
+
+        invoice.recordPayment(payment2 as any, Money.create(3000, 'BDT'));
+        invoice.clearEvents();
+
+        invoice.recordPayment(payment3 as any, Money.create(3500, 'BDT')); // Fully paid
+
+        // Assert
+        const events = invoice.getUncommittedEvents();
+        expect(events).toHaveLength(2); // Last payment fully pays the invoice
+        expect(events[0].eventType).toBe('InvoicePaymentRecorded');
+        expect(events[1].eventType).toBe('InvoiceFullyPaid');
+        expect(invoice.getStatus()).toBe(InvoiceStatus.PAID);
+      });
+
+      it('should reject payment on DRAFT invoice', () => {
+        // Arrange
+        const command: CreateInvoiceCommand = {
+          vendorId: new VendorId('vendor-123'),
+          customerId: new CustomerId('customer-456'),
+          invoiceDate: new Date('2024-10-15'),
+          dueDate: new Date('2024-11-15'),
+          tenantId: new TenantId('tenant-789'),
+        };
+        const invoice = Invoice.create(command);
+        invoice.addLineItem({
+          description: 'Construction Materials',
+          quantity: 10,
+          unitPrice: Money.create(1000, 'BDT'),
+        }, 'tenant-789');
+        // DO NOT approve - invoice remains in DRAFT status
+
+        const paymentId = new PaymentId('payment-456');
+        const paymentAmount = Money.create(5000, 'BDT');
+
+        // Act & Assert
+        expect(() => invoice.recordPayment(paymentId as any, paymentAmount)).toThrow(
+          InvalidInvoiceStatusException,
+        );
+      });
+
+      it('should reject payment on CANCELLED invoice', () => {
+        // Arrange
+        const command: CreateInvoiceCommand = {
+          vendorId: new VendorId('vendor-123'),
+          customerId: new CustomerId('customer-456'),
+          invoiceDate: new Date('2024-10-15'),
+          dueDate: new Date('2024-11-15'),
+          tenantId: new TenantId('tenant-789'),
+        };
+        const invoice = Invoice.create(command);
+        invoice.addLineItem({
+          description: 'Construction Materials',
+          quantity: 10,
+          unitPrice: Money.create(1000, 'BDT'),
+        }, 'tenant-789');
+        invoice.approve(new UserId('user-123'));
+        invoice.cancel(new UserId('user-123'), 'Duplicate invoice');
+
+        const paymentId = new PaymentId('payment-456');
+        const paymentAmount = Money.create(5000, 'BDT');
+
+        // Act & Assert
+        expect(() => invoice.recordPayment(paymentId as any, paymentAmount)).toThrow(
+          Error,
+        );
+        expect(() => invoice.recordPayment(paymentId as any, paymentAmount)).toThrow(
+          'Cannot record payment for CANCELLED invoice',
+        );
+      });
+
+      it('should reject overpayment', () => {
+        // Arrange
+        const command: CreateInvoiceCommand = {
+          vendorId: new VendorId('vendor-123'),
+          customerId: new CustomerId('customer-456'),
+          invoiceDate: new Date('2024-10-15'),
+          dueDate: new Date('2024-11-15'),
+          tenantId: new TenantId('tenant-789'),
+        };
+        const invoice = Invoice.create(command);
+        invoice.addLineItem({
+          description: 'Construction Materials',
+          quantity: 10,
+          unitPrice: Money.create(1000, 'BDT'), // Grand total: 11,500 BDT
+        }, 'tenant-789');
+        invoice.approve(new UserId('user-123'));
+
+        const paymentId = new PaymentId('payment-456');
+        const overpaymentAmount = Money.create(15000, 'BDT'); // Exceeds grand total
+
+        // Act & Assert
+        expect(() => invoice.recordPayment(paymentId as any, overpaymentAmount)).toThrow(
+          'Cannot overpay invoice',
+        );
+      });
+
+      it('should reject overpayment after partial payment', () => {
+        // Arrange
+        const command: CreateInvoiceCommand = {
+          vendorId: new VendorId('vendor-123'),
+          customerId: new CustomerId('customer-456'),
+          invoiceDate: new Date('2024-10-15'),
+          dueDate: new Date('2024-11-15'),
+          tenantId: new TenantId('tenant-789'),
+        };
+        const invoice = Invoice.create(command);
+        invoice.addLineItem({
+          description: 'Construction Materials',
+          quantity: 10,
+          unitPrice: Money.create(1000, 'BDT'), // Grand total: 11,500 BDT
+        }, 'tenant-789');
+        invoice.approve(new UserId('user-123'));
+
+        const payment1 = new PaymentId('payment-1');
+        const payment2 = new PaymentId('payment-2');
+
+        // Act - Record first partial payment
+        invoice.recordPayment(payment1 as any, Money.create(8000, 'BDT'));
+
+        // Assert - Second payment would overpay
+        expect(() => invoice.recordPayment(payment2 as any, Money.create(5000, 'BDT'))).toThrow(
+          'Cannot overpay invoice',
+        );
+      });
+
+      it('should handle exact payment amount (no rounding issues)', () => {
+        // Arrange
+        const command: CreateInvoiceCommand = {
+          vendorId: new VendorId('vendor-123'),
+          customerId: new CustomerId('customer-456'),
+          invoiceDate: new Date('2024-10-15'),
+          dueDate: new Date('2024-11-15'),
+          tenantId: new TenantId('tenant-789'),
+        };
+        const invoice = Invoice.create(command);
+        invoice.addLineItem({
+          description: 'Construction Materials',
+          quantity: 10,
+          unitPrice: Money.create(1000, 'BDT'), // Grand total: 11,500 BDT
+        }, 'tenant-789');
+        invoice.approve(new UserId('user-123'));
+        invoice.clearEvents();
+
+        const paymentId = new PaymentId('payment-456');
+        const exactPayment = Money.create(11500, 'BDT'); // Exact grand total
+
+        // Act
+        invoice.recordPayment(paymentId as any, exactPayment);
+
+        // Assert
+        const events = invoice.getUncommittedEvents();
+        expect(events).toHaveLength(2);
+        expect(events[1].eventType).toBe('InvoiceFullyPaid');
+        expect(invoice.getStatus()).toBe(InvoiceStatus.PAID);
+      });
+
+      it('should handle zero payment amount gracefully', () => {
+        // Arrange
+        const command: CreateInvoiceCommand = {
+          vendorId: new VendorId('vendor-123'),
+          customerId: new CustomerId('customer-456'),
+          invoiceDate: new Date('2024-10-15'),
+          dueDate: new Date('2024-11-15'),
+          tenantId: new TenantId('tenant-789'),
+        };
+        const invoice = Invoice.create(command);
+        invoice.addLineItem({
+          description: 'Construction Materials',
+          quantity: 10,
+          unitPrice: Money.create(1000, 'BDT'),
+        }, 'tenant-789');
+        invoice.approve(new UserId('user-123'));
+        invoice.clearEvents();
+
+        const paymentId = new PaymentId('payment-456');
+        const zeroPayment = Money.create(0, 'BDT');
+
+        // Act
+        invoice.recordPayment(paymentId as any, zeroPayment);
+
+        // Assert - Should record payment but not mark as fully paid
+        const events = invoice.getUncommittedEvents();
+        expect(events).toHaveLength(1);
+        expect(events[0].eventType).toBe('InvoicePaymentRecorded');
+        expect(invoice.getStatus()).toBe(InvoiceStatus.APPROVED); // Still APPROVED, not PAID
+      });
+
+      it('should allow payment on already PAID invoice (idempotency check)', () => {
+        // Arrange
+        const command: CreateInvoiceCommand = {
+          vendorId: new VendorId('vendor-123'),
+          customerId: new CustomerId('customer-456'),
+          invoiceDate: new Date('2024-10-15'),
+          dueDate: new Date('2024-11-15'),
+          tenantId: new TenantId('tenant-789'),
+        };
+        const invoice = Invoice.create(command);
+        invoice.addLineItem({
+          description: 'Construction Materials',
+          quantity: 10,
+          unitPrice: Money.create(1000, 'BDT'), // Grand total: 11,500 BDT
+        }, 'tenant-789');
+        invoice.approve(new UserId('user-123'));
+
+        const payment1 = new PaymentId('payment-1');
+        const payment2 = new PaymentId('payment-2');
+
+        // Act - Fully pay invoice
+        invoice.recordPayment(payment1 as any, Money.create(11500, 'BDT'));
+        expect(invoice.getStatus()).toBe(InvoiceStatus.PAID);
+
+        // Try to record another payment on PAID invoice (e.g., refund scenario)
+        // This should be rejected with overpayment exception
+        expect(() => invoice.recordPayment(payment2 as any, Money.create(100, 'BDT'))).toThrow(
+          'Cannot overpay invoice',
+        );
+      });
+    });
+  });
 });

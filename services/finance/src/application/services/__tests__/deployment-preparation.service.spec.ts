@@ -6,8 +6,6 @@ import { DeploymentPreparationService } from '../deployment-preparation.service'
 import * as fs from 'fs';
 import * as path from 'path';
 
-jest.mock('fs');
-
 describe('DeploymentPreparationService', () => {
   let service: DeploymentPreparationService;
   let dataSource: jest.Mocked<DataSource>;
@@ -15,6 +13,11 @@ describe('DeploymentPreparationService', () => {
   let redisService: jest.Mocked<RedisService>;
 
   beforeEach(async () => {
+    // Mock fs.promises before service initialization
+    jest.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+    jest.spyOn(fs.promises, 'mkdir').mockResolvedValue(undefined);
+    jest.spyOn(fs.promises, 'readFile').mockResolvedValue(Buffer.from(''));
+
     const mockDataSource = {
       query: jest.fn(),
     };
@@ -69,6 +72,10 @@ describe('DeploymentPreparationService', () => {
     dataSource = module.get(DataSource);
     configService = module.get(ConfigService);
     redisService = module.get(RedisService);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('prepareForDeployment', () => {

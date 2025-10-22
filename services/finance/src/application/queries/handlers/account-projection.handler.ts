@@ -8,6 +8,7 @@ import {
   AccountDeactivatedEvent,
 } from '../../../domain/aggregates/chart-of-account/chart-of-account.aggregate';
 import { ChartOfAccountReadModel } from '../../../infrastructure/persistence/typeorm/entities/chart-of-account.entity';
+import { FinanceCacheService } from '../../../infrastructure/cache/cache.service';
 
 /**
  * Account Projection Handler
@@ -38,6 +39,7 @@ export class AccountProjectionHandler implements IEventHandler {
   constructor(
     @InjectRepository(ChartOfAccountReadModel)
     private readonly accountRepository: Repository<ChartOfAccountReadModel>,
+    private readonly cacheService: FinanceCacheService,
   ) {}
 
   async handle(event: AccountCreatedEvent | AccountBalanceUpdatedEvent | AccountDeactivatedEvent): Promise<void> {
@@ -104,6 +106,10 @@ export class AccountProjectionHandler implements IEventHandler {
 
     await this.accountRepository.save(projection);
 
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateAccount(event.tenantId, event.accountId.value);
+    this.logger.debug(`Invalidated cache for account ${event.accountId.value}`);
+
     this.logger.log(`Account ${event.accountId.value} created in read model`);
   }
 
@@ -133,6 +139,10 @@ export class AccountProjectionHandler implements IEventHandler {
     projection.updatedAt = new Date(); // Trigger updated timestamp
 
     await this.accountRepository.save(projection);
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateAccount(event.tenantId, event.accountId.value);
+    this.logger.debug(`Invalidated cache for account ${event.accountId.value}`);
 
     this.logger.log(
       `Account ${event.accountId.value} balance updated: ` +
@@ -169,6 +179,10 @@ export class AccountProjectionHandler implements IEventHandler {
     projection.updatedAt = new Date(); // Trigger updated timestamp
 
     await this.accountRepository.save(projection);
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateAccount(event.tenantId, event.accountId.value);
+    this.logger.debug(`Invalidated cache for account ${event.accountId.value}`);
 
     this.logger.log(`Account ${event.accountId.value} deactivated in read model`);
   }

@@ -5,8 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  OneToMany,
 } from 'typeorm';
 import { ObjectType, Field, ID, Directive } from '@nestjs/graphql';
+import { UserRole } from '../../rbac/entities/user-role.entity';
 
 @ObjectType()
 @Directive('@key(fields: "id")')
@@ -108,6 +110,10 @@ export class User {
 
   @Column('uuid', { nullable: true })
   roleId?: string;
+
+  // GAP-001B Fix: Relationship to user roles for permissions lookup
+  @OneToMany(() => UserRole, (userRole) => userRole.user)
+  userRoles?: UserRole[];
 
   @Column({ type: 'timestamptz', nullable: true })
   lockedAt?: Date;

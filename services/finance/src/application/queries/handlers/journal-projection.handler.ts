@@ -11,6 +11,7 @@ import {
   JournalValidatedEvent,
 } from '../../../domain/aggregates/journal/journal-entry.aggregate';
 import { JournalEntryReadModel } from '../../../infrastructure/persistence/typeorm/entities/journal-entry.entity';
+import { FinanceCacheService } from '../../../infrastructure/cache/cache.service';
 
 /**
  * Journal Projection Handler
@@ -55,6 +56,7 @@ export class JournalProjectionHandler implements IEventHandler<DomainEvent> {
   constructor(
     @InjectRepository(JournalEntryReadModel)
     private readonly readRepository: Repository<JournalEntryReadModel>,
+    private readonly cacheService: FinanceCacheService,
   ) {}
 
   async handle(event: DomainEvent): Promise<void> {
@@ -107,6 +109,11 @@ export class JournalProjectionHandler implements IEventHandler<DomainEvent> {
     });
 
     await this.readRepository.save(journal);
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateJournal(event.tenantId, event.journalId.value);
+    this.logger.debug(`Invalidated cache for journal ${event.journalId.value}`);
+
     this.logger.debug(`Journal read model created: ${event.journalId.value}`);
   }
 
@@ -160,6 +167,10 @@ export class JournalProjectionHandler implements IEventHandler<DomainEvent> {
       }
     );
 
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateJournal(event.tenantId, event.journalId.value);
+    this.logger.debug(`Invalidated cache for journal ${event.journalId.value}`);
+
     this.logger.debug(
       `Journal line added: ${event.journalId.value} ` +
       `(lines: ${lines.length}, debit: ${totalDebit}, credit: ${totalCredit})`
@@ -189,6 +200,10 @@ export class JournalProjectionHandler implements IEventHandler<DomainEvent> {
         updatedAt: new Date(event.timestamp),
       }
     );
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidateJournal(event.tenantId, event.journalId.value);
+    this.logger.debug(`Invalidated cache for journal ${event.journalId.value}`);
 
     this.logger.debug(`Journal posted: ${event.journalId.value}`);
   }
@@ -245,6 +260,10 @@ export class JournalProjectionHandler implements IEventHandler<DomainEvent> {
 
     await this.readRepository.save(reversingJournal);
 
+    // Invalidate cache for reversing journal
+    await this.cacheService.invalidateJournal(event.tenantId, event.reversingJournalId.value);
+    this.logger.debug(`Invalidated cache for journal ${event.reversingJournalId.value}`);
+
     // Update original journal status to REVERSED
     await this.readRepository.update(
       { id: event.originalJournalId.value },
@@ -253,6 +272,10 @@ export class JournalProjectionHandler implements IEventHandler<DomainEvent> {
         updatedAt: new Date(event.timestamp),
       }
     );
+
+    // Invalidate cache for original journal
+    await this.cacheService.invalidateJournal(event.tenantId, event.originalJournalId.value);
+    this.logger.debug(`Invalidated cache for journal ${event.originalJournalId.value}`);
 
     this.logger.debug(
       `Reversing journal created: ${event.reversingJournalId.value} ` +

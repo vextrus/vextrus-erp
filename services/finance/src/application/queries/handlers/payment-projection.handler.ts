@@ -12,6 +12,7 @@ import {
   PaymentReversedEvent,
 } from '../../../domain/aggregates/payment/payment.aggregate';
 import { PaymentReadModel } from '../../../infrastructure/persistence/typeorm/entities/payment.entity';
+import { FinanceCacheService } from '../../../infrastructure/cache/cache.service';
 
 /**
  * Payment Projection Handler
@@ -45,6 +46,7 @@ export class PaymentProjectionHandler implements IEventHandler<DomainEvent> {
   constructor(
     @InjectRepository(PaymentReadModel)
     private readonly readRepository: Repository<PaymentReadModel>,
+    private readonly cacheService: FinanceCacheService,
   ) {}
 
   async handle(event: DomainEvent): Promise<void> {
@@ -92,6 +94,11 @@ export class PaymentProjectionHandler implements IEventHandler<DomainEvent> {
     });
 
     await this.readRepository.save(payment);
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidatePayment(event.tenantId, event.paymentId.value);
+    this.logger.debug(`Invalidated cache for payment ${event.paymentId.value}`);
+
     this.logger.debug(`Payment read model created: ${event.paymentId.value}`);
   }
 
@@ -114,6 +121,10 @@ export class PaymentProjectionHandler implements IEventHandler<DomainEvent> {
       }
     );
 
+    // Invalidate cache after successful update
+    await this.cacheService.invalidatePayment(event.tenantId, event.paymentId.value);
+    this.logger.debug(`Invalidated cache for payment ${event.paymentId.value}`);
+
     this.logger.debug(`Payment mobile wallet details updated: ${event.paymentId.value}`);
   }
 
@@ -133,6 +144,10 @@ export class PaymentProjectionHandler implements IEventHandler<DomainEvent> {
       }
     );
 
+    // Invalidate cache after successful update
+    await this.cacheService.invalidatePayment(event.tenantId, event.paymentId.value);
+    this.logger.debug(`Invalidated cache for payment ${event.paymentId.value}`);
+
     this.logger.debug(`Payment completed: ${event.paymentId.value}`);
   }
 
@@ -151,6 +166,10 @@ export class PaymentProjectionHandler implements IEventHandler<DomainEvent> {
         updatedAt: new Date(event.timestamp),
       }
     );
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidatePayment(event.tenantId, event.paymentId.value);
+    this.logger.debug(`Invalidated cache for payment ${event.paymentId.value}`);
 
     this.logger.debug(`Payment failed: ${event.paymentId.value}`);
   }
@@ -173,6 +192,10 @@ export class PaymentProjectionHandler implements IEventHandler<DomainEvent> {
       }
     );
 
+    // Invalidate cache after successful update
+    await this.cacheService.invalidatePayment(event.tenantId, event.paymentId.value);
+    this.logger.debug(`Invalidated cache for payment ${event.paymentId.value}`);
+
     this.logger.debug(`Payment reconciled: ${event.paymentId.value}`);
   }
 
@@ -193,6 +216,10 @@ export class PaymentProjectionHandler implements IEventHandler<DomainEvent> {
         updatedAt: new Date(event.timestamp),
       }
     );
+
+    // Invalidate cache after successful update
+    await this.cacheService.invalidatePayment(event.tenantId, event.paymentId.value);
+    this.logger.debug(`Invalidated cache for payment ${event.paymentId.value}`);
 
     this.logger.debug(`Payment reversed: ${event.paymentId.value}`);
   }

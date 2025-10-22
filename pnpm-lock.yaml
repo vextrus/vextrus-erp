@@ -154,7 +154,7 @@ importers:
         version: 0.416.0(react@18.3.1)
       next:
         specifier: 14.2.5
-        version: 14.2.5(@babel/core@7.28.4)(@opentelemetry/api@1.9.0)(react-dom@18.3.1)(react@18.3.1)
+        version: 14.2.5(@babel/core@7.28.4)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@18.3.1)(react@18.3.1)
       next-themes:
         specifier: ^0.3.0
         version: 0.3.0(react-dom@18.3.1)(react@18.3.1)
@@ -207,6 +207,9 @@ importers:
       '@next/bundle-analyzer':
         specifier: ^15.5.4
         version: 15.5.4
+      '@playwright/test':
+        specifier: ^1.56.1
+        version: 1.56.1
       '@storybook/addon-a11y':
         specifier: 8.6.14
         version: 8.6.14(storybook@8.6.14)
@@ -270,6 +273,9 @@ importers:
       eslint-config-next:
         specifier: 14.2.5
         version: 14.2.5(eslint@8.57.1)(typescript@5.9.2)
+      eslint-plugin-storybook:
+        specifier: ^9.1.13
+        version: 9.1.13(eslint@8.57.1)(storybook@8.6.14)(typescript@5.9.2)
       jest-axe:
         specifier: ^10.0.0
         version: 10.0.0
@@ -3881,7 +3887,7 @@ packages:
     dependencies:
       '@apollo/client': 3.13.9(@types/react@18.3.25)(graphql-ws@5.16.0)(graphql@16.11.0)(react-dom@18.3.1)(react@18.3.1)
       '@apollo/client-react-streaming': 0.14.0(@apollo/client@3.13.9)(@types/react@18.3.25)(graphql@16.11.0)(react-dom@18.3.1)(react@18.3.1)(rxjs@7.8.2)
-      next: 14.2.5(@babel/core@7.28.4)(@opentelemetry/api@1.9.0)(react-dom@18.3.1)(react@18.3.1)
+      next: 14.2.5(@babel/core@7.28.4)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@18.3.1)(react@18.3.1)
       react: 18.3.1
       rxjs: 7.8.2
     transitivePeerDependencies:
@@ -3971,7 +3977,7 @@ packages:
     dependencies:
       '@apollo/client': 3.13.9(@types/react@18.3.25)(graphql-ws@5.16.0)(graphql@16.11.0)(react-dom@18.3.1)(react@18.3.1)
       '@apollo/client-integration-nextjs': 0.14.0(@apollo/client@3.13.9)(@types/react@18.3.25)(graphql@16.11.0)(next@14.2.5)(react-dom@18.3.1)(react@18.3.1)(rxjs@7.8.2)
-      next: 14.2.5(@babel/core@7.28.4)(@opentelemetry/api@1.9.0)(react-dom@18.3.1)(react@18.3.1)
+      next: 14.2.5(@babel/core@7.28.4)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@18.3.1)(react@18.3.1)
       react: 18.3.1
       rxjs: 7.8.2
     transitivePeerDependencies:
@@ -17967,6 +17973,13 @@ packages:
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
     dev: true
 
+  /@playwright/test@1.56.1:
+    resolution: {integrity: sha512-vSMYtL/zOcFpvJCW71Q/OEGQb7KYBPAdKh35WNSkaZA75JlAO8ED8UN6GUNTm3drWomcbcqRPFqQbLae8yBTdg==}
+    engines: {node: '>=18'}
+    hasBin: true
+    dependencies:
+      playwright: 1.56.1
+
   /@polka/url@1.0.0-next.29:
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
     dev: true
@@ -19816,7 +19829,7 @@ packages:
       '@sentry/vercel-edge': 10.17.0
       '@sentry/webpack-plugin': 4.3.0(webpack@5.102.0)
       chalk: 3.0.0
-      next: 14.2.5(@babel/core@7.28.4)(@opentelemetry/api@1.9.0)(react-dom@18.3.1)(react@18.3.1)
+      next: 14.2.5(@babel/core@7.28.4)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@18.3.1)(react@18.3.1)
       resolve: 1.22.8
       rollup: 4.50.0
       stacktrace-parser: 0.1.11
@@ -22911,6 +22924,23 @@ packages:
       '@typescript-eslint/types': 8.42.0
       '@typescript-eslint/typescript-estree': 8.42.0(typescript@5.9.2)
       eslint: 9.35.0
+      typescript: 5.9.2
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+
+  /@typescript-eslint/utils@8.43.0(eslint@8.57.1)(typescript@5.9.2):
+    resolution: {integrity: sha512-S1/tEmkUeeswxd0GGcnwuVQPFWo8NzZTOMxCvw8BX7OMxnNae+i8Tm7REQen/SwUIPoPqfKn7EaZ+YLpiB3k9g==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0
+      typescript: '>=4.8.4 <6.0.0'
+    dependencies:
+      '@eslint-community/eslint-utils': 4.8.0(eslint@8.57.1)
+      '@typescript-eslint/scope-manager': 8.43.0
+      '@typescript-eslint/types': 8.43.0
+      '@typescript-eslint/typescript-estree': 8.43.0(typescript@5.9.2)
+      eslint: 8.57.1
       typescript: 5.9.2
     transitivePeerDependencies:
       - supports-color
@@ -27574,6 +27604,21 @@ packages:
       safe-regex: 2.1.1
     dev: true
 
+  /eslint-plugin-storybook@9.1.13(eslint@8.57.1)(storybook@8.6.14)(typescript@5.9.2):
+    resolution: {integrity: sha512-kPuhbtGDiJLB5OLZuwFZAxgzWakNDw64sJtXUPN8g0+VAeXfHyZEmsE28qIIETHxtal71lPKVm8QNnERaJHPJQ==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      eslint: '>=8'
+      storybook: ^9.1.13
+    dependencies:
+      '@typescript-eslint/utils': 8.43.0(eslint@8.57.1)(typescript@5.9.2)
+      eslint: 8.57.1
+      storybook: 8.6.14(prettier@3.6.2)
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
+    dev: true
+
   /eslint-scope@5.1.1:
     resolution: {integrity: sha512-2NxwbF/hZ0KpepYN0cNbo+FN6XoK7GaHlQhgx/hIZl6Va0bF45RQOOwhLIy8lQDbuCiadSLCBnH2CFYquit5bw==}
     engines: {node: '>=8.0.0'}
@@ -28575,7 +28620,6 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
     requiresBuild: true
-    dev: true
     optional: true
 
   /fsevents@2.3.3:
@@ -33476,7 +33520,7 @@ packages:
       react-dom: 18.3.1(react@18.3.1)
     dev: false
 
-  /next@14.2.5(@babel/core@7.28.4)(@opentelemetry/api@1.9.0)(react-dom@18.3.1)(react@18.3.1):
+  /next@14.2.5(@babel/core@7.28.4)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@18.3.1)(react@18.3.1):
     resolution: {integrity: sha512-0f8aRfBVL+mpzfBjYfQuLWh2WyAwtJXCRfkPF4UJ5qd2YwrHczsrSzXU4tRMV0OAxR8ZJZWPFn6uhSC56UTsLA==}
     engines: {node: '>=18.17.0'}
     hasBin: true
@@ -33496,6 +33540,7 @@ packages:
     dependencies:
       '@next/env': 14.2.5
       '@opentelemetry/api': 1.9.0
+      '@playwright/test': 1.56.1
       '@swc/helpers': 0.5.5
       busboy: 1.6.0
       caniuse-lite: 1.0.30001741
@@ -34505,6 +34550,11 @@ packages:
     hasBin: true
     dev: true
 
+  /playwright-core@1.56.1:
+    resolution: {integrity: sha512-hutraynyn31F+Bifme+Ps9Vq59hKuUCz7H1kDOcBs+2oGguKkWTU50bBWrtz34OUWmIwpBTWDxaRPXrIXkgvmQ==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   /playwright@1.55.1:
     resolution: {integrity: sha512-cJW4Xd/G3v5ovXtJJ52MAOclqeac9S/aGGgRzLabuF8TnIb6xHvMzKIa6JmrRzUkeXJgfL1MhukP0NK6l39h3A==}
     engines: {node: '>=18'}
@@ -34514,6 +34564,15 @@ packages:
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
+
+  /playwright@1.56.1:
+    resolution: {integrity: sha512-aFi5B0WovBHTEvpM3DzXTUaeN6eN0qWnTkKx4NQaH4Wvcmc153PdaY2UBdSYKaGYw+UyWXSVyxDUg5DoPEttjw==}
+    engines: {node: '>=18'}
+    hasBin: true
+    dependencies:
+      playwright-core: 1.56.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   /pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}

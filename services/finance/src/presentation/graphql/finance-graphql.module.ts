@@ -41,6 +41,7 @@ import { GetInvoicesHandler } from '../../application/queries/handlers/get-invoi
 import { GetAccountHandler } from '../../application/queries/handlers/get-account.handler';
 import { GetAccountsHandler } from '../../application/queries/handlers/get-accounts.handler';
 import { GetAccountByCodeHandler } from '../../application/queries/handlers/get-account-by-code.handler';
+import { GetTrialBalanceHandler } from '../../application/queries/handlers/get-trial-balance.handler';
 
 // Query Handlers - Payment
 import { GetPaymentHandler } from '../../application/queries/handlers/get-payment.handler';
@@ -71,6 +72,9 @@ import { InvoiceReadModel } from '../../infrastructure/persistence/typeorm/entit
 import { ChartOfAccountReadModel } from '../../infrastructure/persistence/typeorm/entities/chart-of-account.entity';
 import { PaymentReadModel } from '../../infrastructure/persistence/typeorm/entities/payment.entity';
 import { JournalEntryReadModel } from '../../infrastructure/persistence/typeorm/entities/journal-entry.entity';
+
+// Services
+import { AccountBalanceService } from '../../application/services/account-balance.service';
 
 // Infrastructure
 import { TenantContextService } from '../../infrastructure/context/tenant-context.service';
@@ -125,6 +129,10 @@ import { MasterDataDataLoader } from '../../infrastructure/integrations/master-d
     GetAccountHandler,
     GetAccountsHandler,
     GetAccountByCodeHandler,
+    GetTrialBalanceHandler,
+
+    // Services
+    AccountBalanceService,
 
     // Query Handlers - Payment
     GetPaymentHandler,

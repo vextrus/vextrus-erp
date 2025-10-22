@@ -8,7 +8,8 @@
  */
 
 // Pagination Types
-export { PageInfo, Edge, Connection } from './types/pagination.types';
+export { PageInfo } from './types/pagination.types.js';
+export type { Edge, Connection } from './types/pagination.types.js';
 
 // Re-export commonly used decorators for convenience
 export { ObjectType, Field, Directive } from '@nestjs/graphql';
