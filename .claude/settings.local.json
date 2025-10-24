@@ -2,44 +2,25 @@
   "permissions": {
     "allow": [
       "mcp__sequential-thinking__sequentialthinking",
+      "mcp__plugin_exa-mcp-server_exa__*",
       "Bash(pnpm build)",
-      "Bash(npm test -- account-balance.service.spec.ts)",
-      "Bash(npm test -- invoice.aggregate.spec.ts)",
-      "Bash(npm test)",
-      "Bash(npm test -- get-trial-balance.performance.spec.ts)",
+      "Bash(npm test:*)",
       "Bash(tree:*)",
-      "Skill(haiku-explorer)",
       "Bash(find:*)",
+      "Bash(grep:*)",
       "Bash(cat:*)",
+      "Bash(explore:*)",
       "Read(//c/c/Users/riz/vextrus-erp/**)",
       "Bash(npm run codegen:*)",
       "Bash(pnpm run codegen:*)",
       "Bash(curl:*)",
       "Bash(python -m json.tool:*)",
-      "Bash(docker ps:*)",
-      "Bash(docker logs:*)",
-      "Bash(docker restart:*)",
+      "Bash(docker:*)",
       "Bash(git worktree:*)",
+      "Bash(gh:*)",
       "Read(//c/Users/riz/.claude/**)"
     ]
   },
-  "enabledMcpjsonServers": [
-    "filesystem",
-    "postgres",
-    "sequential-thinking",
-    "context7",
-    "consult7",
-    "docker",
-    "playwright",
-    "brave-search",
-    "serena",
-    "github",
-    "memory",
-    "prisma-local",
-    "prisma-remote",
-    "sqlite",
-    "brightdata",
-    "notion",
-    "reddit"
-  ]
+  "enabledMcpjsonServers": [],
+  "disableAllHooks": false
 }
