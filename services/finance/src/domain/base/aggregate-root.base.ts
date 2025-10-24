@@ -41,6 +41,7 @@ export abstract class AggregateRoot<T> extends Entity<T> {
 
     if (isNew) {
       this.addDomainEvent(event);
+      this._version++; // Increment version for new events
     }
   }
 

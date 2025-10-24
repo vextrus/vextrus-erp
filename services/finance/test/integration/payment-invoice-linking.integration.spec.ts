@@ -28,16 +28,12 @@ import { InvoiceProjectionHandler } from '../../src/application/queries/handlers
 import { PaymentProjectionHandler } from '../../src/application/queries/handlers/payment-projection.handler';
 
 // Projections
-import { InvoiceProjection } from '../../src/application/queries/projections/invoice.projection';
-import { PaymentProjection } from '../../src/application/queries/projections/payment.projection';
+import { InvoiceProjection, PaymentProjection } from '../../src/application/queries/projections/invoice.projection';
 
 // Value Objects
 import { Money } from '../../src/domain/value-objects/money.value-object';
 import { TenantId } from '../../src/domain/aggregates/chart-of-account/chart-of-account.aggregate';
-
-// Types
-import { InvoiceDto } from '../../src/application/dtos/invoice.dto';
-import { PaymentDto } from '../../src/application/dtos/payment.dto';
+import { PaymentMethod } from '../../src/domain/aggregates/payment/payment.aggregate';
 
 /**
  * Payment-Invoice Linking Integration Tests
@@ -161,18 +157,19 @@ describe('Payment-Invoice Linking Integration Tests', () => {
       CompletePaymentHandler,
     ]);
 
-    // Register query handlers
-    queryBus.register([GetInvoiceHandler, GetPaymentHandler]);
+    // Register query handlers (type assertion needed due to nullable return types)
+    queryBus.register([GetInvoiceHandler, GetPaymentHandler] as any);
 
     // Subscribe projection handlers to events
     const invoiceProjectionHandler = module.get(InvoiceProjectionHandler);
     const paymentProjectionHandler = module.get(PaymentProjectionHandler);
 
-    eventBus.subscribe((event) => {
-      if (event.eventType?.includes('Invoice')) {
+    eventBus.subscribe((event: any) => {
+      const eventName = event.constructor?.name || '';
+      if (eventName.includes('Invoice')) {
         invoiceProjectionHandler.handle(event);
       }
-      if (event.eventType?.includes('Payment')) {
+      if (eventName.includes('Payment')) {
         paymentProjectionHandler.handle(event);
       }
     });
@@ -186,11 +183,10 @@ describe('Payment-Invoice Linking Integration Tests', () => {
     it('should create invoice, approve it, create payment, complete payment, and update invoice status to PAID', async () => {
       // Step 1: Create Invoice
       const createInvoiceCommand = new CreateInvoiceCommand(
-        vendorId,
         customerId,
+        vendorId,
         new Date('2024-10-20'),
         new Date('2024-11-20'),
-        new TenantId(tenantId),
         [
           {
             description: 'Construction Materials',
@@ -198,6 +194,8 @@ describe('Payment-Invoice Linking Integration Tests', () => {
             unitPrice: Money.create(1000, 'BDT'),
           },
         ],
+        tenantId,
+        userId,
       );
 
       const invoiceId = await commandBus.execute(createInvoiceCommand);
@@ -207,38 +205,37 @@ describe('Payment-Invoice Linking Integration Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Verify invoice created in DRAFT status
-      let invoice = await queryBus.execute<GetInvoiceQuery, InvoiceDto>(
-        new GetInvoiceQuery(invoiceId, tenantId),
+      let invoice = await queryBus.execute(
+        new GetInvoiceQuery(invoiceId),
       );
       expect(invoice).toBeDefined();
       expect(invoice.status).toBe('DRAFT');
       expect(invoice.grandTotal).toBe(11500); // 10,000 + 15% VAT
 
       // Step 2: Approve Invoice
-      const approveCommand = new ApproveInvoiceCommand(invoiceId, userId, tenantId);
+      const approveCommand = new ApproveInvoiceCommand(invoiceId, userId);
       await commandBus.execute(approveCommand);
 
       // Wait for projection
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Verify invoice approved
-      invoice = await queryBus.execute<GetInvoiceQuery, InvoiceDto>(
-        new GetInvoiceQuery(invoiceId, tenantId),
+      invoice = await queryBus.execute(
+        new GetInvoiceQuery(invoiceId),
       );
       expect(invoice.status).toBe('APPROVED');
       expect(invoice.mushakNumber).toBeDefined();
 
       // Step 3: Create Payment linked to invoice
       const createPaymentCommand = new CreatePaymentCommand(
-        vendorId,
-        customerId,
         invoiceId, // Link to invoice
-        Money.create(11500, 'BDT'), // Full payment
-        'BANK_TRANSFER',
+        11500, // Full payment amount
+        'BDT',
+        PaymentMethod.BANK_TRANSFER,
         new Date('2024-10-21'),
-        new TenantId(tenantId),
+        tenantId,
+        userId,
         'ref-12345',
-        'Payment for invoice',
       );
 
       const paymentId = await commandBus.execute(createPaymentCommand);
@@ -248,8 +245,8 @@ describe('Payment-Invoice Linking Integration Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Verify payment created
-      let payment = await queryBus.execute<GetPaymentQuery, PaymentDto>(
-        new GetPaymentQuery(paymentId, tenantId),
+      let payment = await queryBus.execute(
+        new GetPaymentQuery(paymentId),
       );
       expect(payment).toBeDefined();
       expect(payment.status).toBe('PENDING');
@@ -259,10 +256,8 @@ describe('Payment-Invoice Linking Integration Tests', () => {
       // Step 4: Complete Payment (should auto-update invoice)
       const completePaymentCommand = new CompletePaymentCommand(
         paymentId,
-        userId,
         'txn-67890',
-        new Date('2024-10-21T14:30:00'),
-        tenantId,
+        userId,
       );
 
       await commandBus.execute(completePaymentCommand);
@@ -271,15 +266,15 @@ describe('Payment-Invoice Linking Integration Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 200));
 
       // Step 5: Verify payment completed
-      payment = await queryBus.execute<GetPaymentQuery, PaymentDto>(
-        new GetPaymentQuery(paymentId, tenantId),
+      payment = await queryBus.execute(
+        new GetPaymentQuery(paymentId),
       );
       expect(payment.status).toBe('COMPLETED');
-      expect(payment.transactionId).toBe('txn-67890');
+      expect(payment.transactionReference).toBe('txn-67890');
 
       // Step 6: Verify invoice status updated to PAID
-      invoice = await queryBus.execute<GetInvoiceQuery, InvoiceDto>(
-        new GetInvoiceQuery(invoiceId, tenantId),
+      invoice = await queryBus.execute(
+        new GetInvoiceQuery(invoiceId),
       );
       expect(invoice.status).toBe('PAID');
       expect(invoice.paidAmount).toBe(11500);
@@ -290,11 +285,10 @@ describe('Payment-Invoice Linking Integration Tests', () => {
     it('should handle partial payment correctly (invoice remains APPROVED)', async () => {
       // Step 1: Create and Approve Invoice
       const createInvoiceCommand = new CreateInvoiceCommand(
-        vendorId,
         customerId,
+        vendorId,
         new Date('2024-10-20'),
         new Date('2024-11-20'),
-        new TenantId(tenantId),
         [
           {
             description: 'Construction Services',
@@ -302,26 +296,27 @@ describe('Payment-Invoice Linking Integration Tests', () => {
             unitPrice: Money.create(2000, 'BDT'),
           },
         ],
+        tenantId,
+        userId,
       );
 
       const invoiceId = await commandBus.execute(createInvoiceCommand);
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const approveCommand = new ApproveInvoiceCommand(invoiceId, userId, tenantId);
+      const approveCommand = new ApproveInvoiceCommand(invoiceId, userId);
       await commandBus.execute(approveCommand);
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Step 2: Create Partial Payment (only 50% of grand total)
       const createPaymentCommand = new CreatePaymentCommand(
-        vendorId,
-        customerId,
         invoiceId,
-        Money.create(5750, 'BDT'), // 50% of 11,500 BDT
-        'BANK_TRANSFER',
+        5750, // 50% of 11,500 BDT
+        'BDT',
+        PaymentMethod.BANK_TRANSFER,
         new Date('2024-10-21'),
-        new TenantId(tenantId),
+        tenantId,
+        userId,
         'ref-partial-001',
-        'Partial payment',
       );
 
       const paymentId = await commandBus.execute(createPaymentCommand);
@@ -330,18 +325,16 @@ describe('Payment-Invoice Linking Integration Tests', () => {
       // Step 3: Complete Partial Payment
       const completePaymentCommand = new CompletePaymentCommand(
         paymentId,
-        userId,
         'txn-partial-001',
-        new Date('2024-10-21T15:00:00'),
-        tenantId,
+        userId,
       );
 
       await commandBus.execute(completePaymentCommand);
       await new Promise(resolve => setTimeout(resolve, 200));
 
       // Step 4: Verify invoice still APPROVED (not PAID)
-      const invoice = await queryBus.execute<GetInvoiceQuery, InvoiceDto>(
-        new GetInvoiceQuery(invoiceId, tenantId),
+      const invoice = await queryBus.execute(
+        new GetInvoiceQuery(invoiceId),
       );
       expect(invoice.status).toBe('APPROVED'); // Still APPROVED, not PAID
       expect(invoice.paidAmount).toBe(5750);

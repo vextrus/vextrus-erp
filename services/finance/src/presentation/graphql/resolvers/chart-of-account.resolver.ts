@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, ID, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, Int, ResolveReference } from '@nestjs/graphql';
 import { UseGuards, Logger, NotFoundException } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ChartOfAccountDto } from '../dto/chart-of-account.dto';
@@ -41,6 +41,32 @@ export class ChartOfAccountResolver {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
   ) {}
+
+  /**
+   * Apollo Federation Reference Resolver
+   *
+   * Enables cross-service entity resolution when other services reference ChartOfAccount by ID.
+   * Required for GraphQL Federation v2 when @key directive is used.
+   *
+   * Example federation query:
+   * query {
+   *   journalEntry(id: "123") {
+   *     lines {
+   *       account { # <-- This triggers resolveReference
+   *         id
+   *         accountCode
+   *         accountName
+   *         accountType
+   *       }
+   *     }
+   *   }
+   * }
+   */
+  @ResolveReference()
+  async resolveReference(reference: { __typename: string; id: string }): Promise<ChartOfAccountDto | null> {
+    this.logger.log(`Resolving ChartOfAccount reference for ID: ${reference.id}`);
+    return this.queryBus.execute(new GetAccountQuery(reference.id));
+  }
 
   @Query(() => ChartOfAccountDto, { nullable: true, name: 'chartOfAccount' })
   @UseGuards(JwtAuthGuard, RbacGuard)

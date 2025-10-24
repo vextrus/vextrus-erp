@@ -154,8 +154,8 @@ export interface ReconciliationMatch {
 interface BankCredentials {
   [key: string]: {
     apiUrl: string;
-    apiKey: string;
-    apiSecret: string;
+    apiKey?: string;      // Optional: undefined in development if not configured
+    apiSecret?: string;   // Optional: undefined in development if not configured
     username?: string;
     password?: string;
     clientId?: string;
@@ -174,32 +174,76 @@ export class BankingIntegrationService {
     private readonly bengaliService: BengaliLocalizationService
   ) {
     // Initialize bank credentials from config
+    // SECURITY FIX (CRIT-001): Fail-closed pattern - throw error if credentials missing in production
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
+
     this.bankCredentials = {
       [BankType.BRAC]: {
         apiUrl: this.configService.get<string>('BRAC_BANK_API_URL', 'https://api.bracbank.com'),
-        apiKey: this.configService.get<string>('BRAC_BANK_API_KEY', ''),
-        apiSecret: this.configService.get<string>('BRAC_BANK_API_SECRET', ''),
-        clientId: this.configService.get<string>('BRAC_BANK_CLIENT_ID', '')
+        apiKey: this.getRequiredCredential('BRAC_BANK_API_KEY', isProduction),
+        apiSecret: this.getRequiredCredential('BRAC_BANK_API_SECRET', isProduction),
+        clientId: this.getRequiredCredential('BRAC_BANK_CLIENT_ID', isProduction)
       },
       [BankType.DBBL]: {
         apiUrl: this.configService.get<string>('DBBL_API_URL', 'https://api.dutchbanglabank.com'),
-        apiKey: this.configService.get<string>('DBBL_API_KEY', ''),
-        apiSecret: this.configService.get<string>('DBBL_API_SECRET', ''),
-        username: this.configService.get<string>('DBBL_USERNAME', ''),
-        password: this.configService.get<string>('DBBL_PASSWORD', '')
+        apiKey: this.getRequiredCredential('DBBL_API_KEY', isProduction),
+        apiSecret: this.getRequiredCredential('DBBL_API_SECRET', isProduction),
+        username: this.getRequiredCredential('DBBL_USERNAME', isProduction),
+        password: this.getRequiredCredential('DBBL_PASSWORD', isProduction)
       },
       [BankType.ISLAMI]: {
         apiUrl: this.configService.get<string>('ISLAMI_BANK_API_URL', 'https://api.islamibank.com.bd'),
-        apiKey: this.configService.get<string>('ISLAMI_BANK_API_KEY', ''),
-        apiSecret: this.configService.get<string>('ISLAMI_BANK_API_SECRET', '')
+        apiKey: this.getRequiredCredential('ISLAMI_BANK_API_KEY', isProduction),
+        apiSecret: this.getRequiredCredential('ISLAMI_BANK_API_SECRET', isProduction)
       },
       [BankType.SCB]: {
         apiUrl: this.configService.get<string>('SCB_API_URL', 'https://api.sc.com/bd'),
-        apiKey: this.configService.get<string>('SCB_API_KEY', ''),
-        apiSecret: this.configService.get<string>('SCB_API_SECRET', ''),
-        clientId: this.configService.get<string>('SCB_CLIENT_ID', '')
+        apiKey: this.getRequiredCredential('SCB_API_KEY', isProduction),
+        apiSecret: this.getRequiredCredential('SCB_API_SECRET', isProduction),
+        clientId: this.getRequiredCredential('SCB_CLIENT_ID', isProduction)
       }
     };
+
+    this.logger.log('Banking integration service initialized (fail-closed security pattern)');
+  }
+
+  /**
+   * Get required credential with fail-closed behavior
+   *
+   * SECURITY FIX (CRIT-001): Prevents fail-open security vulnerability
+   * - Production: Throws error if credential missing (fail-closed)
+   * - Development: Returns undefined if missing (allows testing without real credentials)
+   *
+   * This prevents:
+   * - Empty string credentials in memory dumps
+   * - Accidental connection attempts with no credentials
+   * - Credential leakage through error messages
+   *
+   * Recommended: Use AWS Secrets Manager, HashiCorp Vault, or Azure Key Vault
+   * for production credential management instead of environment variables.
+   *
+   * @param key Environment variable name
+   * @param requireInProduction Whether to throw error if missing
+   * @returns Credential value or undefined (development only)
+   * @throws Error if credential missing in production
+   */
+  private getRequiredCredential(key: string, requireInProduction: boolean): string | undefined {
+    const value = this.configService.get<string>(key);
+
+    if (!value || value.trim() === '') {
+      if (requireInProduction) {
+        this.logger.error(`CRITICAL: Missing required banking credential: ${key}`);
+        throw new Error(
+          `Banking credential ${key} is required in production. ` +
+          `Configure via AWS Secrets Manager, HashiCorp Vault, or secure environment variables.`
+        );
+      } else {
+        this.logger.warn(`Banking credential ${key} not configured (development mode - using mock if needed)`);
+        return undefined;
+      }
+    }
+
+    return value;
   }
 
   /**

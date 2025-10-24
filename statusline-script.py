@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Claude Code StatusLine Script - Clean & Focused
-CC 2.0.22 - Optimized for 135k free space baseline
-Focus: Context usage, Task, Git, Skills/Agents
+Claude Code StatusLine Script - V5.0
+CC 2.0.26 - Accurate context calculation
+Focus: Context usage, Git status, Agent availability
 """
 
 import json
@@ -67,8 +67,17 @@ def get_git_status(cwd):
 
 
 def get_context_usage(input_data):
-    """Calculate context usage - baseline 65k used, 135k free"""
+    """Calculate context usage - V5.0 accurate baseline"""
     context_limit = 200000  # 200k total
+
+    # V5.0 Accurate Baseline (no MCP overhead):
+    # System prompt: 2.9k
+    # System tools: 21.1k
+    # Custom agents: 6.2k
+    # Memory files: 2.1k
+    # Sequential thinking MCP: 1.5k (if enabled)
+    # Base minimum: ~34k
+    baseline_minimum = 34000
 
     transcript_path = input_data.get('transcript_path', '')
     total_tokens = 0
@@ -104,15 +113,15 @@ def get_context_usage(input_data):
         except:
             pass
 
-    # Baseline: 65k (new session optimized)
-    if total_tokens == 0:
-        total_tokens = 65000
+    # Use baseline if no data or too low
+    if total_tokens < baseline_minimum:
+        total_tokens = baseline_minimum
 
     return total_tokens, context_limit
 
 
 def create_progress_bar(total_tokens, context_limit):
-    """Context progress bar - optimized for 135k free baseline"""
+    """Context progress bar - V5.0 accurate thresholds"""
     progress_pct = (total_tokens * 100.0 / context_limit)
     free_tokens = context_limit - total_tokens
 
@@ -124,17 +133,21 @@ def create_progress_bar(total_tokens, context_limit):
     filled_blocks = min(bar_width, int(progress_pct * bar_width / 100))
     empty_blocks = bar_width - filled_blocks
 
-    # Color based on free space (target: >120k free)
-    if free_tokens > 120000:  # >120k free (green)
+    # V5.0 Color thresholds (based on actual usage patterns):
+    # Target: Keep <60k (30%) for optimal performance
+    # Warning: 60-100k (30-50%) - approaching capacity
+    # Critical: >100k (50%) - need checkpoint/compaction
+
+    if total_tokens < 60000:  # <60k used (green - optimal)
         bar_color = COLORS['green']
         indicator = ' ✓'
-    elif free_tokens > 80000:  # >80k free (yellow)
+    elif total_tokens < 100000:  # 60-100k used (yellow - good)
         bar_color = COLORS['yellow']
         indicator = ''
-    elif free_tokens > 50000:  # >50k free (orange)
+    elif total_tokens < 140000:  # 100-140k used (orange - checkpoint soon)
         bar_color = COLORS['orange']
-        indicator = ' ⚠'
-    else:  # <50k free (red - needs compacting)
+        indicator = ' ⚠ CHECKPOINT'
+    else:  # >140k used (red - compact now)
         bar_color = COLORS['red']
         indicator = ' 🔴 COMPACT'
 
@@ -145,20 +158,24 @@ def create_progress_bar(total_tokens, context_limit):
     return bar
 
 
-def get_current_task(cwd):
-    """Get current task name"""
-    task_file = Path(cwd) / '.claude' / 'state' / 'current_task.json'
-    if task_file.exists():
-        try:
-            with open(task_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                task_name = data.get('task')
-
-                if task_name and task_name != 'null':
-                    return f"{COLORS['cyan']}📋 {task_name}{COLORS['reset']}"
-        except:
-            pass
-    return f"{COLORS['gray']}📋 No task{COLORS['reset']}"
+def get_branch_info(cwd):
+    """Get current git branch"""
+    try:
+        os.chdir(cwd)
+        result = subprocess.run(
+            ['git', 'branch', '--show-current'],
+            capture_output=True,
+            text=True,
+            shell=False
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            branch = result.stdout.strip()
+            if branch.startswith('feature/'):
+                branch = branch.replace('feature/', 'f/')
+            return f"{COLORS['cyan']}🌿 {branch}{COLORS['reset']}"
+    except:
+        pass
+    return f"{COLORS['gray']}🌿 main{COLORS['reset']}"
 
 
 def get_git_info(cwd):
@@ -182,8 +199,8 @@ def get_git_info(cwd):
 
 
 def get_workflow_info():
-    """Skills + Agents count"""
-    return f"{COLORS['purple']}⚙9 Skills{COLORS['reset']} {COLORS['gray']}│{COLORS['reset']} {COLORS['cyan']}🤖21 Agents{COLORS['reset']}"
+    """V5.0 workflow info"""
+    return f"{COLORS['purple']}⚙ V5.0{COLORS['reset']} {COLORS['gray']}│{COLORS['reset']} {COLORS['cyan']}🤖 33 Agents{COLORS['reset']}"
 
 
 def get_time():
@@ -206,13 +223,13 @@ def main():
     # Get components
     total_tokens, context_limit = get_context_usage(input_data)
     progress_bar = create_progress_bar(total_tokens, context_limit)
-    task = get_current_task(cwd)
+    branch = get_branch_info(cwd)
     git = get_git_info(cwd)
     workflow = get_workflow_info()
     time = get_time()
 
     # Output (2 lines, clean and focused)
-    print(f"{progress_bar} │ {task}")
+    print(f"{progress_bar} │ {branch}")
     print(f"{workflow} │ {git} │ {time}")
 
 

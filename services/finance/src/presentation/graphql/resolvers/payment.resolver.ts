@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, ID, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, Int, ResolveReference } from '@nestjs/graphql';
 import { UseGuards, Logger, NotFoundException } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { PaymentDto, MobileWalletDto } from '../dto/payment.dto';
@@ -55,6 +55,39 @@ export class PaymentResolver {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
   ) {}
+
+  /**
+   * Apollo Federation Reference Resolver
+   *
+   * Enables cross-service entity resolution when other services reference Payment by ID.
+   * Required for GraphQL Federation v2 when @key directive is used.
+   *
+   * Example federation query:
+   * query {
+   *   invoice(id: "123") {
+   *     payments { # <-- This could trigger resolveReference
+   *       id
+   *       paymentNumber
+   *       amount
+   *       status
+   *     }
+   *   }
+   * }
+   */
+  @ResolveReference()
+  async resolveReference(reference: { __typename: string; id: string }): Promise<PaymentDto | null> {
+    this.logger.log(`Resolving Payment reference for ID: ${reference.id}`);
+
+    const payment = await this.queryBus.execute<GetPaymentQuery, PaymentReadModel | null>(
+      new GetPaymentQuery(reference.id)
+    );
+
+    if (!payment) {
+      return null;
+    }
+
+    return this.mapToDto(payment);
+  }
 
   /**
    * Query: Get single payment by ID

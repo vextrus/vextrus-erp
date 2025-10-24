@@ -9,9 +9,8 @@ on:
     branches:
       - 'feature/**'
     paths:
-      - 'checkpoint-*.md'
-      - 'checkpoints/**/*.md'
-      - 'docs/workflow-history/checkpoints-archive/checkpoint-*.md'
+      - '.claude/checkpoints/*.md'
+      - '.claude/checkpoints/**/*.md'
 
   # Manual trigger for syncing specific checkpoint
   workflow_dispatch:

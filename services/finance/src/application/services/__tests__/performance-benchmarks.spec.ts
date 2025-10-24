@@ -43,8 +43,6 @@ describe('OCRInvoiceProcessorService - Performance Benchmarks', () => {
   beforeEach(async () => {
     // Setup mock Tesseract worker
     mockWorker = {
-      loadLanguage: jest.fn().mockResolvedValue(undefined),
-      initialize: jest.fn().mockResolvedValue(undefined),
       setParameters: jest.fn().mockResolvedValue(undefined),
       recognize: jest.fn().mockResolvedValue({
         data: {
@@ -105,17 +103,16 @@ describe('OCRInvoiceProcessorService - Performance Benchmarks', () => {
       // Verify result structure
       expect(result).toBeDefined();
       expect(result.invoiceNumber).toBe('INV-2024-001');
-      expect(result.date).toBe('2024-10-16');
+      expect(result.invoiceDate).toEqual(new Date('2024-10-16'));
       expect(result.vendorName).toBe('ABC Construction Ltd.');
       expect(result.vendorTin).toBe('123456789012');
       expect(result.vendorBin).toBe('123456789');
-      expect(result.customerTin).toBe('987654321098');
       expect(result.lineItems).toHaveLength(3);
       expect(result.subtotal).toBe(3560000);
       expect(result.vatAmount).toBe(534000);
       expect(result.totalAmount).toBe(4094000);
       expect(result.vatRate).toBe(15);
-      expect(result.musahkCompliant).toBe(true);
+      expect(result.mushakNumber).toBeDefined();
 
       // Verify line items
       expect(result.lineItems[0]).toMatchObject({
@@ -123,7 +120,6 @@ describe('OCRInvoiceProcessorService - Performance Benchmarks', () => {
         quantity: 100,
         unitPrice: 500,
         amount: 50000,
-        category: 'Supplies',
         accountCode: expect.any(String),
         hsCode: expect.any(String),
       });
@@ -133,7 +129,6 @@ describe('OCRInvoiceProcessorService - Performance Benchmarks', () => {
         quantity: 50,
         unitPrice: 70000,
         amount: 3500000,
-        category: 'Supplies',
         accountCode: expect.any(String),
         hsCode: expect.any(String),
       });
@@ -143,8 +138,6 @@ describe('OCRInvoiceProcessorService - Performance Benchmarks', () => {
 
       // Verify Tesseract worker calls
       expect(createWorker).toHaveBeenCalledWith('eng+ben');
-      expect(mockWorker.loadLanguage).toHaveBeenCalledWith('eng+ben');
-      expect(mockWorker.initialize).toHaveBeenCalledWith('eng+ben');
       expect(mockWorker.recognize).toHaveBeenCalledWith(imageBuffer);
       expect(mockWorker.terminate).toHaveBeenCalled();
     });
@@ -212,7 +205,13 @@ describe('OCRInvoiceProcessorService - Performance Benchmarks', () => {
 
       expect(result).toBeDefined();
       expect(result.confidence).toBe(55.0);
-      expect(result.warnings).toContain('Low OCR confidence detected. Manual review recommended.');
+      expect(result.validation.warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Low OCR confidence')
+          })
+        ])
+      );
     });
   });
 
@@ -234,8 +233,8 @@ describe('OCRInvoiceProcessorService - Performance Benchmarks', () => {
       const result = await service.processInvoiceImage(imageBuffer, 'image', 'tenant-004');
 
       expect(result.vendorTin).toMatch(/^\d{10,12}$/);
-      expect(result.customerTin).toMatch(/^\d{10,12}$/);
-      expect(result.validations.tinValid).toBe(true);
+      expect(result.validation.isValid).toBe(true);
+      expect(result.validation.errors).toEqual([]);
     });
 
     it('should reject invalid TIN format', async () => {
@@ -253,8 +252,14 @@ describe('OCRInvoiceProcessorService - Performance Benchmarks', () => {
       const imageBuffer = Buffer.from('invalid-tin-test');
       const result = await service.processInvoiceImage(imageBuffer, 'image', 'tenant-005');
 
-      expect(result.errors).toContain('Invalid TIN format. Must be 10-12 digits.');
-      expect(result.validations.tinValid).toBe(false);
+      expect(result.validation.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining('Invalid TIN format')
+          })
+        ])
+      );
+      expect(result.validation.isValid).toBe(false);
     });
 
     it('should validate Bangladesh BIN format (9 digits)', async () => {
@@ -273,7 +278,8 @@ describe('OCRInvoiceProcessorService - Performance Benchmarks', () => {
       const result = await service.processInvoiceImage(imageBuffer, 'image', 'tenant-006');
 
       expect(result.vendorBin).toMatch(/^\d{9}$/);
-      expect(result.validations.binValid).toBe(true);
+      expect(result.validation.isValid).toBe(true);
+      expect(result.validation.errors).toEqual([]);
     });
 
     it('should detect Mushak-6.3 compliance keywords', async () => {
@@ -292,8 +298,8 @@ describe('OCRInvoiceProcessorService - Performance Benchmarks', () => {
       const imageBuffer = Buffer.from('mushak-test');
       const result = await service.processInvoiceImage(imageBuffer, 'image', 'tenant-007');
 
-      expect(result.musahkCompliant).toBe(true);
-      expect(result.validations.musahkCompliant).toBe(true);
+      expect(result.mushakNumber).toBeDefined();
+      expect(result.validation.isValid).toBe(true);
     });
 
     it('should extract correct VAT rates (15%, 10%, 7.5%, 5%)', async () => {

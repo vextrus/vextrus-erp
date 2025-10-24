@@ -37,12 +37,21 @@ export class TenantMiddleware implements NestMiddleware {
   }
 
   private extractTenantId(req: Request): string | undefined {
-    // Check multiple sources for tenant ID
+    // SECURITY FIX (CRIT-003): ONLY accept tenant ID from headers or environment
+    // Do NOT trust query parameters or request body to prevent tenant isolation bypass
+    //
+    // Threat Model:
+    // - Attacker with valid JWT for Tenant A could set ?tenantId=B or body.tenantId=B
+    // - Without this fix, middleware would accept Tenant B, bypassing JWT validation
+    // - JwtAuthGuard validates header tenant matches JWT tenant (defense in depth)
+    //
+    // Security Layers:
+    // 1. This middleware extracts tenant from header ONLY
+    // 2. JwtAuthGuard validates header tenant === JWT tenant
+    // 3. Database queries are tenant-scoped (final defense)
     return (
       req.headers['x-tenant-id'] as string ||
       req.headers['tenant-id'] as string ||
-      req.query['tenantId'] as string ||
-      req.body?.tenantId ||
       process.env.DEFAULT_TENANT_ID
     );
   }

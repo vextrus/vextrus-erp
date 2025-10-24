@@ -27,16 +27,32 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    // Allow introspection queries for Apollo Sandbox
+    // SECURITY FIX (CRIT-002): Only allow introspection in development
+    // In production, introspection should be disabled AND require authentication
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
+
     if (context.getType() as string === 'graphql') {
       try {
         const gqlContext = GqlExecutionContext.create(context);
         const info = gqlContext.getInfo();
 
         // Check if this is an introspection query by field name
-        if (info?.fieldName === '__schema' || info?.fieldName === '__type') {
-          this.logger.log('✅ Allowing introspection query by field name: ' + info.fieldName);
-          return true;
+        const isIntrospectionQuery = info?.fieldName === '__schema' || info?.fieldName === '__type';
+
+        if (isIntrospectionQuery) {
+          if (isProduction) {
+            // SECURITY: In production, introspection requires authentication
+            // This prevents unauthenticated schema enumeration attacks
+            this.logger.warn(
+              `⚠️ Introspection query blocked in production (field: ${info.fieldName}). ` +
+              `Authentication required for schema access.`
+            );
+            // Continue to authentication check below (do not return true)
+          } else {
+            // Development only: Allow introspection for Apollo Sandbox
+            this.logger.log(`✅ Allowing introspection query in development (field: ${info.fieldName})`);
+            return true;
+          }
         }
 
         // Also check the operation name and query text for introspection
@@ -44,12 +60,24 @@ export class JwtAuthGuard implements CanActivate {
         const request = ctx?.req;
         const body = request?.body;
 
-        // Check for IntrospectionQuery operation name or __schema/__type in query
-        if (body?.operationName === 'IntrospectionQuery' ||
-            body?.query?.includes('__schema') ||
-            body?.query?.includes('__type')) {
-          this.logger.log('✅ Allowing introspection query by operation name or query text');
-          return true;
+        const isIntrospectionOperation =
+          body?.operationName === 'IntrospectionQuery' ||
+          body?.query?.includes('__schema') ||
+          body?.query?.includes('__type');
+
+        if (isIntrospectionOperation) {
+          if (isProduction) {
+            // SECURITY: Block introspection in production without authentication
+            this.logger.warn(
+              `⚠️ Introspection operation blocked in production. ` +
+              `Operation: ${body?.operationName || 'unknown'}. Authentication required.`
+            );
+            // Continue to authentication check below
+          } else {
+            // Development only: Allow for Apollo Sandbox
+            this.logger.log(`✅ Allowing introspection operation in development`);
+            return true;
+          }
         }
       } catch (error) {
         // If we can't get GraphQL context, continue to auth check
