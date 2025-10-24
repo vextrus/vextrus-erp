@@ -19,7 +19,8 @@
       "Bash(docker ps:*)",
       "Bash(docker logs:*)",
       "Bash(docker restart:*)",
-      "Bash(git worktree:*)"
+      "Bash(git worktree:*)",
+      "Read(//c/Users/riz/.claude/**)"
     ]
   },
   "enabledMcpjsonServers": [
