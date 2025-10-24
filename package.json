@@ -26,7 +26,8 @@
     "verdaccio:logs": "docker-compose logs -f verdaccio",
     "registry:login": "npm adduser --registry http://localhost:4873/",
     "registry:whoami": "npm whoami --registry http://localhost:4873/",
-    "publish:local": "npm run build:packages && npm publish --workspace=@vextrus/* --registry http://localhost:4873/"
+    "publish:local": "npm run build:packages && npm publish --workspace=@vextrus/* --registry http://localhost:4873/",
+    "prepare": "husky install"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.6",
@@ -36,7 +37,9 @@
     "turbo": "^2.0.0",
     "typedoc": "^0.28.12",
     "typedoc-plugin-markdown": "^4.8.1",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.0.2"
   },
   "engines": {
     "node": ">=20.0.0",
