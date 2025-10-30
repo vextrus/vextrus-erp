@@ -151,7 +151,7 @@ npm test    # MUST: all passing
 - **Use Explore agent**: Haiku 4.5 for research (lower cost)
 - **Plugin workflows**: Offload to plugins (less main context)
 
-### When High (>140k)
+### When High (>180k)
 1. Complete current `/work` if active
 2. User starts new session
 3. Continue from GitHub issue (worktree preserved)
@@ -302,7 +302,6 @@ git push
 - **Plugin Reference**: `.claude/plugin-command-reference.md` (47+ commands)
 - **Workflow Guide**: `.claude/workflows/v6-plugin-orchestration.md`
 - **Architecture**: `VEXTRUS-PATTERNS.md` (Bangladesh compliance, DDD, etc.)
-- **Migration**: `.claude/V5.0-TO-V6.0-MIGRATION.md` (if needed)
 
 ---
 

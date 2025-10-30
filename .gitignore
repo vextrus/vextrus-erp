@@ -55,3 +55,4 @@ coverage/
 
 # Serena
 .serena/
+.worktrees/

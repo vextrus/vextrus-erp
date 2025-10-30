@@ -18,9 +18,30 @@
       "Bash(docker:*)",
       "Bash(git worktree:*)",
       "Bash(gh:*)",
-      "Read(//c/Users/riz/.claude/**)"
+      "Read(//c/Users/riz/.claude/**)",
+      "WebSearch",
+      "WebFetch(domain:docs.nestjs.com)"
     ]
   },
   "enabledMcpjsonServers": [],
-  "disableAllHooks": false
+  "disabledMcpjsonServers": [
+    "filesystem",
+    "postgres",
+    "sequential-thinking",
+    "context7",
+    "consult7",
+    "docker",
+    "playwright",
+    "brave-search",
+    "serena",
+    "github",
+    "memory",
+    "prisma-local",
+    "prisma-remote",
+    "sqlite",
+    "brightdata",
+    "notion",
+    "reddit"
+  ],
+  "disableAllHooks": true
 }
