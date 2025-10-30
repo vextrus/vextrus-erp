@@ -8,6 +8,21 @@ const nextConfig = {
   swcMinify: true,
   compress: true,
 
+  // Enable standalone output for Docker optimization
+  output: 'standalone',
+
+  // Ignore ESLint and TypeScript errors during production build (lint in CI/pre-commit instead)
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // We type-check in development and CI, so it's safe to skip here
+    ignoreBuildErrors: process.env.NODE_ENV === 'production',
+  },
+
   // Performance optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',

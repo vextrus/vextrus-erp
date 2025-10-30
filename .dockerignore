@@ -9,6 +9,8 @@
 **/dist
 **/build
 **/lib
+# EXCEPTION: Don't exclude source lib directories
+!apps/web/src/lib
 **/*.tsbuildinfo
 **/.turbo
 
@@ -42,6 +44,13 @@ LICENSE
 coverage
 .nyc_output
 *.coverage
+
+# Storybook files (development only, not needed in production)
+**/*.stories.tsx
+**/*.stories.ts
+**/*.stories.jsx
+**/*.stories.js
+**/storybook-static
 
 # Environment files
 .env
