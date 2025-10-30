@@ -1,17 +1,6 @@
 ---
 name: graphql-federation-v2
-description: |
-  GraphQL Federation v2 patterns for distributed schema across microservices.
-  Auto-activates on: GraphQL, federation, @key, resolver, schema, entity, gateway.
-triggers:
-  - GraphQL
-  - federation
-  - "@key"
-  - resolver
-  - schema
-  - entity
-  - gateway
-  - subgraph
+description: GraphQL Federation v2 patterns for distributed schema across microservices. Use when working with GraphQL federation, @key directives, entity resolution, reference resolvers, schema stitching, gateway configuration, subgraph design, or cross-service GraphQL queries.
 ---
 
 # GraphQL Federation V2 (Quick Reference)

@@ -1,17 +1,6 @@
 ---
 name: nestjs-microservices
-description: |
-  NestJS microservices patterns with DDD layered architecture and multi-tenancy.
-  Auto-activates on: NestJS, module, dependency injection, CQRS, multi-tenancy, microservice.
-triggers:
-  - NestJS
-  - module
-  - dependency injection
-  - CQRS
-  - multi-tenancy
-  - microservice
-  - "@Module"
-  - "@Injectable"
+description: NestJS microservices patterns with DDD layered architecture and multi-tenancy. Use when working with NestJS modules, dependency injection, CQRS implementations, multi-tenant applications, microservice architecture, @Module decorators, @Injectable services, guards, interceptors, or NestJS configuration.
 ---
 
 # NestJS Microservices (Quick Reference)

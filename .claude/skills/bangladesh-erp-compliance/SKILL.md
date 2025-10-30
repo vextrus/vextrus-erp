@@ -1,20 +1,6 @@
 ---
 name: bangladesh-erp-compliance
-description: |
-  Bangladesh VAT, TDS, Mushak compliance patterns for construction & real estate ERP.
-  Auto-activates on: VAT, TDS, invoice, Mushak, fiscal year, NBR, compliance, tax.
-triggers:
-  - VAT
-  - TDS
-  - invoice
-  - Mushak
-  - fiscal year
-  - NBR
-  - compliance
-  - tax
-  - payment
-  - TIN
-  - BIN
+description: Bangladesh VAT, TDS, Mushak compliance patterns for construction & real estate ERP. Use when working with VAT calculations, TDS withholding, invoice generation, Mushak 6.3 forms, fiscal year operations, NBR compliance, tax processing, payment workflows, TIN/BIN validation, or Bangladesh financial operations.
 ---
 
 # Bangladesh ERP Compliance (Quick Reference)

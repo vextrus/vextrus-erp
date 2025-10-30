@@ -1,19 +1,6 @@
 ---
 name: ddd-event-sourcing
-description: |
-  DDD + Event Sourcing + CQRS patterns for domain-driven microservices.
-  Auto-activates on: aggregate, event, command, query, CQRS, domain, repository, saga.
-triggers:
-  - aggregate
-  - event
-  - command
-  - query
-  - CQRS
-  - domain
-  - repository
-  - saga
-  - DDD
-  - event sourcing
+description: DDD + Event Sourcing + CQRS patterns for domain-driven microservices. Use when designing aggregates, domain events, commands, queries, CQRS workflows, event-sourced repositories, sagas, domain models, or implementing event sourcing architecture.
 ---
 
 # DDD Event Sourcing (Quick Reference)
