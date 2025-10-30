@@ -1,925 +1,580 @@
-# Vextrus ERP - V7.0 Workflow Guide
+# Vextrus ERP - V8.0 Enforcement Protocol
 
 **System**: Bangladesh Construction & Real Estate ERP (18 microservices)
-**Model**: Sonnet 4.5 (planning/complex), Haiku 4.5 (exploration/execution)
-**Context**: Target <50k baseline (25%), 150k free (75%)
-**Workflow**: V7.0 Phase-Based Native Orchestration
+**Model**: Sonnet 4.5 (complex), Haiku 4.5 (explore)
+**Context**: <50k baseline (25%), 150k available (75%)
+**Workflow**: V8.0 Phase-Based Enforcement with Blocking Gates
 
 ---
 
-## FOR CLAUDE: Your Execution Guide
+# PART 1: ENFORCEMENT PROTOCOL
 
-**This is YOUR primary workflow**. Follow these tier-based patterns for all tasks.
+## MANDATORY Actions (ALWAYS Execute)
 
----
+### 1. Tier Classification (MANDATORY - BLOCKING)
 
-## Core Philosophy
+WHEN: User provides task
+MUST: Answer classification questions BEFORE starting
 
-1. **Balanced, Not Over-Engineered**: Simple tasks stay simple (4 phases), complex tasks get structure (12+ phases)
-2. **Native CC First**: Leverage Plan/Explore subagents before plugins
-3. **Phase-Based with Checkpoints**: Clear progress tracking, easy rollback
-4. **No Single Point of Failure**: Distributed orchestration across subagents + plugins
-5. **Context-Optimized**: <50k baseline, 150k available for work
-
----
-
-## Workflow Tiers
-
-### TIER 1: Simple Task (<2h, 1-3 files)
-
-**When to use**: Bug fixes, small enhancements, adding fields, config changes
-
+**Classification Questions**:
 ```
-Phase 1: READ & ANALYZE (5 min)
-- Read affected files directly (Read tool)
-- Understand existing patterns
-
-Phase 2: IMPLEMENT (30-90 min)
-- Write code (Sonnet 4.5)
-- Follow established patterns
-- No planning phase needed
-
-Phase 3: VALIDATE (10 min)
-- pnpm build (MUST pass)
-- npm test (MUST pass)
-- Checkpoint: Quality gates passed
-
-Phase 4: COMMIT (5 min)
-- git add .
-- git commit -m "type: description\n\n- changes\n\n🤖 Claude Code"
-- git push
-
-Plugins: 0
-Checkpoints: 1
-Context: <20k tokens
-```
-
-**Example**: Add validation rule, fix typo, update config
-
----
-
-### TIER 2: Medium Task (2-8h, 4-15 files)
-
-**When to use**: New features, service enhancements, API endpoints, moderate refactoring
-
-```
-Phase 1: PLAN (Plan subagent - 15 min)
-- Launch Plan subagent (Sonnet 4.5)
-- Task: "Plan implementation for [feature]"
-- Output: Structured plan with phases, files, risks
-- Checkpoint: Review plan before proceeding
-
-Phase 2: EXPLORE (Explore subagent - 10 min)
-- Launch Explore subagent (Haiku 4.5 - separate context)
-- Analyze relevant services/modules
-- Gather architectural patterns
-- Identify dependencies
-- Output: Concise context summary
-- Checkpoint: Context gathered
-
-Phase 3: DESIGN (Specialized plugins - 30 min)
-Use as needed:
-- /backend-development:feature-development (backend features)
-- /database-migrations:sql-migrations (DB changes)
-- /api-scaffolding:graphql-architect (GraphQL APIs)
-- /tdd-workflows:tdd-cycle (if TDD approach)
-- Checkpoint: Design decisions documented
-
-Phase 4: IMPLEMENT (Sonnet 4.5 - 3-5 hours)
-Sub-phases (commit after each):
-
-  Phase 4.1: Domain Layer
-  - Aggregates, Entities, Value Objects, Events
-  - Checkpoint: pnpm build + npm test
-
-  Phase 4.2: Application Layer
-  - Commands, Queries, Handlers, Services
-  - Checkpoint: pnpm build + npm test
-
-  Phase 4.3: Presentation Layer
-  - GraphQL resolvers, DTOs, Guards
-  - Checkpoint: pnpm build + npm test
-
-  Phase 4.4: Tests
-  - Unit tests (90%+ coverage target)
-  - Integration tests
-  - Checkpoint: pnpm build + npm test (all passing)
-
-Phase 5: REVIEW (Review plugins - 20 min)
-- /comprehensive-review:full-review (multi-agent review)
-- /backend-api-security:backend-security-coder (security scan)
-- Target: Score >8/10, 0 critical security issues
-- Checkpoint: Address critical/high issues if any
-
-Phase 6: FINALIZE (10 min)
-- Final pnpm build + npm test
-- git add . && git commit && git push
-- Optional: /git-pr-workflows:pr-enhance (PR creation)
-- Checkpoint: Feature complete
-
-Total: 4-8 hours
-Plugins: 3-5
-Checkpoints: 6-8
-Context: <80k tokens
-```
-
-**Example**: New CRUD feature, GraphQL API endpoint, service enhancement
-
----
-
-### TIER 3: Complex Task (2-5 days, 15+ files, cross-service)
-
-**When to use**: Production modules, cross-service integration, distributed transactions, new microservices
-
-```
-═══════════════════════════════════════
-DAY 0: RESEARCH & ARCHITECTURE (4 hours)
-═══════════════════════════════════════
-
-Phase 1.1: EXPLORATION (Explore subagent - 30 min)
-- Launch Explore subagent (Haiku 4.5)
-- Explore all related services
-- Map dependencies and integration points
-- Analyze existing patterns
-- Output: Comprehensive context document
-- Checkpoint: Context complete
-
-Phase 1.2: ARCHITECTURE PLANNING (Plan subagent - 45 min)
-- Launch Plan subagent (Sonnet 4.5)
-- Input: Explore findings + requirements
-- Create comprehensive implementation plan
-- Break into daily phases
-- Identify risks, dependencies, unknowns
-- Output: Multi-day execution plan
-- Checkpoint: Plan created
-
-Phase 1.3: SPECIALIZED DESIGN (Plugins - 2 hours)
-Use as needed:
-- /backend-development:feature-development (backend architecture)
-- /database-migrations:sql-migrations (DB schema design)
-- /api-scaffolding:graphql-architect (GraphQL schema)
-- /full-stack-orchestration:full-stack-feature (if full-stack)
-- /cloud-infrastructure:cloud-architect (if infrastructure)
-- Checkpoint: Architecture decisions documented
-
-Phase 1.4: PLAN REVIEW (30 min)
-- Review plan with stakeholders if needed
-- Adjust based on feedback
-- Finalize execution strategy
-- Checkpoint: Approved plan ready
-
-═══════════════════════════════════════
-DAY 1-N: IMPLEMENTATION (Iterative)
-═══════════════════════════════════════
-
-Each Day Pattern:
-
-Morning Session (3-4 hours):
-  - Review previous day's work
-  - Plan today's phase (which feature slice)
-
-  Implementation Cycle:
-    → Implement feature slice (domain → application → presentation)
-    → Write tests (unit + integration)
-    → Validate (pnpm build + npm test)
-    → Checkpoint: Micro-commit (working feature slice)
-
-  Tools:
-    - Sonnet 4.5 (complex business logic)
-    - /tdd-workflows:tdd-cycle (if TDD)
-    - /unit-test-generator:generate-tests (test scaffolding)
-
-Afternoon Session (3-4 hours):
-  - Continue implementation
-  - Address morning issues
-  - Cross-service integration if needed
-  - Checkpoint: End-of-day commit (all tests passing)
-
-Evening:
-  - Quick review of day's work
-  - Plan tomorrow's phase
-  - Checkpoint: Daily summary
-
-═══════════════════════════════════════
-FINAL DAY: QUALITY & RELEASE (4 hours)
-═══════════════════════════════════════
-
-Phase Final.1: COMPREHENSIVE REVIEW (1 hour)
-- /comprehensive-review:full-review (all review agents)
-- Target: Score >8/10
-- Fix critical/high issues
-- Checkpoint: Quality score achieved
-
-Phase Final.2: SECURITY AUDIT (30 min)
-- /backend-api-security:backend-security-coder
-- /authentication-validator:validate-auth (if auth changes)
-- Target: 0 critical, 0 high vulnerabilities
-- Checkpoint: Security validated
-
-Phase Final.3: PERFORMANCE VALIDATION (30 min)
-- /application-performance:performance-engineer
-- /database-design:sql-pro (if DB-heavy)
-- Load testing for critical endpoints
-- Target: Response times <500ms (p95)
-- Checkpoint: Performance acceptable
-
-Phase Final.4: DOCUMENTATION (1 hour)
-- Update service README.md
-- /documentation-generation:api-documenter (API docs)
-- Create migration guide if breaking changes
-- Update VEXTRUS-PATTERNS.md if new patterns
-- Checkpoint: Documentation complete
-
-Phase Final.5: PULL REQUEST (30 min)
-- Final pnpm build + npm test (must pass)
-- git add . && git commit && git push
-- /git-pr-workflows:pr-enhance (comprehensive PR)
-- Checkpoint: PR created, ready for review
-
-Total: 2-5 days
-Plugins: 8-12
-Checkpoints: 15-25
-Context: <100k per session (new session each day)
-```
-
-**Example**: New microservice, distributed transaction, cross-service feature, production module
-
----
-
-## Native CC Features (Use Before Plugins)
-
-### Plan Subagent (Sonnet 4.5)
-
-**When to use**:
-- Medium/complex tasks before implementation
-- Breaking down large features into phases
-- Risk assessment and dependency mapping
-
-**How to use**:
-```
-Launch Task tool with subagent_type="Plan"
-Provide: Task description, requirements, constraints
-Output: Structured implementation plan with phases
-Context: Separate from main (saves main context)
-```
-
-**Best practices**:
-- Always use for Tier 2/3 tasks
-- Review plan before proceeding
-- Adjust plan based on findings during exploration
-- Can resume plan subagent if interrupted
-
----
-
-### Explore Subagent (Haiku 4.5)
-
-**When to use**:
-- Codebase analysis (0 main context cost!)
-- Pattern detection across services
-- Dependency mapping
-- Understanding existing architecture
-
-**How to use**:
-```
-Launch Task tool with subagent_type="Explore"
-Provide: Service/module to explore, what to find
-Output: Comprehensive context summary
-Context: Separate 200k window (2x faster, 1/3 cost)
-```
-
-**Best practices**:
-- Use for ALL Tier 2/3 tasks before implementing
-- Explore before planning (informs better plans)
-- Can explore multiple services in parallel
-- Saves 15-20k main context tokens per exploration
-
----
-
-### Dynamic Model Selection
-
-**Sonnet 4.5**:
-- Complex business logic
-- Architecture decisions
-- Planning phases
-- Code review and quality checks
-
-**Haiku 4.5**:
-- Codebase exploration
-- Pattern detection
-- Test execution
-- Simple implementations
-
-**Auto-selection**: CC automatically uses Haiku in execution after Sonnet planning (SonnetPlan mode)
-
----
-
-## Plugin Usage Matrix
-
-### Tier 1 Plugins (Always Use - Core Workflow)
-
-**Backend Development**:
-- `/backend-development:feature-development` - Backend feature orchestration
-- `/tdd-workflows:tdd-cycle` - TDD red-green-refactor
-- `/unit-test-generator:generate-tests` - Test scaffolding
-
-**Quality & Security**:
-- `/comprehensive-review:full-review` - Multi-agent code review (12+ agents)
-- `/backend-api-security:backend-security-coder` - Security audit
-
-**Database**:
-- `/database-migrations:sql-migrations` - Zero-downtime migrations
-- `/database-design:sql-pro` - Query optimization
-
-**Git**:
-- `/git-pr-workflows:pr-enhance` - Enhanced PR creation
-
----
-
-### Tier 2 Plugins (Situational - As Needed)
-
-**Performance**:
-- `/application-performance:performance-engineer` - Performance optimization
-- `/performance-testing-review:performance-engineer` - Load testing
-
-**API Design**:
-- `/api-scaffolding:graphql-architect` - GraphQL Federation v2
-- `/api-scaffolding:fastapi-pro` - FastAPI design
-- `/api-documentation-generator:generate-api-docs` - OpenAPI/Swagger
-
-**Security & Auth**:
-- `/authentication-validator:validate-auth` - Auth testing
-- `/comprehensive-review:security-auditor` - Security audit
-
-**Debugging**:
-- `/error-debugging:error-detective` - Error investigation
-- `/debugging-toolkit:smart-debug` - Advanced debugging
-
-**Infrastructure**:
-- `/deployment-pipeline-orchestrator:pipeline-orchestrate` - CI/CD
-- `/cloud-infrastructure:cloud-architect` - Cloud architecture
-- `/observability-monitoring:observability-engineer` - Monitoring
-
----
-
-### Tier 3 Plugins (Specialized - Domain Specific)
-
-**Full-Stack**:
-- `/full-stack-orchestration:full-stack-feature` - Full-stack features
-- `/frontend-mobile-development:frontend-developer` - Frontend
-
-**Documentation**:
-- `/documentation-generation:api-documenter` - API documentation
-- `/documentation-generation:tutorial-engineer` - Tutorials
-
-**Testing**:
-- `/test-orchestrator:orchestrate` - Complex test workflows
-- `/unit-testing:test-generate` - Unit test generation
-
-**Infrastructure**:
-- `/docker-compose-generator:docker-compose` - Docker configs
-- `/infrastructure-drift-detector:drift-detect` - Drift detection
-
----
-
-## Skills (Domain Knowledge Injection)
-
-### Available Skills
-
-**1. bangladesh-erp-compliance**
-- VAT calculation (15%/7.5%/0%)
-- TDS/AIT withholding (5%/7.5%/10%)
-- Mushak 6.3 generation
-- Fiscal year (July-June)
-
-**2. ddd-event-sourcing**
-- Aggregate patterns (small, enforce invariants)
-- Event naming (past tense, immutable, versioned)
-- Command/Query separation
-- Repository patterns (event-sourced)
-
-**3. graphql-federation-v2**
-- @key directive usage
-- Reference resolver patterns
-- Pagination (always paginate lists)
-- Guards (JwtAuthGuard + RbacGuard)
-
-**4. nestjs-microservices**
-- Module organization
-- Dependency injection patterns
-- CQRS implementation
-- Multi-tenancy patterns
-
-### How to Use Skills
-
-Skills are automatically activated when relevant to your task. They provide:
-- Instant domain patterns
-- Compliance rules
-- Architectural guidelines
-- Best practices
-
-Reference: `.claude/skills/` directory for skill definitions
-
----
-
-## Quality Gates (Mandatory)
-
-### Before Every Commit
-
-```bash
-pnpm build  # MUST: 0 TypeScript errors
-npm test    # MUST: all tests passing
-```
-
-**Never commit with**:
-- TypeScript errors
-- Failing tests
-- Lint errors
-
----
-
-### Before Every PR
-
-```bash
-pnpm build                              # Pass: 0 errors
-npm test                                # Pass: all passing
-/comprehensive-review:full-review       # Score: >8/10
-/backend-api-security:backend-security-coder  # 0 critical vulnerabilities
-Coverage check                          # >85% (90% target)
+Q1: How many files affected? [1-3 / 4-15 / 15+]
+Q2: Cross-service integration? [YES / NO]
+Q3: Estimated time? [<2h / 2-8h / 2-5d]
+
+TIER ASSIGNMENT:
+- TIER 1: 1-3 files, <2h, single service
+- TIER 2: 4-15 files, 2-8h, single service OR moderate complexity
+- TIER 3: 15+ files, 2-5d, cross-service OR high complexity
+
+BLOCKING: Tier is LOCKED once assigned. Cannot self-select "this is simple."
 ```
 
 ---
 
-## Git Workflow (No Worktrees)
+### 2. Agent Usage (MANDATORY for Tier 2/3 - BLOCKING)
 
-### Standard Branch-Based Workflow
+**Plan Subagent (MANDATORY - Tier 2/3)**:
+```
+MUST: Launch Plan subagent BEFORE implementation
+HOW: Task tool with subagent_type="Plan"
+BLOCKING: Cannot skip for Tier 2/3
 
-**Branch Creation**:
-```bash
-git checkout -b feature/task-name
-git checkout -b fix/bug-description
-git checkout -b refactor/component-name
+VERIFICATION:
+After Phase 1:
+Q: "Did you launch Plan subagent? [YES/NO]"
+IF NO → BLOCKING: "Must launch Plan subagent. Cannot proceed."
 ```
 
-**Micro-Commits (Recommended)**:
-```bash
-After each phase completion:
-  git add .
-  git commit -m "phase: description"
-
-Benefits:
-- Granular rollback points
-- Clear progress tracking
-- CI/CD friendly
-- No worktree overhead
+**Explore Subagent (MANDATORY - Tier 2/3)**:
 ```
+MUST: Launch Explore subagent BEFORE implementation
+HOW: Task tool with subagent_type="Explore"
+BLOCKING: Cannot skip for Tier 2/3
+BENEFIT: 0 main context cost (separate 200k window)
 
-**Commit Message Convention**:
-```
-type(scope): description
-
-- Change 1
-- Change 2
-- Change 3
-
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>
-
-Types: feat, fix, refactor, test, docs, chore, perf
-Scopes: Optional (service name or component)
-```
-
-**Push & PR**:
-```bash
-git push origin feature/task-name
-/git-pr-workflows:pr-enhance  # Creates comprehensive PR
+VERIFICATION:
+After Phase 2:
+Q: "Did you launch Explore subagent? [YES/NO]"
+IF NO → BLOCKING: "Must launch Explore subagent. Cannot proceed."
 ```
 
 ---
 
-## Checkpoint Strategy
+### 3. Context Monitoring (MANDATORY after EVERY phase - BLOCKING)
 
-### Manual Checkpoints (User-Initiated)
-
-Press **Esc-Esc** to create checkpoint:
-- After each major phase
-- Before risky operations (refactoring, migrations)
-- End of each session (if multi-day task)
-
-### Automated Checkpoints (System)
-
-- After each `pnpm build + npm test` pass
-- Git commits (micro-commits = micro-checkpoints)
-- End of each phase in Tier 2/3 workflows
-
-### Checkpoint Recovery
-
-If issue detected:
+**Auto-Monitor After EVERY Phase**:
 ```
-1. Identify last good checkpoint
-2. Revert to checkpoint (git reset if needed)
-3. Analyze what went wrong
-4. Adjust approach
-5. Resume from checkpoint
+MUST: Run /context after EVERY phase completion
+MUST: Parse token count and percentage
+MUST: Evaluate threshold
+MUST: Take required action
+MUST: Update .claude/context-log.md
+MUST: Commit log update
+
+THRESHOLDS:
+- GREEN (<100k / 50%): Continue
+- YELLOW (100-120k / 50-60%): Warning logged
+- ORANGE (120-140k / 60-70%): FORCE checkpoint (MANDATORY)
+- RED (≥140k / 70%): BLOCKING - new session required
+
+BLOCKING IF:
+- Context ≥140k AND attempting to continue
+- Skipping context check after phase
+- Not creating checkpoint at ORANGE (120-140k)
 ```
 
----
-
-## Context Management
-
-### Target Context Allocation
-
-**Baseline: <50k tokens (25%)**
-- System prompt: 2.9k (1.4%)
-- System tools: 27.9k (13.9%)
-- Custom agents (essential): 5k (2.5%)
-- Memory (CLAUDE.md): 3k (1.5%)
-- Message buffer: 10k (5%)
-- **Total**: ~49k (24.5%)
-
-**Available for work: 150k tokens (75%)**
-
-### Context Optimization Tactics
-
-**1. MCP On-Demand with @ Syntax**:
+**Verification After EVERY Phase**:
 ```
-Default: sequential-thinking + postgres - balanced core
-Enable as needed: @filesystem, @github, @docker, @playwright, @brave-search, etc.
-Total MCP if all 17 enabled: 35-40k (18-20%)
-Context saved with balanced: 30-35k (15-17%)
+Q1: "Did you run /context? [YES/NO]"
+IF NO → BLOCKING: "Must run /context after EVERY phase."
 
-Usage:
-- Type @servername to toggle any MCP server on/off
-- Examples: @github, @docker, @playwright
-- See .mcp.README.md for complete server list
-```
+Q2: "Current context? [Xk tokens / Y%]"
+Parse actual number
 
-**2. Subagent Offloading**:
-```
-Explore subagent: Separate 200k context (0 main context cost)
-Plan subagent: Separate context (0 main context cost)
-Strategy: Offload research/planning to subagents
-Savings: 15-30k per task
-```
-
-**3. Read Selectively**:
-```
-Use Explore subagent: Codebase analysis (0 main context)
-Use Read tool: Only specific files needed (<5 files)
-Don't: Read entire services
-Savings: 20-40k per session
-```
-
-**4. Plugin Separate Context**:
-```
-Plugins run in separate contexts
-Main context only receives final outputs
-Savings: Varies by plugin
-```
-
-### Context Monitoring
-
-**Thresholds**:
-- **Green**: <100k (50%) - Optimal
-- **Yellow**: 100-140k (50-70%) - Warning
-- **Red**: >140k (70%) - Action needed
-
-**Actions**:
-```
-If Yellow:
-  - Finish current phase
-  - Create checkpoint
-  - Consider session break
-
-If Red:
-  - Complete current implementation
-  - Create comprehensive checkpoint
-  - Start new session
-  - Resume from checkpoint
-```
-
-**Check context**: `/context` command
-
----
-
-## Bangladesh Compliance (Reference)
-
-### VAT Rates
-
-- **Standard**: 15% (construction, most services)
-- **Reduced**: 7.5% (specific goods/services)
-- **Zero-rated**: 0% (exports, specific sectors)
-
-### TDS/AIT Withholding
-
-- **With TIN**: 5%
-- **Without TIN**: 7.5%
-- **Professionals**: 10% (consultants, contractors)
-
-### Mushak 6.3 (VAT Challan)
-
-**Requirements**:
-- Auto-generate on invoice approval
-- Include: TIN/BIN, VAT breakdown, QR code
-- **Fiscal Year**: July 1 - June 30 (NOT calendar year)
-- Submission: Within 15 days of month-end
-
-**Reference**: `VEXTRUS-PATTERNS.md` sections 11-13 for detailed rules
-
----
-
-## Architecture Patterns (Quick Reference)
-
-**Stack**: DDD + Event Sourcing + CQRS + GraphQL Federation v2
-
-### Domain-Driven Design
-
-**Aggregates**:
-- Small, enforce invariants
-- Factory methods for creation
-- Location: `services/*/src/domain/aggregates/`
-
-**Events**:
-- Past tense naming (e.g., `InvoiceCreated`, `PaymentReceived`)
-- Immutable
-- Versioned (handle schema evolution)
-
-**Commands**:
-- Validation before execution
-- Business logic enforcement
-- Idempotent
-
-### GraphQL Federation v2
-
-**Entity Definition**:
-```graphql
-type Invoice @key(fields: "id") {
-  id: ID!
-  # fields
-}
-```
-
-**Query Patterns**:
-- Always paginate lists
-- Use connection pattern
-- Return nullable for flexibility
-
-**Guards**:
-- Always use: `JwtAuthGuard` + `RbacGuard`
-- Permission checks in resolver
-
-**Reference**: `VEXTRUS-PATTERNS.md` for full patterns
-
----
-
-## Common Task Patterns
-
-### Pattern 1: New Backend Feature (Medium)
-
-```
-1. Plan subagent: Feature breakdown
-2. Explore subagent: Analyze related services
-3. /backend-development:feature-development: Design
-4. Implement (Tier 2 workflow):
-   - Domain layer (aggregates, events)
-   - Application layer (commands, queries)
-   - Presentation layer (GraphQL resolvers)
-   - Tests (unit + integration)
-5. /comprehensive-review:full-review
-6. Commit & PR
+Q3: "Threshold status? [GREEN/YELLOW/ORANGE/RED]"
+IF ORANGE: Q4: "Did you create checkpoint? [YES/NO]"
+  IF NO → BLOCKING: "Checkpoint MANDATORY at ORANGE."
+IF RED → BLOCKING: "New session required. Stop immediately."
 ```
 
 ---
 
-### Pattern 2: Database Migration (Medium)
+### 4. TODO Persistence (MANDATORY after EVERY phase - BLOCKING)
 
+**Git-Tracked TODO**:
 ```
-1. Plan subagent: Migration strategy
-2. Explore subagent: Analyze current schema
-3. /database-migrations:sql-migrations: Zero-downtime migration
-4. /database-design:sql-pro: Validate queries
-5. Implement migration
-6. Test migration (up + down)
-7. /comprehensive-review:full-review
-8. Commit & PR
+FILE: .claude/todo/current.md
+MUST: Update after EVERY phase completion
+MUST: Commit update (git commit -m "chore: sync TODO [phase]")
+MUST: Verify file exists
+
+BLOCKING IF:
+- Skipping TODO update
+- TODO not committed to git
+- File doesn't exist after phase
 ```
 
----
-
-### Pattern 3: Performance Optimization (Situational)
-
+**Verification After EVERY Phase**:
 ```
-1. /application-performance:performance-engineer: Identify bottlenecks
-2. /database-design:sql-pro: Query optimization (if DB-related)
-3. Plan subagent: Optimization strategy
-4. Implement optimizations
-5. /performance-testing-review:performance-engineer: Validate
-6. Benchmark (before/after)
-7. Commit & PR
+Q: "Did you update .claude/todo/current.md? [YES/NO]"
+IF NO → BLOCKING: "Must update TODO after EVERY phase."
+
+Q: "Did you commit TODO update? [YES/NO]"
+IF NO → BLOCKING: "Must commit TODO to git."
 ```
 
 ---
 
-### Pattern 4: Security Audit (Complex)
+### 5. Quality Gates (MANDATORY before EVERY commit - BLOCKING)
 
+**Build Gate**:
 ```
-1. /comprehensive-review:security-auditor: Initial audit
-2. /backend-api-security:backend-security-coder: Deep scan
-3. /authentication-validator:validate-auth: Auth testing
-4. Plan subagent: Remediation plan
-5. Fix issues (prioritize critical/high)
-6. Re-audit (score >8/10, 0 critical)
-7. Document security improvements
-8. Commit & PR
-```
+MUST: Run pnpm build before EVERY commit
+MUST: Verify 0 TypeScript errors
+BLOCKING: Cannot commit with errors
 
----
-
-### Pattern 5: Cross-Service Feature (Complex)
-
-```
-Day 0:
-1. Explore subagent: All related services
-2. Plan subagent: Multi-service integration plan
-3. /full-stack-orchestration:full-stack-feature: Architecture
-4. /database-design:database-architect: Distributed data strategy
-5. Review & approve plan
-
-Day 1-N:
-1. Implement service 1 (Tier 2 workflow)
-2. Implement service 2 (Tier 2 workflow)
-3. Integration layer
-4. End-to-end tests
-
-Final Day:
-1. /comprehensive-review:full-review
-2. /application-performance:performance-engineer
-3. Load testing
-4. Documentation
-5. Commit & PR
+NEVER:
+- Skip build to "save time"
+- Commit with TypeScript errors
+- Work around errors without fixing
 ```
 
----
-
-## Error Handling & Recovery
-
-### Build/Test Failures
-
+**Test Gate**:
 ```
-1. Read error messages carefully
-2. Identify root cause
-3. Fix issues
-4. Re-run gates (pnpm build + npm test)
-5. Only proceed when passing
-```
+MUST: Run npm test before EVERY commit
+MUST: Verify all tests passing
+BLOCKING: Cannot commit with failures
 
-**Never**:
+NEVER:
 - Skip tests to "save time"
-- Commit with errors
-- Work around test failures
-
----
-
-### Review Score <8/10
-
+- Commit with failing tests
+- Disable tests to make them pass
 ```
-1. Analyze review feedback
-2. Prioritize critical/high issues
-3. Fix issues
-4. Re-run /comprehensive-review:full-review
-5. Proceed only when score >8/10
+
+**Verification Before EVERY Commit**:
+```
+Q1: "Did pnpm build pass with 0 errors? [YES/NO]"
+IF NO → BLOCKING: "Fix all TypeScript errors before committing."
+
+Q2: "Did npm test pass with all tests passing? [YES/NO]"
+IF NO → BLOCKING: "Fix all test failures before committing."
 ```
 
 ---
 
-### Context >140k (Red)
+## NEVER Actions (ALWAYS Forbidden)
 
 ```
-1. Check context: /context
-2. Complete current phase
-3. Create checkpoint (git commit)
-4. Document progress
-5. Start new session
-6. Resume from checkpoint
+NEVER: Skip Plan subagent for Tier 2/3
+NEVER: Skip Explore subagent for Tier 2/3
+NEVER: Skip context monitoring after phase
+NEVER: Continue when context RED (≥140k)
+NEVER: Skip TODO update after phase
+NEVER: Commit with TypeScript errors
+NEVER: Commit with failing tests
+NEVER: Self-select tier (tier is LOCKED after classification)
+NEVER: Skip checkpoint at ORANGE (120-140k)
+NEVER: Disable tests to make them pass
 ```
 
 ---
 
-### Plugin Failures
+# PART 2: WORKFLOW STATE MACHINE
 
-**If plugin fails**:
+## State Transitions
+
 ```
-1. Check plugin status: /plugin list
-2. Review error message
-3. Try alternative plugin or manual approach
-4. Report issue if reproducible
+START
+  ↓
+CLASSIFY TIER (MANDATORY - blocking questions)
+  ↓
+  ├─ TIER 1 → 4 phases (no agents required)
+  ├─ TIER 2 → 6 phases (Plan + Explore MANDATORY)
+  └─ TIER 3 → Multi-day (Plan + Explore MANDATORY)
+  ↓
+EXECUTE WORKFLOW (phase gates below)
+  ↓
+COMMIT (quality gates MANDATORY)
+  ↓
+END
 ```
 
-**Fallback**: All plugins are optional. Can always use manual Sonnet implementation.
+---
+
+## TIER 1: Simple Task (1-3 files, <2h)
+
+**When**: Bug fixes, config changes, small enhancements
+
+```
+Phase 1: READ
+- MUST: Read affected files (Read tool)
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+Phase 2: IMPLEMENT
+- MUST: Write code
+- MUST: Follow existing patterns
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+Phase 3: VALIDATE
+- MUST: pnpm build (0 errors)
+- MUST: npm test (all passing)
+- BLOCKING: Cannot proceed if failures
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+Phase 4: COMMIT
+- MUST: Quality gates passed
+- MUST: git add . && git commit && git push
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+Total: <2h, <20k context
+```
 
 ---
 
-## DO ✅ / DON'T ❌
+## TIER 2: Medium Task (4-15 files, 2-8h)
 
-### DO
+**When**: New features, API endpoints, service enhancements
 
-✅ Use Plan subagent for Tier 2/3 tasks
-✅ Use Explore subagent before implementing (0 main context cost!)
-✅ Run quality gates before every commit
-✅ Micro-commit after each phase
-✅ Review score >8/10 before PR
-✅ Reference `VEXTRUS-PATTERNS.md` for architecture
-✅ Use Skills for domain knowledge
-✅ Monitor context with `/context`
-✅ Enable MCP with "@" only when needed
-✅ Follow tier-appropriate workflow
+```
+Phase 1: PLAN (MANDATORY - BLOCKING)
+- MUST: Launch Plan subagent (Task tool, subagent_type="Plan")
+- MUST: Receive structured plan
+- VERIFICATION: "Did you launch Plan subagent? [YES/NO]"
+  IF NO → BLOCKING
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
 
-### DON'T
+Phase 2: EXPLORE (MANDATORY - BLOCKING)
+- MUST: Launch Explore subagent (Task tool, subagent_type="Explore")
+- MUST: Receive context summary
+- VERIFICATION: "Did you launch Explore subagent? [YES/NO]"
+  IF NO → BLOCKING
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
 
-❌ Skip planning for Tier 2/3 tasks
-❌ Commit with TypeScript errors or failing tests
-❌ Skip reviews to "save time"
-❌ Load entire files unnecessarily (use Explore subagent)
-❌ Enable all MCP servers (use "@" selectively)
-❌ Over-engineer simple tasks (keep Tier 1 simple)
-❌ Use plugins for simple file reads (use Read tool)
-❌ Ignore context warnings (>140k)
-❌ Create worktrees (use standard branches)
-❌ Skip checkpoints on long tasks
+Phase 3: DESIGN (RECOMMENDED plugins)
+- RECOMMENDED: Select ≥1 plugin:
+  - /backend-development:feature-development
+  - /database-migrations:sql-migrations
+  - /api-scaffolding:graphql-architect
+  - /tdd-workflows:tdd-cycle
+- If no plugin: MUST justify why
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+Phase 4: IMPLEMENT
+- MUST: Domain → Application → Presentation layers
+- MUST: Write tests (unit + integration)
+- MUST: Micro-commit after each sub-phase
+- Quality gates after EACH sub-phase (MANDATORY):
+  - pnpm build (0 errors)
+  - npm test (all passing)
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+Phase 5: REVIEW (MANDATORY - BLOCKING)
+- MUST: /comprehensive-review:full-review
+- MUST: Score ≥8/10
+- MUST: /backend-api-security:backend-security-coder
+- MUST: 0 critical, 0 high vulnerabilities
+- VERIFICATION: "Review score ≥8/10? [YES/NO]"
+  IF NO → BLOCKING: "Fix issues and re-review"
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+Phase 6: FINALIZE
+- MUST: Final quality gates pass
+- MUST: git commit && git push
+- OPTIONAL: /git-pr-workflows:pr-enhance
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+Total: 4-8h, <80k context
+```
 
 ---
 
-## Success Metrics
+## TIER 3: Complex Task (15+ files, 2-5 days)
 
-### Quality Targets
+**When**: Cross-service features, new microservices, distributed systems
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Code Quality | 9.5/10 | comprehensive-review score |
-| Security | 0 critical | security audit |
-| Test Coverage | >90% | Jest/Coverage report |
-| Performance | <500ms p95 | Response times |
-| Context Baseline | <50k (25%) | /context command |
+```
+DAY 0: RESEARCH (4 hours)
+Phase 1.1: EXPLORATION (MANDATORY - BLOCKING)
+- MUST: Launch Explore subagent (all related services)
+- MUST: Map dependencies
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
 
-### Workflow Efficiency
+Phase 1.2: PLANNING (MANDATORY - BLOCKING)
+- MUST: Launch Plan subagent (comprehensive plan)
+- MUST: Break into daily phases
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Simple Tasks | <2h | Time to completion |
-| Medium Tasks | 4-8h | Time to completion |
-| Complex Tasks | 2-5 days | Time to completion |
-| Resilience | High | Failure recovery |
-| DX | Excellent | Developer feedback |
+Phase 1.3: DESIGN (MANDATORY plugins)
+- MUST: Select ≥1 specialized plugin
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+Phase 1.4: REVIEW PLAN
+- MUST: Review with stakeholders if needed
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+- CHECKPOINT: End of Day 0
+
+DAY 1-N: IMPLEMENTATION (Iterative)
+Morning Session:
+- MUST: Review previous day checkpoint
+- MUST: Implement feature slice
+- MUST: Quality gates after each slice
+- Context check after EACH slice (MANDATORY)
+- Update TODO after EACH slice (MANDATORY)
+
+Afternoon Session:
+- MUST: Continue implementation
+- MUST: End-of-day checkpoint
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+FINAL DAY: QUALITY (4 hours)
+- MUST: /comprehensive-review:full-review (score ≥8/10)
+- MUST: /backend-api-security:backend-security-coder (0 critical)
+- MUST: /application-performance:performance-engineer
+- MUST: Documentation updated
+- MUST: git commit && git push
+- MUST: /git-pr-workflows:pr-enhance
+- Context check (MANDATORY)
+- Update TODO (MANDATORY)
+
+Total: 2-5 days, <100k context per session
+```
 
 ---
 
-## Quick Command Reference
+# PART 3: TODO & CHECKPOINT SYSTEM
 
-| Need | Command |
-|------|---------|
-| **Planning** | Task tool (subagent_type="Plan") |
-| **Exploration** | Task tool (subagent_type="Explore") |
-| **Backend Feature** | `/backend-development:feature-development` |
-| **TDD** | `/tdd-workflows:tdd-cycle` |
-| **Tests** | `/unit-test-generator:generate-tests` |
-| **Review** | `/comprehensive-review:full-review` |
-| **Security** | `/backend-api-security:backend-security-coder` |
-| **Performance** | `/application-performance:performance-engineer` |
-| **Database** | `/database-migrations:sql-migrations` |
-| **PR** | `/git-pr-workflows:pr-enhance` |
-| **Build** | `pnpm build` |
-| **Test** | `npm test` |
-| **Context** | `/context` |
+## Git-Tracked TODO
+
+**File**: `.claude/todo/current.md`
+
+**Purpose**: Survive context compaction
+
+**MANDATORY Operations**:
+```
+AFTER EVERY PHASE:
+1. MUST: Update .claude/todo/current.md
+2. MUST: git commit -m "chore: sync TODO [phase]"
+3. MUST: Verify file exists
+4. BLOCKING: Cannot proceed if TODO not synced
+```
+
+**Recovery**:
+```
+IF TODO lost from context:
+1. Read .claude/todo/current.md from git
+2. Resume from last completed phase
+3. Check .claude/checkpoints/ for details
+```
+
+**Verification**:
+```
+Q: "Is TODO synced to git? [YES/NO]"
+IF NO → BLOCKING: "Sync TODO to git before proceeding."
+```
+
+---
+
+## Checkpoint System
+
+**Directory**: `.claude/checkpoints/`
+
+**Auto-Triggers** (MANDATORY):
+```
+1. At 120k context (60%) - ORANGE threshold
+2. After EVERY phase completion
+3. End of each day (Tier 3)
+4. Before any risky operation
+```
+
+**Checkpoint Process**:
+```
+1. Create .claude/checkpoints/YYYY-MM-DD-HHMM-phase.md
+2. Update .claude/todo/current.md
+3. git commit -m "chore: checkpoint [phase]"
+4. Verify files committed
+```
+
+**BLOCKING**:
+```
+IF context ORANGE (120-140k):
+  BLOCKING: Must create checkpoint before continuing
+  Cannot skip checkpoint at ORANGE
+```
+
+---
+
+## Context Log
+
+**File**: `.claude/context-log.md`
+
+**MANDATORY Updates**:
+```
+AFTER EVERY PHASE:
+1. Run /context
+2. Log to .claude/context-log.md:
+   | timestamp | phase | tokens | % | status | action | checkpoint |
+3. git commit log update
+```
+
+---
+
+# PART 4: QUICK REFERENCE
+
+## Command Cheatsheet
+
+| Action | Command |
+|--------|---------|
+| **MANDATORY: Plan** | Task tool (subagent_type="Plan") |
+| **MANDATORY: Explore** | Task tool (subagent_type="Explore") |
+| **MANDATORY: Context** | /context (after EVERY phase) |
+| **MANDATORY: Build** | pnpm build (0 errors) |
+| **MANDATORY: Test** | npm test (all passing) |
+| **MANDATORY: Review** | /comprehensive-review:full-review (≥8/10) |
+| **MANDATORY: Security** | /backend-api-security:backend-security-coder |
+| Backend Feature | /backend-development:feature-development |
+| TDD | /tdd-workflows:tdd-cycle |
+| Tests | /unit-test-generator:generate-tests |
+| Performance | /application-performance:performance-engineer |
+| Database | /database-migrations:sql-migrations |
+| PR | /git-pr-workflows:pr-enhance |
+
+---
+
+## Verification Checklist
+
+**After EVERY Phase**:
+```
+[ ] Ran /context command?
+[ ] Context status: GREEN/YELLOW/ORANGE/RED?
+[ ] If ORANGE: Created checkpoint?
+[ ] If RED: Stopped and started new session?
+[ ] Updated .claude/todo/current.md?
+[ ] Committed TODO update to git?
+```
+
+**Before EVERY Commit**:
+```
+[ ] pnpm build passed (0 errors)?
+[ ] npm test passed (all passing)?
+[ ] No TypeScript errors?
+[ ] No failing tests?
+```
+
+**Tier 2/3 Only**:
+```
+[ ] Launched Plan subagent?
+[ ] Launched Explore subagent?
+[ ] Used ≥1 specialized plugin (or justified)?
+[ ] Review score ≥8/10?
+[ ] Security scan: 0 critical, 0 high?
+```
+
+---
+
+## Context Thresholds
+
+| Status | Range | Action |
+|--------|-------|--------|
+| GREEN | <100k (50%) | Continue |
+| YELLOW | 100-120k (50-60%) | Warning logged |
+| ORANGE | 120-140k (60-70%) | FORCE checkpoint |
+| RED | ≥140k (70%) | BLOCKING - new session |
+
+---
+
+## Tier Selection Matrix
+
+| Files | Time | Cross-Service | Tier |
+|-------|------|---------------|------|
+| 1-3 | <2h | No | 1 |
+| 4-15 | 2-8h | No | 2 |
+| 15+ | 2-5d | - | 3 |
+| Any | Any | Yes | 3 |
+
+---
+
+# PART 5: DOMAIN PATTERNS
+
+## Architecture Stack
+
+DDD + Event Sourcing + CQRS + GraphQL Federation v2 + NestJS
+
+**Quick References**:
+- **Full Patterns**: `VEXTRUS-PATTERNS.md`
+- **Bangladesh Compliance**: `.claude/skills/bangladesh-erp-compliance.md`
+- **DDD Patterns**: `.claude/skills/ddd-event-sourcing.md`
+- **GraphQL Federation**: `.claude/skills/graphql-federation-v2.md`
+- **NestJS Patterns**: `.claude/skills/nestjs-microservices.md`
+
+**Key Rules**:
+```
+Aggregates: Small, enforce invariants
+Events: Past tense, immutable, versioned
+Commands: Validate, idempotent
+GraphQL: Always paginate, JwtAuthGuard + RbacGuard
+VAT: 15% standard (Bangladesh)
+TDS: 5% with TIN, 7.5% without
+Fiscal Year: July 1 - June 30
+```
 
 ---
 
 ## Resources
 
-- **Plugin Reference**: `.claude/plugin-command-reference.md` (47+ commands)
-- **Skills**: `.claude/skills/` (domain knowledge)
-- **Templates**: `.claude/templates/` (task templates)
-- **Architecture**: `VEXTRUS-PATTERNS.md` (DDD, Event Sourcing, GraphQL, Bangladesh compliance)
-- **V6.0 Archive**: `CLAUDE-V6.0-ARCHIVED.md` (fallback reference)
+- **Plugins**: `.claude/plugin-command-reference.md` (54 plugins)
+- **Skills**: `.claude/skills/` (auto-activated)
+- **Templates**: `.claude/templates/`
+- **TODO**: `.claude/todo/current.md` (git-tracked)
+- **Checkpoints**: `.claude/checkpoints/`
+- **Context Log**: `.claude/context-log.md`
+- **V7.0 Archive**: `CLAUDE-V7.0-ARCHIVED.md` (reference only)
 
 ---
 
-## Workflow Summary
+## Success Metrics
 
-```
-TIER 1 (Simple): Read → Implement → Validate → Commit
-TIER 2 (Medium): Plan → Explore → Design → Implement → Review → Finalize
-TIER 3 (Complex): Research → Architecture → Daily Implementation → Quality → Release
-```
-
-**Philosophy**: Each unit of engineering work makes subsequent units easier—not harder.
-
-**Primary Orchestration**: Native CC (Plan/Explore subagents) + Specialized Plugins
-
-**Model Strategy**: Sonnet for complex reasoning, Haiku for exploration/execution
-
-**Context Target**: <50k baseline (25%), 150k available (75%)
-
-**Your Goal**: 9.5/10 quality, >90% coverage, <50k context, systematic delivery.
+| Metric | Target | BLOCKING If |
+|--------|--------|-------------|
+| Context/session | <80k (40%) | ≥140k (70%) |
+| Agent usage (Tier 2/3) | 100% | 0% (skipped) |
+| TODO persistence | 100% | Lost/not synced |
+| Quality gates | 100% | Errors/failures |
+| Review score | ≥8/10 | <8/10 |
+| Security | 0 critical | >0 critical |
+| Test coverage | ≥90% | <85% |
 
 ---
 
-**V7.0: Phase-Based Native Orchestration** | **Balanced** | **Resilient** | **Context-Optimized**
+## Enforcement Summary
+
+**V8.0 Philosophy**: ENFORCE, don't suggest
+
+**Key Changes from V7.0**:
+- 99%+ MUST statements (vs 0.3% in V7.0)
+- Blocking gates (vs no enforcement)
+- Auto-context monitoring (vs manual checks)
+- Git-persisted TODO (vs context memory)
+- Verification questions (vs trust)
+
+**Your Goal**: 9.5/10 quality, >90% coverage, <80k context, 100% compliance
+
+---
+
+**V8.0: Phase-Based Enforcement Protocol**
+**Balanced | Enforced | Resilient | Context-Optimized**
