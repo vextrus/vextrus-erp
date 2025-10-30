@@ -1,7 +1,6 @@
 {
   "mcpServers": {
     "filesystem": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -13,7 +12,6 @@
       ]
     },
     "postgres": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -25,7 +23,6 @@
       ]
     },
     "sequential-thinking": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -36,7 +33,6 @@
       ]
     },
     "context7": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -49,13 +45,11 @@
       ]
     },
     "consult7": {
-      "disabled": true,
       "type": "stdio",
       "command": "C:\\Users\\riz\\AppData\\Roaming\\uv\\tools\\consult7\\Scripts\\consult7.exe",
       "args": ["google", "AIzaSyDmVuWC7_gWvK7IQsUbLNPjMU4QnywnkE8"]
     },
     "docker": {
-      "disabled": true,
       "type": "stdio",
       "command": "C:\\Users\\riz\\AppData\\Roaming\\Python\\Python313\\Scripts\\uvx.exe",
       "args": [
@@ -63,7 +57,6 @@
       ]
     },
     "playwright": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -78,7 +71,6 @@
       }
     },
     "brave-search": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -92,13 +84,11 @@
       }
     },
     "serena": {
-      "disabled": true,
       "type": "stdio",
       "command": "C:\\Users\\riz\\AppData\\Roaming\\uv\\tools\\serena-agent\\Scripts\\serena.exe",
       "args": ["start-mcp-server", "--context", "ide-assistant"]
     },
     "github": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -112,7 +102,6 @@
       }
     },
     "memory": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -123,7 +112,6 @@
       ]
     },
     "prisma-local": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -135,7 +123,6 @@
       ]
     },
     "prisma-remote": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -147,7 +134,6 @@
       ]
     },
     "sqlite": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -159,7 +145,6 @@
       ]
     },
     "brightdata": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -173,7 +158,6 @@
       }
     },
     "notion": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [
@@ -187,7 +171,6 @@
       }
     },
     "reddit": {
-      "disabled": true,
       "type": "stdio",
       "command": "cmd",
       "args": [

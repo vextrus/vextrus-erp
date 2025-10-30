@@ -21,14 +21,45 @@ async function bootstrap() {
   }
 
   // Security: Add Helmet for security headers
+  // CSP configured to allow Apollo Sandbox (requires CDN resources)
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Required for GraphQL Playground
-          imgSrc: ["'self'", 'data:', 'https:'],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            'https://embeddable-sandbox.cdn.apollographql.com',
+            'https://fonts.googleapis.com',
+          ],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            'https://embeddable-sandbox.cdn.apollographql.com',
+            'https://apollo-server-landing-page.cdn.apollographql.com',
+          ],
+          imgSrc: [
+            "'self'",
+            'data:',
+            'https:',
+            'https://embeddable-sandbox.cdn.apollographql.com',
+          ],
+          fontSrc: [
+            "'self'",
+            'data:',
+            'https://fonts.gstatic.com',
+            'https://embeddable-sandbox.cdn.apollographql.com',
+          ],
+          connectSrc: [
+            "'self'",
+            'https://embeddable-sandbox.cdn.apollographql.com',
+          ],
+          frameSrc: [
+            "'self'",
+            'https://embeddable-sandbox.cdn.apollographql.com',
+          ],
         },
       },
       hsts: {

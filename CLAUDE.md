@@ -540,12 +540,17 @@ If issue detected:
 
 ### Context Optimization Tactics
 
-**1. MCP On-Demand Only**:
+**1. MCP On-Demand with @ Syntax**:
 ```
-Default: sequential-thinking (1.5k) - always enabled
-Enable as needed: @postgres, @docker, @github, @filesystem
-Total MCP if all enabled: 60k
-Context saved: 58.5k (29%)
+Default: sequential-thinking + postgres - balanced core
+Enable as needed: @filesystem, @github, @docker, @playwright, @brave-search, etc.
+Total MCP if all 17 enabled: 35-40k (18-20%)
+Context saved with balanced: 30-35k (15-17%)
+
+Usage:
+- Type @servername to toggle any MCP server on/off
+- Examples: @github, @docker, @playwright
+- See .mcp.README.md for complete server list
 ```
 
 **2. Subagent Offloading**:

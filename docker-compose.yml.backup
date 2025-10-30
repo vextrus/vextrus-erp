@@ -18,7 +18,7 @@ services:
     ports:
     - 80:80
     - 443:443
-    - 8080:8080
+    - 8081:8080
     volumes:
     - //var/run/docker.sock:/var/run/docker.sock:ro
     - ./infrastructure/traefik:/etc/traefik/dynamic:ro
@@ -37,7 +37,12 @@ services:
   auth:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/auth-service.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
+      args:
+        SERVICE_NAME: auth
+        SERVICE_PORT: 3001
+        NODE_VERSION: 20
+    image: vextrus-erp/auth:${VERSION:-latest}
     container_name: vextrus-auth
     environment:
       NODE_ENV: development
@@ -46,7 +51,7 @@ services:
       DATABASE_PORT: 5432
       DATABASE_USERNAME: vextrus
       DATABASE_PASSWORD: vextrus_dev_2024
-      DATABASE_NAME: vextrus_erp
+      DATABASE_NAME: vextrus_auth
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: vextrus_redis_2024
@@ -117,6 +122,35 @@ services:
       - incr
       - ping
       interval: 10s
+      timeout: 5s
+      retries: 5
+  eventstore:
+    image: eventstore/eventstore:23.10.0-bookworm-slim
+    container_name: vextrus-eventstore
+    environment:
+      - EVENTSTORE_CLUSTER_SIZE=1
+      - EVENTSTORE_RUN_PROJECTIONS=All
+      - EVENTSTORE_START_STANDARD_PROJECTIONS=true
+      - EVENTSTORE_HTTP_PORT=2113
+      - EVENTSTORE_INSECURE=true
+      - EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=true
+      - EVENTSTORE_MEM_DB=false
+      - EVENTSTORE_DISABLE_LOG_FILE=false
+    ports:
+      - "22113:2113"
+      - "21113:1113"
+    volumes:
+      - eventstore_data:/var/lib/eventstore
+      - eventstore_logs:/var/log/eventstore
+    networks:
+      - vextrus-network
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:2113/health/live
+      interval: 15s
       timeout: 5s
       retries: 5
   zookeeper:
@@ -242,11 +276,12 @@ services:
   notification:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
       args:
-        SERVICE_NAME: '@vextrus/notification-service'
-        SERVICE_PATH: services/notification
+        SERVICE_NAME: notification
         SERVICE_PORT: 3003
+        NODE_VERSION: 20
+    image: vextrus-erp/notification:${VERSION:-latest}
     container_name: vextrus-notification
     ports:
       - "3003:3003"
@@ -262,10 +297,10 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 587
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ''
+      SMTP_PASS: ''
       ALPHA_SMS_API_KEY: ${ALPHA_SMS_API_KEY:-}
       SMS_NET_BD_API_KEY: ${SMS_NET_BD_API_KEY:-}
     networks:
@@ -279,15 +314,17 @@ services:
     - postgres
     - redis
     - kafka
+    - mailhog
     restart: unless-stopped
   configuration:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
       args:
-        SERVICE_NAME: '@vextrus/configuration-service'
-        SERVICE_PATH: services/configuration
+        SERVICE_NAME: configuration
         SERVICE_PORT: 3004
+        NODE_VERSION: 20
+    image: vextrus-erp/configuration:${VERSION:-latest}
     container_name: vextrus-configuration
     ports:
       - "3004:3004"
@@ -318,11 +355,12 @@ services:
   scheduler:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
       args:
-        SERVICE_NAME: '@vextrus/scheduler-service'
-        SERVICE_PATH: services/scheduler
+        SERVICE_NAME: scheduler
         SERVICE_PORT: 3005
+        NODE_VERSION: 20
+    image: vextrus-erp/scheduler:${VERSION:-latest}
     container_name: vextrus-scheduler
     ports:
       - "3005:3005"
@@ -351,7 +389,14 @@ services:
     - kafka
     restart: unless-stopped
   document-generator:
-    image: vextrus-erp/document-generator:latest
+    build:
+      context: .
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
+      args:
+        SERVICE_NAME: document-generator
+        SERVICE_PORT: 3006
+        NODE_VERSION: 20
+    image: vextrus-erp/document-generator:${VERSION:-latest}
     container_name: vextrus-document-generator
     ports:
       - "3006:3006"
@@ -379,14 +424,22 @@ services:
     - postgres
     - redis
     - kafka
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3006/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
     restart: unless-stopped
   import-export:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/universal-service.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
       args:
         SERVICE_NAME: import-export
         SERVICE_PORT: 3007
+        NODE_VERSION: 20
+    image: vextrus-erp/import-export:${VERSION:-latest}
     container_name: vextrus-import-export
     ports:
       - "3007:3007"
@@ -417,9 +470,12 @@ services:
   file-storage:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/file-storage.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
       args:
+        SERVICE_NAME: file-storage
         SERVICE_PORT: 3008
+        NODE_VERSION: 20
+    image: vextrus-erp/file-storage:${VERSION:-latest}
     container_name: vextrus-file-storage
     ports:
       - "3008:3008"
@@ -456,11 +512,12 @@ services:
   audit:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
       args:
-        SERVICE_NAME: '@vextrus/audit-service'
-        SERVICE_PATH: services/audit
+        SERVICE_NAME: audit
         SERVICE_PORT: 3009
+        NODE_VERSION: 20
+    image: vextrus-erp/audit:${VERSION:-latest}
     container_name: vextrus-audit
     ports:
       - "3009:3009"
@@ -489,11 +546,12 @@ services:
   master-data:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
       args:
-        SERVICE_NAME: '@vextrus/master-data'
-        SERVICE_PATH: services/master-data
+        SERVICE_NAME: master-data
         SERVICE_PORT: 3002
+        NODE_VERSION: 20
+    image: vextrus-erp/master-data:${VERSION:-latest}
     container_name: vextrus-master-data
     environment:
       NODE_ENV: development
@@ -530,8 +588,14 @@ services:
   workflow:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/workflow-service.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-debian-ml.Dockerfile
+      args:
+        SERVICE_NAME: workflow
+        SERVICE_PORT: 3011
+        NODE_VERSION: 20
+    image: vextrus-erp/workflow:${VERSION:-latest}
     container_name: vextrus-workflow
+    command: node dist/main.js
     environment:
       NODE_ENV: development
       PORT: 3011
@@ -570,11 +634,12 @@ services:
   rules-engine:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
       args:
-        SERVICE_NAME: '@vextrus/rules-engine-service'
-        SERVICE_PATH: services/rules-engine
+        SERVICE_NAME: rules-engine
         SERVICE_PORT: 3012
+        NODE_VERSION: 20
+    image: vextrus-erp/rules-engine:${VERSION:-latest}
     container_name: vextrus-rules-engine
     environment:
       NODE_ENV: development
@@ -611,16 +676,18 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
       args:
-        SERVICE_NAME: '@vextrus/api-gateway'
-        SERVICE_PATH: services/api-gateway
+        SERVICE_NAME: api-gateway
         SERVICE_PORT: 4000
+        NODE_VERSION: 20
+    image: vextrus-erp/api-gateway:${VERSION:-latest}
     container_name: vextrus-api-gateway
-    command: node -e "const http=require('http');const port=process.env.APP_PORT||4000;http.createServer((req,res)=>{res.setHeader('Content-Type','application/json');if(req.url==='/health'){res.end(JSON.stringify({status:'ok',service:'api-gateway',timestamp:new Date().toISOString(),checks:{memory:'ok',graphql:'ok'}}))}else if(req.url==='/health/ready'){res.end(JSON.stringify({status:'ready',service:'api-gateway'}))}else if(req.url==='/health/live'){res.end(JSON.stringify({status:'alive',service:'api-gateway'}))}else if(req.url==='/graphql'&&req.method==='POST'){res.end(JSON.stringify({data:{__schema:{queryType:{name:'Query'}}}}))}else if(req.url==='/graphql'&&req.method==='GET'){res.setHeader('Content-Type','text/html');res.end('<html><body><h1>GraphQL API Gateway</h1><p>Service is running</p></body></html>')}else{res.statusCode=404;res.end(JSON.stringify({message:'Not Found',statusCode:404}))}}).listen(port,()=>console.log('API Gateway running on port '+port))"
     environment:
       NODE_ENV: development
       APP_PORT: 4000
+      JWT_ACCESS_SECRET: vextrus_jwt_access_secret_dev_2024
+      JWT_ACCESS_EXPIRES_IN: 15m
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: vextrus_redis_2024
@@ -629,7 +696,9 @@ services:
       WORKFLOW_SERVICE_URL: http://workflow:3011/graphql
       RULES_ENGINE_SERVICE_URL: http://rules-engine:3012/graphql
       ORGANIZATION_SERVICE_URL: http://organization:3016/graphql
-      SKIP_SERVICES: notification,file-storage,audit,configuration,import-export,document-generator,scheduler,finance,hr,crm,scm,project-management
+      FINANCE_SERVICE_URL: http://finance:3014/graphql
+      SKIP_SERVICES: hr,crm,scm,project-management
+      KAFKA_BROKERS: kafka:9093
       OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz-otel-collector:4318
       OTEL_SERVICE_NAME: api-gateway
       OTEL_TRACES_EXPORTER: otlp
@@ -688,9 +757,7 @@ services:
     - signoz_clickhouse_data:/var/lib/clickhouse
     environment:
       CLICKHOUSE_DB: signoz_metrics
-      CLICKHOUSE_USER: signoz
-      CLICKHOUSE_PASSWORD: signoz_2024
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 0
     ports:
     - 9100:9000
     - 8123:8123
@@ -719,23 +786,35 @@ services:
     environment:
       FRONTEND_API_URL: http://signoz-query-service:8080
     depends_on:
-    - signoz-query-service
+      signoz-query-service:
+        condition: service_healthy
     networks:
     - vextrus-network
+    restart: unless-stopped
   signoz-query-service:
     image: signoz/query-service:0.38.2
     container_name: vextrus-signoz-query-service
     ports:
-    - 8081:8080
+    - 8084:8080
+    volumes:
+    - signoz_query_data:/var/lib/signoz
     environment:
       ClickHouseUrl: tcp://signoz-clickhouse:9000
       STORAGE: clickhouse
       GODEBUG: netdns=go
       TELEMETRY_ENABLED: false
     depends_on:
-    - signoz-clickhouse
+      signoz-clickhouse:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/api/v1/version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
     networks:
     - vextrus-network
+    restart: unless-stopped
   adminer:
     image: adminer:4.8.1
     container_name: vextrus-adminer
@@ -827,9 +906,13 @@ services:
     restart: unless-stopped
   finance:
     build:
-      context: ./services/finance
-      dockerfile: Dockerfile
-      target: development
+      context: .
+      dockerfile: ./infrastructure/docker/templates/node-service-debian-ml.Dockerfile
+      args:
+        SERVICE_NAME: finance
+        SERVICE_PORT: 3014
+        NODE_VERSION: 20
+    image: vextrus-erp/finance:${VERSION:-latest}
     container_name: vextrus-finance
     environment:
       NODE_ENV: development
@@ -849,9 +932,11 @@ services:
       KAFKA_CONSUMER_GROUP: finance-consumer
       JWT_SECRET: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9
       JWT_EXPIRES_IN: 24h
+      AUTH_SERVICE_URL: http://auth:3001
       VAT_RATE: 15
       TAX_WITHHOLDING_RATE: 10
       FISCAL_YEAR_START: 7
+      DEFAULT_TENANT_ID: default
       OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz-otel-collector:4318
       OTEL_SERVICE_NAME: finance-service
       OTEL_TRACES_EXPORTER: otlp
@@ -859,10 +944,9 @@ services:
       OTEL_LOGS_EXPORTER: otlp
     ports:
     - 3014:3014
-    volumes:
-    - ./services/finance:/app
-    - /app/node_modules
-    - ./models:/app/models
+    # Volume mounts removed for production mode - finance now runs from Docker build like other services
+    # This fixes Apollo Sandbox module resolution issues
+    # For development with hot-reload, use docker-compose.dev.yml override
     networks:
     - vextrus-network
     labels:
@@ -872,10 +956,14 @@ services:
     - traefik.http.routers.finance.service=finance-service
     - traefik.http.services.finance-service.loadbalancer.server.port=3014
     depends_on:
-    - postgres
-    - redis
-    - kafka
-    - eventstore
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eventstore:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -927,11 +1015,12 @@ services:
   organization:
     build:
       context: .
-      dockerfile: ./infrastructure/docker/services/node-service-simple.Dockerfile
+      dockerfile: ./infrastructure/docker/templates/node-service-production.Dockerfile
       args:
-        SERVICE_NAME: '@vextrus/organization-service'
-        SERVICE_PATH: services/organization
+        SERVICE_NAME: organization
         SERVICE_PORT: 3016
+        NODE_VERSION: 20
+    image: vextrus-erp/organization:${VERSION:-latest}
     container_name: vextrus-organization
     command: sh -c "cd /app/services/organization && node dist/main.js"
     environment:
@@ -1089,6 +1178,50 @@ services:
       - prometheus
     restart: unless-stopped
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: vextrus-mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - vextrus-network
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    image: vextrus-erp/web:${VERSION:-latest}
+    container_name: vextrus-web
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://api.localhost/graphql
+      NEXT_PUBLIC_WS_URL: ws://api.localhost/graphql
+      NEXT_TELEMETRY_DISABLED: 1
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3000:3000"
+    networks:
+      - vextrus-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.web.rule=Host(`web.localhost`)
+      - traefik.http.routers.web.entrypoints=web
+      - traefik.http.routers.web.service=web-service
+      - traefik.http.services.web-service.loadbalancer.server.port=3000
+    depends_on:
+      - api-gateway
+      - traefik
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    restart: unless-stopped
+
 networks:
   vextrus-network:
     driver: bridge
@@ -1096,9 +1229,12 @@ volumes:
   postgres_data: null
   redis_data: null
   kafka_data: null
+  eventstore_data: null
+  eventstore_logs: null
   zookeeper_data: null
   zookeeper_logs: null
   signoz_clickhouse_data: null
+  signoz_query_data: null
   verdaccio_data: null
   minio_data: null
   elasticsearch_data: null

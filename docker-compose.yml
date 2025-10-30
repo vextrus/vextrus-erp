@@ -44,20 +44,17 @@ services:
         NODE_VERSION: 20
     image: vextrus-erp/auth:${VERSION:-latest}
     container_name: vextrus-auth
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3001
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_auth
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
-      JWT_ACCESS_SECRET: vextrus_jwt_access_secret_dev_2024
       JWT_ACCESS_EXPIRES_IN: 15m
-      JWT_REFRESH_SECRET: vextrus_jwt_refresh_secret_dev_2024
       JWT_REFRESH_EXPIRES_IN: 7d
       KAFKA_BROKERS: kafka:9093
       KAFKA_CLIENT_ID: auth-service
@@ -86,9 +83,9 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: vextrus-postgres
+    env_file:
+      - .env.production
     environment:
-      POSTGRES_USER: vextrus
-      POSTGRES_PASSWORD: vextrus_dev_2024
       POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=en_US.utf8
     ports:
     - 5432:5432
@@ -156,6 +153,8 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: vextrus-zookeeper
+    env_file:
+      - .env.production
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -172,6 +171,8 @@ services:
     ports:
     - 9092:9092
     - 9093:9093
+    env_file:
+      - .env.production
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -213,9 +214,8 @@ services:
     ports:
     - 9000:9000
     - 9001:9001
-    environment:
-      MINIO_ROOT_USER: vextrus_admin
-      MINIO_ROOT_PASSWORD: vextrus_minio_2024
+    env_file:
+      - .env.production
     volumes:
     - minio_data:/data
     command: server /data --console-address ":9001"
@@ -233,6 +233,8 @@ services:
   elasticsearch:
     image: elasticsearch:8.11.1
     container_name: vextrus-elasticsearch
+    env_file:
+      - .env.production
     environment:
     - discovery.type=single-node
     - xpack.security.enabled=false
@@ -258,9 +260,8 @@ services:
     ports:
     - 5672:5672
     - 15672:15672
-    environment:
-      RABBITMQ_DEFAULT_USER: vextrus
-      RABBITMQ_DEFAULT_PASS: vextrus_rabbitmq_2024
+    env_file:
+      - .env.production
     volumes:
     - rabbitmq_data:/var/lib/rabbitmq
     networks:
@@ -285,17 +286,16 @@ services:
     container_name: vextrus-notification
     ports:
       - "3003:3003"
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3003
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_notification
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       SMTP_HOST: mailhog
       SMTP_PORT: 1025
@@ -328,17 +328,16 @@ services:
     container_name: vextrus-configuration
     ports:
       - "3004:3004"
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3004
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_configuration
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       KAFKA_GROUP_ID: configuration-consumer
     networks:
@@ -364,17 +363,17 @@ services:
     container_name: vextrus-scheduler
     ports:
       - "3005:3005"
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3005
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
       DATABASE_USER: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_scheduler
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
     networks:
     - vextrus-network
@@ -400,6 +399,8 @@ services:
     container_name: vextrus-document-generator
     ports:
       - "3006:3006"
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: production
       APP_PORT: 3006
@@ -407,11 +408,9 @@ services:
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
       DATABASE_USER: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_document_generator
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
     networks:
     - vextrus-network
@@ -443,17 +442,16 @@ services:
     container_name: vextrus-import-export
     ports:
       - "3007:3007"
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3007
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_import_export
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
     networks:
     - vextrus-network
@@ -479,22 +477,19 @@ services:
     container_name: vextrus-file-storage
     ports:
       - "3008:3008"
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3008
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_file_storage
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: vextrus_admin
-      MINIO_SECRET_KEY: vextrus_minio_2024
       MINIO_USE_SSL: 'false'
     networks:
     - vextrus-network
@@ -521,13 +516,14 @@ services:
     container_name: vextrus-audit
     ports:
       - "3009:3009"
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3009
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
       DATABASE_USER: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_audit
       KAFKA_BROKERS: kafka:9093
       ELASTICSEARCH_NODE: http://elasticsearch:9200
@@ -553,17 +549,16 @@ services:
         NODE_VERSION: 20
     image: vextrus-erp/master-data:${VERSION:-latest}
     container_name: vextrus-master-data
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3002
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_master_data
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz-otel-collector:4318
       OTEL_SERVICE_NAME: master-data-service
@@ -596,17 +591,16 @@ services:
     image: vextrus-erp/workflow:${VERSION:-latest}
     container_name: vextrus-workflow
     command: node dist/main.js
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       PORT: 3011
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_workflow
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: vextrus
@@ -641,17 +635,16 @@ services:
         NODE_VERSION: 20
     image: vextrus-erp/rules-engine:${VERSION:-latest}
     container_name: vextrus-rules-engine
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3012
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_rules_engine
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz-otel-collector:4318
       OTEL_SERVICE_NAME: rules-engine-service
@@ -683,14 +676,14 @@ services:
         NODE_VERSION: 20
     image: vextrus-erp/api-gateway:${VERSION:-latest}
     container_name: vextrus-api-gateway
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 4000
-      JWT_ACCESS_SECRET: vextrus_jwt_access_secret_dev_2024
       JWT_ACCESS_EXPIRES_IN: 15m
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       AUTH_SERVICE_URL: http://auth:3001/graphql
       MASTER_DATA_SERVICE_URL: http://master-data:3002/graphql
       WORKFLOW_SERVICE_URL: http://workflow:3011/graphql
@@ -725,6 +718,8 @@ services:
     container_name: vextrus-temporal
     depends_on:
     - postgres
+    env_file:
+      - .env.production
     environment:
     - DB=postgresql
     - DB_PORT=5432
@@ -820,6 +815,8 @@ services:
     container_name: vextrus-adminer
     ports:
     - 8082:8080
+    env_file:
+      - .env.production
     environment:
       ADMINER_DEFAULT_SERVER: postgres
     networks:
@@ -846,6 +843,8 @@ services:
     - verdaccio_data:/verdaccio/storage
     - ./infrastructure/verdaccio/config.yaml:/verdaccio/conf/config.yaml
     - ./infrastructure/verdaccio/htpasswd:/verdaccio/auth/htpasswd
+    env_file:
+      - .env.production
     environment:
       VERDACCIO_PUBLIC_URL: http://localhost:4873/
     networks:
@@ -870,17 +869,16 @@ services:
         SERVICE_NAME: crm
         SERVICE_PORT: 3013
     container_name: vextrus-crm
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3013
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_crm
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       KAFKA_CLIENT_ID: crm-service
       KAFKA_CONSUMER_GROUP: crm-consumer
@@ -914,23 +912,22 @@ services:
         NODE_VERSION: 20
     image: vextrus-erp/finance:${VERSION:-latest}
     container_name: vextrus-finance
+    env_file:
+      - .env.production
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       PORT: 3014
       APP_PORT: 3014
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_finance
+      DATABASE_SSL_ENABLED: "false"
       EVENTSTORE_CONNECTION_STRING: esdb://eventstore:2113?tls=false
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       KAFKA_CLIENT_ID: finance-service
       KAFKA_CONSUMER_GROUP: finance-consumer
-      JWT_SECRET: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9
       JWT_EXPIRES_IN: 24h
       AUTH_SERVICE_URL: http://auth:3001
       VAT_RATE: 15
@@ -978,17 +975,16 @@ services:
         SERVICE_NAME: hr
         SERVICE_PORT: 3015
     container_name: vextrus-hr
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3015
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_hr
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       KAFKA_CLIENT_ID: hr-service
       KAFKA_CONSUMER_GROUP: hr-consumer
@@ -1023,17 +1019,16 @@ services:
     image: vextrus-erp/organization:${VERSION:-latest}
     container_name: vextrus-organization
     command: sh -c "cd /app/services/organization && node dist/main.js"
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3016
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_organization
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       KAFKA_CLIENT_ID: organization-service
       KAFKA_CONSUMER_GROUP: organization-consumer
@@ -1065,17 +1060,16 @@ services:
         SERVICE_NAME: project-management
         SERVICE_PORT: 3017
     container_name: vextrus-project-management
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3017
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_project
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       KAFKA_CLIENT_ID: project-service
       KAFKA_CONSUMER_GROUP: project-consumer
@@ -1107,17 +1101,16 @@ services:
         SERVICE_NAME: scm
         SERVICE_PORT: 3018
     container_name: vextrus-scm
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: development
       APP_PORT: 3018
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: vextrus
-      DATABASE_PASSWORD: vextrus_dev_2024
       DATABASE_NAME: vextrus_scm
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: vextrus_redis_2024
       KAFKA_BROKERS: kafka:9093
       KAFKA_CLIENT_ID: scm-service
       KAFKA_CONSUMER_GROUP: scm-consumer
@@ -1145,6 +1138,8 @@ services:
   prometheus:
     image: prom/prometheus:v2.47.0
     container_name: vextrus-prometheus
+    env_file:
+      - .env.production
     volumes:
       - ./infrastructure/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -1162,9 +1157,10 @@ services:
   grafana:
     image: grafana/grafana:10.1.5
     container_name: vextrus-grafana
+    env_file:
+      - .env.production
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=vextrus_grafana_2024
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
       - GF_SERVER_ROOT_URL=http://localhost:3500
     volumes:
@@ -1186,6 +1182,42 @@ services:
       - "8025:8025"  # Web UI
     networks:
       - vextrus-network
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    image: vextrus-erp/web:${VERSION:-latest}
+    container_name: vextrus-web
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://api.localhost/graphql
+      NEXT_PUBLIC_WS_URL: ws://api.localhost/graphql
+      NEXT_TELEMETRY_DISABLED: 1
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3000:3000"
+    networks:
+      - vextrus-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.web.rule=Host(`web.localhost`)
+      - traefik.http.routers.web.entrypoints=web
+      - traefik.http.routers.web.service=web-service
+      - traefik.http.services.web-service.loadbalancer.server.port=3000
+    depends_on:
+      - api-gateway
+      - traefik
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
     restart: unless-stopped
 
 networks:

@@ -23,11 +23,10 @@
       "WebFetch(domain:docs.nestjs.com)"
     ]
   },
-  "enabledMcpjsonServers": [],
-  "disabledMcpjsonServers": [
+  "enabledMcpjsonServers": [
+    "sequential-thinking",
     "filesystem",
     "postgres",
-    "sequential-thinking",
     "context7",
     "consult7",
     "docker",
@@ -43,5 +42,6 @@
     "notion",
     "reddit"
   ],
+  "disabledMcpjsonServers": [],
   "disableAllHooks": true
 }

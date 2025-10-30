@@ -59,7 +59,7 @@ COPY services/${SERVICE_NAME}/package.json ./services/${SERVICE_NAME}/package.js
 
 # Install dependencies with BuildKit cache mount
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter "./services/${SERVICE_NAME}"
+    pnpm install --no-frozen-lockfile --filter "./services/${SERVICE_NAME}"
 
 # ============================================
 # Shared Packages Builder Stage
@@ -74,7 +74,7 @@ COPY shared/infrastructure ./shared/infrastructure
 
 # Install dependencies for shared infrastructure
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter "./shared/infrastructure"
+    pnpm install --no-frozen-lockfile --filter "./shared/infrastructure"
 
 # Build shared infrastructure
 WORKDIR /app/shared/infrastructure
