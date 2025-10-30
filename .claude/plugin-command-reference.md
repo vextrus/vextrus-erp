@@ -1,8 +1,92 @@
-# Plugin Command Reference - V6.0
+# Plugin Command Reference - V7.0
 
 **Total Commands**: 47+
-**Last Updated**: V6.0 Upgrade
-**Primary Orchestrator**: Compounding Engineering Plugin
+**Last Updated**: V7.0 Upgrade (Phase-Based Native Orchestration)
+**Primary Orchestration**: Native CC (Plan/Explore subagents) + Specialized Plugins
+**Status**: Compounding Engineering Plugin DEPRECATED (use native CC features instead)
+
+---
+
+## V7.0 Changes
+
+**Key Updates**:
+- ⚠️ **Compounding Engineering Plugin**: DEPRECATED - replaced by native CC Plan/Explore subagents
+- ✨ **New**: Tier classification system (Tier 1/2/3)
+- ✨ **New**: Native CC subagents-first approach
+- ✨ **Updated**: Plugin usage guidelines for V7.0 workflow
+
+---
+
+## Plugin Tier System
+
+### Tier 1: Core Workflow (Always Use)
+Essential plugins for everyday development. Use these regularly.
+
+**Backend Development**:
+- `/backend-development:feature-development` - Backend feature orchestration
+- `/tdd-workflows:tdd-cycle` - TDD red-green-refactor
+
+**Quality & Security**:
+- `/comprehensive-review:full-review` - Multi-agent code review (12+ agents)
+- `/backend-api-security:backend-security-coder` - Security audit
+
+**Testing**:
+- `/unit-test-generator:generate-tests` - Test scaffolding
+
+**Database**:
+- `/database-migrations:sql-migrations` - Zero-downtime migrations
+- `/database-design:sql-pro` - Query optimization
+
+**Git**:
+- `/git-pr-workflows:pr-enhance` - Enhanced PR creation
+
+---
+
+### Tier 2: Situational (As Needed)
+Use these plugins for specific scenarios and requirements.
+
+**Performance**:
+- `/application-performance:performance-engineer` - Performance optimization
+- `/performance-testing-review:performance-engineer` - Load testing
+
+**API Design**:
+- `/api-scaffolding:graphql-architect` - GraphQL Federation v2
+- `/api-scaffolding:fastapi-pro` - FastAPI design
+- `/api-documentation-generator:generate-api-docs` - OpenAPI/Swagger
+
+**Security & Auth**:
+- `/authentication-validator:validate-auth` - Auth testing
+- `/comprehensive-review:security-auditor` - Security audit
+
+**Debugging**:
+- `/error-debugging:error-detective` - Error investigation
+- `/debugging-toolkit:smart-debug` - Advanced debugging
+
+**Infrastructure**:
+- `/deployment-pipeline-orchestrator:pipeline-orchestrate` - CI/CD
+- `/cloud-infrastructure:cloud-architect` - Cloud architecture
+- `/observability-monitoring:observability-engineer` - Monitoring
+
+---
+
+### Tier 3: Specialized (Domain Specific)
+Advanced plugins for specific domains and complex scenarios.
+
+**Full-Stack**:
+- `/full-stack-orchestration:full-stack-feature` - Full-stack features
+- `/frontend-mobile-development:frontend-developer` - Frontend
+
+**Documentation**:
+- `/documentation-generation:api-documenter` - API documentation
+- `/documentation-generation:tutorial-engineer` - Tutorials
+
+**Testing**:
+- `/test-orchestrator:orchestrate` - Complex test workflows
+- `/unit-testing:test-generate` - Unit test generation
+
+**Infrastructure**:
+- `/docker-compose-generator:docker-compose` - Docker configs
+- `/infrastructure-drift-detector:drift-detect` - Drift detection
 
 ---
 
