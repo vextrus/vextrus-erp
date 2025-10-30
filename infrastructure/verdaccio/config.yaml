@@ -1,0 +1,70 @@
+# Verdaccio configuration for Vextrus ERP
+# Path: infrastructure/verdaccio/config.yaml
+
+# Storage path (inside container)
+storage: /verdaccio/storage
+
+# Authentication
+auth:
+  htpasswd:
+    file: /verdaccio/auth/htpasswd
+    max_users: 100
+
+# Web UI configuration
+web:
+  title: Vextrus Private Registry
+  
+# Listen on all interfaces (important for Docker)
+listen: 0.0.0.0:4873
+
+# Uplinks to external registries
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+    timeout: 60s
+
+# Packages configuration
+packages:
+  '@vextrus/*':
+    # Allow all authenticated users to read and publish
+    access: $authenticated
+    publish: $authenticated
+    unpublish: $authenticated
+  
+  '@*/*':
+    # Scoped packages
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+    proxy: npmjs
+
+  '**':
+    # All other packages
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+    proxy: npmjs
+
+# Log settings
+logs:
+  - {type: stdout, format: pretty, level: info}
+
+# Security
+security:
+  api:
+    jwt:
+      sign:
+        expiresIn: 7d
+      verify:
+        expiresIn: 7d
+
+# Maximum body size
+max_body_size: 100mb
+
+# Middleware
+middlewares:
+  audit:
+    enabled: true
+    
+# Public URL
+url_prefix: /

@@ -1,0 +1,62 @@
+#!/bin/bash
+# DAIC Mode Toggle for Git Bash/MinGW
+# Toggles between discussion and implementation modes
+
+# Get the project directory (where this script is located)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Convert Unix path to Windows path for Python
+if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OS" == "Windows_NT" ]]; then
+    # Convert /c/Users/... to C:/Users/...
+    WIN_DIR=$(echo "$SCRIPT_DIR" | sed 's|^/\([a-z]\)/|\1:/|')
+    DAIC_FILE="$WIN_DIR/.claude/state/daic-mode.json"
+else
+    DAIC_FILE="$SCRIPT_DIR/.claude/state/daic-mode.json"
+fi
+
+# Ensure the state directory exists
+mkdir -p "$SCRIPT_DIR/.claude/state"
+
+# Detect Python command (python or python3)
+if command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+elif command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+else
+    echo -e "\033[38;5;203mError: Python is not installed or not in PATH\033[0m"
+    exit 1
+fi
+
+# Read current mode or set default
+if [[ -f "$SCRIPT_DIR/.claude/state/daic-mode.json" ]]; then
+    current_mode=$($PYTHON_CMD -c "
+import json
+with open('$DAIC_FILE', 'r') as f:
+    data = json.load(f)
+    print(data.get('mode', 'discussion'))
+" 2>/dev/null || echo "discussion")
+else
+    current_mode="discussion"
+fi
+
+# Toggle the mode
+if [[ "$current_mode" == "discussion" ]]; then
+    new_mode="implementation"
+    echo -e "\033[38;5;114m[DAIC] Switched to IMPLEMENTATION mode\033[0m"
+    echo -e "\033[38;5;250mYou can now use Write, Edit, and other implementation tools.\033[0m"
+else
+    new_mode="discussion"
+    echo -e "\033[38;5;183m[DAIC] Switched to DISCUSSION mode\033[0m"
+    echo -e "\033[38;5;250mLet's discuss and plan before implementing.\033[0m"
+fi
+
+# Update the JSON file using Python for reliability
+$PYTHON_CMD -c "import json, os, sys; mode=sys.argv[1]; path=sys.argv[2]; os.makedirs(os.path.dirname(path), exist_ok=True); json.dump({'mode': mode}, open(path, 'w'), indent=2)" "$new_mode" "$DAIC_FILE"
+
+# Verify the update
+if [[ $? -eq 0 ]]; then
+    echo -e "\033[38;5;111mMode updated successfully.\033[0m"
+else
+    echo -e "\033[38;5;203mError: Failed to update DAIC mode.\033[0m"
+    exit 1
+fi

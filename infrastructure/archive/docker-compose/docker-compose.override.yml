@@ -1,0 +1,174 @@
+# Development-specific overrides for docker-compose.yml
+# This file is automatically loaded by docker-compose in development
+
+services:
+  auth:
+    # Use pnpm deploy Dockerfile for proper dependency resolution
+    build:
+      context: .
+      dockerfile: infrastructure/docker/services/auth-pnpm-deploy.Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    
+    # Development environment variables
+    environment:
+      NODE_ENV: development
+      DEBUG: 'vextrus:*'
+    
+    # Volume mounts for hot-reload
+    volumes:
+      # Mount source code (but not node_modules)
+      - ./services/auth/src:/app/services/auth/src:delegated
+      - ./services/auth/package.json:/app/services/auth/package.json:delegated
+      - ./services/auth/tsconfig.json:/app/services/auth/tsconfig.json:delegated
+      - ./services/auth/nest-cli.json:/app/services/auth/nest-cli.json:delegated
+      
+      # Mount shared packages source
+      - ./shared/kernel/src:/app/shared/kernel/src:delegated
+      - ./shared/contracts/src:/app/shared/contracts/src:delegated
+      - ./shared/utils/src:/app/shared/utils/src:delegated
+      
+      # Anonymous volumes to preserve container's node_modules
+      - /app/node_modules
+      - /app/services/auth/node_modules
+      - /app/shared/kernel/node_modules
+      - /app/shared/contracts/node_modules
+      - /app/shared/utils/node_modules
+    
+    # Override command for development (use node directly for now)
+    # command: ["pnpm", "start:dev"]
+    
+    # Restart policy for development
+    restart: unless-stopped
+
+  traefik:
+    # Enable API and dashboard in development
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--log.level=DEBUG"
+      - "--accesslog=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+
+  postgres:
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust  # Faster auth in dev
+    ports:
+      - "5432:5432"
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c max_connections=200
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c max_worker_processes=8
+      -c max_parallel_workers_per_gather=4
+      -c max_parallel_workers=8
+      -c max_parallel_maintenance_workers=4
+      -c log_statement=all
+      -c log_duration=on
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass vextrus_redis_2024
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+      --timeout 300
+      --loglevel debug
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  kafka:
+    environment:
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_HEAP_OPTS: "-Xmx512M -Xms256M"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Development database seed service
+  db-seed:
+    image: postgres:16-alpine
+    container_name: vextrus-db-seed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./infrastructure/docker/postgres/seed-dev.sql:/seed-dev.sql
+    command: >
+      sh -c "
+        echo 'Waiting for database to be ready...' &&
+        sleep 5 &&
+        PGPASSWORD=vextrus_dev_2024 psql -h postgres -U vextrus -d vextrus_erp -f /seed-dev.sql &&
+        echo 'Database seeded successfully'
+      "
+    networks:
+      - vextrus-network
+    profiles:
+      - seed
+
+  # Development mail server (MailHog)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: vextrus-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - vextrus-network
+    profiles:
+      - dev-tools
+
+  # pgAdmin for PostgreSQL management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: vextrus-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@vextrus.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - vextrus-network
+    profiles:
+      - dev-tools
+    depends_on:
+      - postgres
+
+volumes:
+  pgadmin_data:

@@ -1,0 +1,161 @@
+name: Automatic Checkpoint Sync
+
+# Purpose: Automatically sync checkpoint files to GitHub issues
+# Triggers: When checkpoint-*.md files are committed to feature branches
+# Benefits: Zero-touch checkpoint tracking, team visibility
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+    paths:
+      - '.claude/checkpoints/*.md'
+      - '.claude/checkpoints/**/*.md'
+
+  # Manual trigger for syncing specific checkpoint
+  workflow_dispatch:
+    inputs:
+      checkpoint_file:
+        description: 'Path to checkpoint file'
+        required: true
+        type: string
+      issue_number:
+        description: 'GitHub issue number'
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  sync-checkpoint:
+    name: Sync Checkpoint to GitHub Issue
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit to detect changed files
+
+      - name: Detect Changed Checkpoint Files
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Manual trigger
+            echo "checkpoint_file=${{ inputs.checkpoint_file }}" >> $GITHUB_OUTPUT
+            echo "issue_number=${{ inputs.issue_number }}" >> $GITHUB_OUTPUT
+          else
+            # Auto-trigger: Find changed checkpoint files
+            CHECKPOINT_FILES=$(git diff --name-only HEAD^ HEAD | grep -E "checkpoint-.*\.md$" || true)
+
+            if [ -z "$CHECKPOINT_FILES" ]; then
+              echo "No checkpoint files changed"
+              exit 0
+            fi
+
+            # Use first changed checkpoint file
+            CHECKPOINT_FILE=$(echo "$CHECKPOINT_FILES" | head -n 1)
+            echo "checkpoint_file=$CHECKPOINT_FILE" >> $GITHUB_OUTPUT
+
+            # Extract issue number from checkpoint file or branch name
+            # Pattern 1: Look for "Issue: #123" in checkpoint content
+            ISSUE_NUM=$(grep -oP "Issue:\s*#\K\d+" "$CHECKPOINT_FILE" | head -n 1 || true)
+
+            # Pattern 2: Extract from branch name (feature/finance-123-description)
+            if [ -z "$ISSUE_NUM" ]; then
+              ISSUE_NUM=$(echo "${{ github.ref_name }}" | grep -oP "(?<=-)\d+(?=-)" || true)
+            fi
+
+            # Pattern 3: Look for "Related to #123" or "Closes #123"
+            if [ -z "$ISSUE_NUM" ]; then
+              ISSUE_NUM=$(grep -oP "(Related to|Closes|Fixes)\s*#\K\d+" "$CHECKPOINT_FILE" | head -n 1 || true)
+            fi
+
+            if [ -z "$ISSUE_NUM" ]; then
+              echo "⚠️ No issue number found. Skipping sync."
+              echo "Add 'Issue: #123' to checkpoint file or include issue number in branch name."
+              exit 0
+            fi
+
+            echo "issue_number=$ISSUE_NUM" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare Checkpoint Comment
+        id: prepare
+        if: steps.detect.outputs.checkpoint_file && steps.detect.outputs.issue_number
+        run: |
+          CHECKPOINT_FILE="${{ steps.detect.outputs.checkpoint_file }}"
+          ISSUE_NUMBER="${{ steps.detect.outputs.issue_number }}"
+
+          # Read checkpoint content
+          CHECKPOINT_CONTENT=$(cat "$CHECKPOINT_FILE")
+
+          # Get checkpoint metadata
+          CHECKPOINT_NAME=$(basename "$CHECKPOINT_FILE" .md)
+          BRANCH_NAME="${{ github.ref_name }}"
+          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/$COMMIT_SHA"
+
+          # Create comment body
+          cat > comment.md <<EOF
+          ## 📋 Checkpoint Sync: $CHECKPOINT_NAME
+
+          **Branch**: \`$BRANCH_NAME\`
+          **Commit**: [$COMMIT_SHA]($COMMIT_URL)
+          **Timestamp**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Synced by**: GitHub Actions (automatic)
+
+          ---
+
+          $CHECKPOINT_CONTENT
+
+          ---
+
+          🤖 Auto-synced via [checkpoint-sync.yml](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/checkpoint-sync.yml)
+          EOF
+
+          echo "✅ Checkpoint comment prepared"
+          echo "File: $CHECKPOINT_FILE"
+          echo "Issue: #$ISSUE_NUMBER"
+
+      - name: Sync to GitHub Issue
+        if: steps.detect.outputs.checkpoint_file && steps.detect.outputs.issue_number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBER="${{ steps.detect.outputs.issue_number }}"
+
+          # Add comment to issue
+          gh issue comment "$ISSUE_NUMBER" --body-file comment.md
+
+          echo "✅ Checkpoint synced to issue #$ISSUE_NUMBER"
+
+      - name: Update Issue Labels
+        if: steps.detect.outputs.checkpoint_file && steps.detect.outputs.issue_number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBER="${{ steps.detect.outputs.issue_number }}"
+
+          # Add checkpoint label if not present
+          gh issue edit "$ISSUE_NUMBER" --add-label "checkpoint" || true
+
+          echo "✅ Added 'checkpoint' label to issue #$ISSUE_NUMBER"
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ -n "${{ steps.detect.outputs.checkpoint_file }}" ] && [ -n "${{ steps.detect.outputs.issue_number }}" ]; then
+            echo "### ✅ Checkpoint Sync Successful" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **File**: \`${{ steps.detect.outputs.checkpoint_file }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Issue**: [#${{ steps.detect.outputs.issue_number }}](${{ github.server_url }}/${{ github.repository }}/issues/${{ steps.detect.outputs.issue_number }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ℹ️ No Checkpoint Sync" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No checkpoint files changed or issue number not found." >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,60 +1,7 @@
 {
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\user-messages.py\""
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit|Task|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\sessions-enforce.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\task-transcript-link.py\""
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\post-tool-use.py\""
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "startup|clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\session-start.py\""
-          }
-        ]
-      }
-    ]
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\statusline-wrapper.py\"",
-    "padding": 0
-  }
+    "$schema": "https://json.schemastore.org/claude-code-settings.json",
+    "statusLine": {
+      "type": "command",
+      "command": "bash ~/.claude/statusline-accurate.sh"
+    }
 }

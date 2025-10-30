@@ -1,0 +1,518 @@
+name: Finance Module - Production Deployment Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+      skip_tests:
+        description: 'Skip tests (emergency deployment only)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: registry.vextrus.com
+  IMAGE_NAME: finance-service
+  DEPLOYMENT_TIMEOUT: 600
+  HEALTH_CHECK_RETRIES: 10
+  ROLLBACK_ON_FAILURE: true
+
+jobs:
+  # 1. Run all tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.inputs.skip_tests }}
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: vextrus_finance_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:6.2
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+      eventstore:
+        image: eventstore/eventstore:21.10.0-buster-slim
+        env:
+          EVENTSTORE_INSECURE: true
+        ports:
+          - 2113:2113
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: pnpm test:cov
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USERNAME: test
+          DATABASE_PASSWORD: test
+          DATABASE_NAME: vextrus_finance_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          EVENTSTORE_CONNECTION_STRING: esdb://localhost:2113?tls=false
+
+      - name: Run integration tests
+        run: pnpm test:e2e
+
+      - name: Run Bangladesh compliance tests
+        run: pnpm test:compliance
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: finance-service
+          name: finance-coverage
+
+  # 2. Security scanning
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'finance-service'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --enableRetired
+            --enableExperimental
+
+  # 3. Build and push Docker image
+  build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            BUILD_VERSION=${{ github.ref_name }}
+            BUILD_COMMIT=${{ github.sha }}
+
+  # 4. Database migration
+  migrate:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: build
+    environment: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create backup before migration
+        run: |
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} pg_dump \
+            -h ${{ secrets.DB_HOST }} \
+            -U ${{ secrets.DB_USERNAME }} \
+            -d vextrus_finance \
+            -f backup-$(date +%Y%m%d-%H%M%S).sql
+
+      - name: Upload backup to S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --acl private --follow-symlinks
+        env:
+          AWS_S3_BUCKET: vextrus-backups
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SOURCE_DIR: '.'
+          DEST_DIR: 'finance/migrations/'
+
+      - name: Run migrations
+        run: pnpm migration:run
+        env:
+          DATABASE_HOST: ${{ secrets.DB_HOST }}
+          DATABASE_PORT: ${{ secrets.DB_PORT }}
+          DATABASE_USERNAME: ${{ secrets.DB_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DATABASE_NAME: vextrus_finance
+
+      - name: Verify migration success
+        run: pnpm migration:validate
+
+  # 5. Deploy to Kubernetes
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, migrate]
+    environment: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ap-south-1 \
+            --name vextrus-prod-cluster
+
+      - name: Create/Update Kubernetes secrets
+        run: |
+          kubectl create secret generic finance-secrets \
+            --from-literal=database-password=${{ secrets.DB_PASSWORD }} \
+            --from-literal=redis-password=${{ secrets.REDIS_PASSWORD }} \
+            --from-literal=jwt-secret=${{ secrets.JWT_SECRET }} \
+            --from-literal=encryption-key=${{ secrets.ENCRYPTION_KEY }} \
+            --from-literal=nbr-api-key=${{ secrets.NBR_API_KEY }} \
+            --from-literal=bkash-app-secret=${{ secrets.BKASH_APP_SECRET }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy using Helm
+        run: |
+          helm upgrade --install finance-service ./helm/finance \
+            --namespace finance \
+            --create-namespace \
+            --set image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} \
+            --set image.tag=${{ github.ref_name }} \
+            --set replicaCount=3 \
+            --set autoscaling.enabled=true \
+            --set autoscaling.minReplicas=3 \
+            --set autoscaling.maxReplicas=10 \
+            --set resources.requests.memory=512Mi \
+            --set resources.requests.cpu=500m \
+            --set resources.limits.memory=2Gi \
+            --set resources.limits.cpu=2000m \
+            --set ingress.enabled=true \
+            --set ingress.hostname=finance.vextrus.com \
+            --set monitoring.enabled=true \
+            --wait --timeout 10m
+
+      - name: Wait for deployment rollout
+        run: |
+          kubectl rollout status deployment/finance-service \
+            --namespace finance \
+            --timeout=${{ env.DEPLOYMENT_TIMEOUT }}s
+
+  # 6. Health checks
+  health_check:
+    name: Post-Deployment Health Check
+    runs-on: ubuntu-latest
+    needs: deploy
+
+    steps:
+      - name: Check deployment health
+        run: |
+          for i in $(seq 1 ${{ env.HEALTH_CHECK_RETRIES }}); do
+            if curl -f https://finance.vextrus.com/health; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Health check attempt $i failed, retrying in 30s..."
+            sleep 30
+          done
+          echo "Health checks failed after ${{ env.HEALTH_CHECK_RETRIES }} attempts"
+          exit 1
+
+      - name: Verify API endpoints
+        run: |
+          # Test critical endpoints
+          curl -f https://finance.vextrus.com/api/finance/accounts || exit 1
+          curl -f https://finance.vextrus.com/api/finance/transactions || exit 1
+          curl -f https://finance.vextrus.com/api/finance/reports || exit 1
+
+      - name: Check database connectivity
+        run: |
+          curl -f https://finance.vextrus.com/health/db || exit 1
+
+      - name: Check Redis connectivity
+        run: |
+          curl -f https://finance.vextrus.com/health/redis || exit 1
+
+      - name: Verify Bangladesh compliance endpoints
+        run: |
+          curl -f https://finance.vextrus.com/api/finance/validate/tin || exit 1
+          curl -f https://finance.vextrus.com/api/finance/validate/bin || exit 1
+
+  # 7. Performance validation
+  performance_test:
+    name: Performance Validation
+    runs-on: ubuntu-latest
+    needs: health_check
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run k6 load tests
+        uses: grafana/k6-action@v0.3.0
+        with:
+          filename: test/load/production-validation.js
+          cloud: true
+        env:
+          K6_CLOUD_PROJECT_ID: ${{ secrets.K6_PROJECT_ID }}
+          K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+
+      - name: Validate performance metrics
+        run: |
+          # Check if 95th percentile response time < 100ms
+          RESPONSE_TIME=$(curl -s https://finance.vextrus.com/metrics | grep 'http_request_duration_p95' | awk '{print $2}')
+          if (( $(echo "$RESPONSE_TIME > 100" | bc -l) )); then
+            echo "Response time exceeds 100ms threshold: ${RESPONSE_TIME}ms"
+            exit 1
+          fi
+
+  # 8. Smoke tests
+  smoke_test:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: performance_test
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm install -g pnpm@8
+          pnpm install --frozen-lockfile
+
+      - name: Run smoke tests
+        run: pnpm test:smoke
+        env:
+          API_URL: https://finance.vextrus.com
+          API_TOKEN: ${{ secrets.SMOKE_TEST_TOKEN }}
+
+  # 9. Monitoring setup
+  monitoring:
+    name: Configure Monitoring
+    runs-on: ubuntu-latest
+    needs: smoke_test
+
+    steps:
+      - name: Create Grafana dashboards
+        run: |
+          curl -X POST https://grafana.vextrus.com/api/dashboards/db \
+            -H "Authorization: Bearer ${{ secrets.GRAFANA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d @monitoring/dashboards/finance-dashboard.json
+
+      - name: Configure Prometheus alerts
+        run: |
+          kubectl apply -f monitoring/alerts/finance-alerts.yaml \
+            --namespace monitoring
+
+      - name: Setup PagerDuty integration
+        run: |
+          curl -X POST https://api.pagerduty.com/services \
+            -H "Authorization: Token token=${{ secrets.PAGERDUTY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"service":{"name":"Finance Service","escalation_policy_id":"${{ secrets.PAGERDUTY_POLICY }}"}}'
+
+      - name: Configure Sentry
+        run: |
+          curl -X POST https://sentry.vextrus.com/api/0/projects/finance/releases/ \
+            -H "Authorization: Bearer ${{ secrets.SENTRY_AUTH_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"version":"${{ github.ref_name }}","projects":["finance"]}'
+
+  # 10. Rollback on failure
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy, health_check, performance_test, smoke_test]
+    if: failure() && env.ROLLBACK_ON_FAILURE == 'true'
+
+    steps:
+      - name: Rollback Helm deployment
+        run: |
+          helm rollback finance-service \
+            --namespace finance \
+            --wait --timeout 10m
+
+      - name: Restore database backup
+        run: |
+          # Download latest backup from S3
+          aws s3 cp s3://vextrus-backups/finance/migrations/latest-backup.sql ./
+
+          # Restore database
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql \
+            -h ${{ secrets.DB_HOST }} \
+            -U ${{ secrets.DB_USERNAME }} \
+            -d vextrus_finance \
+            -f latest-backup.sql
+
+      - name: Send rollback notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "⚠️ Finance Service Deployment Rolled Back",
+              attachments: [{
+                color: 'danger',
+                text: 'Deployment of version ${{ github.ref_name }} failed and was rolled back.'
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # 11. Notification
+  notify:
+    name: Send Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [monitoring]
+    if: always()
+
+    steps:
+      - name: Send Slack notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Finance Service v${{ github.ref_name }} deployment ${{ job.status }}
+            Deployed by: ${{ github.actor }}
+            Environment: ${{ github.event.inputs.environment || 'production' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Send email notification
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.vextrus.com
+          server_port: 465
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: Finance Service Deployment Successful
+          to: devops@vextrus.com,finance-team@vextrus.com
+          from: ci-cd@vextrus.com
+          body: |
+            Finance Service version ${{ github.ref_name }} has been successfully deployed to production.
+
+            Deployment Details:
+            - Version: ${{ github.ref_name }}
+            - Commit: ${{ github.sha }}
+            - Deployed by: ${{ github.actor }}
+            - Time: ${{ github.event.head_commit.timestamp }}
+
+            Monitoring Dashboard: https://grafana.vextrus.com/d/finance
+            Application URL: https://finance.vextrus.com

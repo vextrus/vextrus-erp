@@ -1,0 +1,303 @@
+{
+  "timestamp": "2025-09-27 03:07:11",
+  "test_results": {
+    "1": {
+      "service": "Auth",
+      "port": 3001,
+      "status": "running",
+      "endpoints": {
+        "/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/api/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/api/v1/health": {
+          "status": "success",
+          "code": 200,
+          "response": {
+            "status": "ok",
+            "info": {
+              "database": {
+                "status": "up"
+              },
+              "memory_heap": {
+                "status": "up"
+              },
+              "memory_rss": {
+                "status": "up"
+              },
+              "redis": {
+                "status": "up"
+              },
+              "kafka": {
+                "status": "up"
+              }
+            },
+            "error": {},
+            "details": {
+              "database": {
+                "status": "up"
+              },
+              "memory_heap": {
+                "status": "up"
+              },
+              "memory_rss": {
+                "status": "up"
+              },
+              "redis": {
+                "status": "up"
+              },
+              "kafka": {
+                "status": "up"
+              }
+            }
+          }
+        },
+        "/health/live": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/health/ready": {
+          "status": "not_found",
+          "code": 404
+        }
+      }
+    },
+    "2": {
+      "service": "Master Data",
+      "port": 3002,
+      "status": "running",
+      "endpoints": {
+        "/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/api/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/api/v1/health": {
+          "status": "success",
+          "code": 200,
+          "response": {
+            "status": "ok",
+            "timestamp": "2025-09-26T21:07:04.664Z",
+            "service": "master-data",
+            "version": "1.0.0"
+          }
+        },
+        "/health/live": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/health/ready": {
+          "status": "not_found",
+          "code": 404
+        }
+      }
+    },
+    "3": {
+      "service": "Notification",
+      "port": 3003,
+      "status": "port_not_exposed",
+      "endpoints": {}
+    },
+    "4": {
+      "service": "Configuration",
+      "port": 3004,
+      "status": "port_not_exposed",
+      "endpoints": {}
+    },
+    "5": {
+      "service": "Scheduler",
+      "port": 3005,
+      "status": "port_not_exposed",
+      "endpoints": {}
+    },
+    "6": {
+      "service": "Document Generator",
+      "port": 3006,
+      "status": "port_not_exposed",
+      "endpoints": {}
+    },
+    "7": {
+      "service": "Import-Export",
+      "port": 3007,
+      "status": "not_running",
+      "endpoints": {}
+    },
+    "8": {
+      "service": "File Storage",
+      "port": 3008,
+      "status": "not_running",
+      "endpoints": {}
+    },
+    "9": {
+      "service": "Audit",
+      "port": 3009,
+      "status": "port_not_exposed",
+      "endpoints": {}
+    },
+    "11": {
+      "service": "Workflow",
+      "port": 3011,
+      "status": "running",
+      "endpoints": {
+        "/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/api/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/api/v1/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/health/live": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/health/ready": {
+          "status": "not_found",
+          "code": 404
+        }
+      }
+    },
+    "12": {
+      "service": "Rules Engine",
+      "port": 3012,
+      "status": "running",
+      "endpoints": {
+        "/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/api/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/api/v1/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/health/live": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/health/ready": {
+          "status": "not_found",
+          "code": 404
+        }
+      }
+    },
+    "16": {
+      "service": "Organization",
+      "port": 3016,
+      "status": "running",
+      "endpoints": {
+        "/health": {
+          "status": "success",
+          "code": 200,
+          "response": {
+            "status": "ok",
+            "service": "organization-service",
+            "timestamp": "2025-09-26T21:07:09.531Z"
+          }
+        },
+        "/api/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/api/v1/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/health/live": {
+          "status": "success",
+          "code": 200,
+          "response": {
+            "status": "ok",
+            "timestamp": "2025-09-26T21:07:09.539Z"
+          }
+        },
+        "/health/ready": {
+          "status": "success",
+          "code": 200,
+          "response": {
+            "status": "ok",
+            "checks": {
+              "database": {
+                "status": "ok",
+                "type": "postgresql",
+                "note": "Database check temporarily disabled"
+              },
+              "redis": {
+                "status": "ok",
+                "type": "redis"
+              },
+              "kafka": {
+                "status": "ok",
+                "type": "kafka"
+              }
+            },
+            "timestamp": "2025-09-26T21:07:09.542Z"
+          }
+        }
+      }
+    },
+    "4000": {
+      "service": "API Gateway",
+      "port": 4000,
+      "status": "running",
+      "endpoints": {
+        "/health": {
+          "status": "success",
+          "code": 200,
+          "response": {
+            "status": "ok",
+            "service": "api-gateway",
+            "timestamp": "2025-09-26T21:07:10.021Z",
+            "checks": {
+              "memory": "ok",
+              "graphql": "ok"
+            }
+          }
+        },
+        "/api/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/api/v1/health": {
+          "status": "not_found",
+          "code": 404
+        },
+        "/health/live": {
+          "status": "success",
+          "code": 200,
+          "response": {
+            "status": "alive",
+            "service": "api-gateway"
+          }
+        },
+        "/health/ready": {
+          "status": "success",
+          "code": 200,
+          "response": {
+            "status": "ready",
+            "service": "api-gateway"
+          }
+        }
+      }
+    }
+  },
+  "summary": {
+    "total_services": 13,
+    "tested_services": 6,
+    "working_services": 4
+  }
+}

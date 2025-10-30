@@ -1,0 +1,631 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0",
+        import: ["@key", "@shareable", "@external", "@requires", "@provides"])
+
+# External types from other services
+type Vendor @key(fields: "id", resolvable: false) {
+  id: String! @external
+}
+
+type Customer @key(fields: "id", resolvable: false) {
+  id: String! @external
+}
+
+type User @key(fields: "id", resolvable: false) {
+  id: String! @external
+}
+
+type Organization @key(fields: "id", resolvable: false) {
+  id: String! @external
+}
+
+# Money type - shared across finance domain
+type Money {
+  amount: Float!
+  currency: String!
+  formattedAmount: String!
+}
+
+# Invoice Types
+type Invoice @key(fields: "id") {
+  id: ID!
+  invoiceNumber: String!
+  vendorId: String!
+  vendor: Vendor @requires(fields: "vendorId")
+  customerId: String!
+  customer: Customer @requires(fields: "customerId")
+  lineItems: [LineItem!]!
+  subtotal: Money!
+  vatAmount: Money!
+  supplementaryDuty: Money!
+  advanceIncomeTax: Money!
+  grandTotal: Money!
+  status: InvoiceStatus!
+  invoiceDate: DateTime!
+  dueDate: DateTime!
+  fiscalYear: String!
+  mushakNumber: String
+  challanNumber: String
+  approvalWorkflow: ApprovalWorkflow
+  payments: [Payment!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type LineItem {
+  id: ID!
+  description: String!
+  quantity: Float!
+  unitPrice: Money!
+  amount: Money!
+  vatCategory: VATCategory!
+  vatRate: Float!
+  vatAmount: Money!
+  hsCode: String
+  supplementaryDuty: Money
+  advanceIncomeTax: Money
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  PAID
+  PARTIALLY_PAID
+  CANCELLED
+  OVERDUE
+}
+
+enum VATCategory {
+  STANDARD      # 15%
+  REDUCED       # 7.5%
+  TRUNCATED     # 5%
+  ZERO_RATED    # 0%
+  EXEMPT        # Exempt
+}
+
+# Payment Types
+type Payment @key(fields: "id") {
+  id: ID!
+  paymentNumber: String!
+  invoiceId: String!
+  invoice: Invoice @requires(fields: "invoiceId")
+  amount: Money!
+  paymentMethod: PaymentMethod!
+  paymentDate: DateTime!
+  status: PaymentStatus!
+  reference: String
+  transactionReference: String
+  mobileWallet: MobileWalletDetails
+  bankAccount: BankAccountDetails
+  reconciledAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type MobileWalletDetails {
+  provider: MobileWalletProvider!
+  mobileNumber: String!
+  transactionId: String!
+  merchantCode: String
+}
+
+type BankAccountDetails {
+  accountId: String!
+  accountNumber: String!
+  bankName: String!
+  branch: String!
+  checkNumber: String
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHECK
+  MOBILE_WALLET
+  CREDIT_CARD
+  DEBIT_CARD
+  ONLINE_BANKING
+}
+
+enum MobileWalletProvider {
+  BKASH
+  NAGAD
+  ROCKET
+  UPAY
+  SURECASH
+  MCASH
+  TCASH
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  RECONCILED
+  REVERSED
+}
+
+# Journal Entry Types
+type JournalEntry @key(fields: "id") {
+  id: ID!
+  journalNumber: String!
+  journalDate: DateTime!
+  journalType: JournalType!
+  description: String!
+  reference: String
+  entries: [JournalLine!]!
+  totalDebit: Money!
+  totalCredit: Money!
+  status: JournalStatus!
+  fiscalPeriod: String!
+  postedBy: User
+  postedAt: DateTime
+  isReversing: Boolean!
+  originalJournalId: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type JournalLine {
+  lineId: ID!
+  accountId: String!
+  account: ChartOfAccount @requires(fields: "accountId")
+  debitAmount: Money!
+  creditAmount: Money!
+  description: String
+  costCenter: String
+  project: String
+  reference: String
+  taxCode: String
+}
+
+enum JournalType {
+  GENERAL
+  SALES
+  PURCHASE
+  CASH_RECEIPT
+  CASH_PAYMENT
+  ADJUSTMENT
+  REVERSING
+  CLOSING
+  OPENING
+}
+
+enum JournalStatus {
+  DRAFT
+  POSTED
+  REVERSED
+  CANCELLED
+  ERROR
+}
+
+# Chart of Accounts Types
+type ChartOfAccount @key(fields: "id") {
+  id: ID!
+  accountCode: String!
+  accountName: String!
+  accountType: AccountType!
+  parentAccountId: String
+  parentAccount: ChartOfAccount
+  children: [ChartOfAccount!]
+  balance: Money!
+  currency: String!
+  isActive: Boolean!
+  tenantId: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+# Approval Workflow Type
+type ApprovalWorkflow {
+  workflowId: String!
+  status: ApprovalStatus!
+  currentLevel: ApprovalLevel
+  approvals: [ApprovalRecord!]!
+  rejections: [RejectionRecord!]
+  nextApprover: User
+  estimatedCompletionTime: DateTime
+}
+
+type ApprovalLevel {
+  role: ApprovalRole!
+  threshold: Float!
+  currency: String!
+  approvers: [User!]
+  autoApprove: Boolean
+}
+
+type ApprovalRecord {
+  approverId: String!
+  approver: User @requires(fields: "approverId")
+  approverRole: ApprovalRole!
+  approvedAt: DateTime!
+  comments: String
+  conditions: [String!]
+}
+
+type RejectionRecord {
+  rejectedBy: String!
+  rejector: User @requires(fields: "rejectedBy")
+  rejectedAt: DateTime!
+  reason: String!
+  canResubmit: Boolean!
+}
+
+enum ApprovalStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  ESCALATED
+  EXPIRED
+  CANCELLED
+}
+
+enum ApprovalRole {
+  SUPERVISOR
+  MANAGER
+  DIRECTOR
+  CFO
+  CEO
+}
+
+# Financial Summary Types
+type FinancialSummary {
+  period: String!
+  fiscalYear: String!
+  revenue: RevenueSummary!
+  expenses: ExpenseSummary!
+  payments: PaymentSummary!
+  outstanding: OutstandingSummary!
+  cashFlow: CashFlowSummary!
+  profitability: ProfitabilitySummary!
+}
+
+type RevenueSummary {
+  totalRevenue: Money!
+  totalVATCollected: Money!
+  invoiceCount: Int!
+}
+
+type ExpenseSummary {
+  totalExpenses: Money!
+  totalVATPaid: Money!
+  billCount: Int!
+}
+
+type PaymentSummary {
+  totalPaymentsReceived: Money!
+  totalPaymentsMade: Money!
+  paymentCount: Int!
+}
+
+type OutstandingSummary {
+  accountsReceivable: Money!
+  accountsPayable: Money!
+  overdueInvoices: Int!
+  overdueBills: Int!
+}
+
+type CashFlowSummary {
+  netCashFlow: Money!
+  operatingCashFlow: Money!
+  investingCashFlow: Money!
+  financingCashFlow: Money!
+}
+
+type ProfitabilitySummary {
+  grossProfit: Money!
+  netProfit: Money!
+  profitMargin: Float!
+}
+
+# Pagination Types
+type InvoiceConnection {
+  edges: [InvoiceEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type InvoiceEdge {
+  node: Invoice!
+  cursor: String!
+}
+
+type PaymentConnection {
+  edges: [PaymentEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type PaymentEdge {
+  node: Payment!
+  cursor: String!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+# Input Types
+input CreateInvoiceInput {
+  vendorId: String!
+  customerId: String!
+  invoiceDate: DateTime!
+  dueDate: DateTime!
+  lineItems: [LineItemInput!]!
+  vendorTIN: String
+  vendorBIN: String
+  customerTIN: String
+  customerBIN: String
+}
+
+input LineItemInput {
+  description: String!
+  quantity: Float!
+  unitPrice: Float!
+  currency: String!
+  vatCategory: VATCategory
+  hsCode: String
+  supplementaryDutyRate: Float
+  advanceIncomeTaxRate: Float
+}
+
+input CreatePaymentInput {
+  invoiceId: String!
+  amount: Float!
+  currency: String!
+  paymentMethod: PaymentMethod!
+  paymentDate: DateTime!
+  reference: String
+  bankAccountId: String
+  checkNumber: String
+  walletProvider: MobileWalletProvider
+  mobileNumber: String
+  walletTransactionId: String
+  merchantCode: String
+}
+
+input CreateJournalInput {
+  journalDate: DateTime!
+  journalType: JournalType
+  description: String!
+  reference: String
+  lines: [JournalLineInput!]!
+  autoPost: Boolean
+}
+
+input JournalLineInput {
+  accountId: String!
+  debitAmount: Float
+  creditAmount: Float
+  description: String
+  costCenter: String
+  project: String
+  reference: String
+  taxCode: String
+}
+
+input CreateAccountInput {
+  accountCode: String!
+  accountName: String!
+  accountType: AccountType!
+  parentAccountId: String
+  currency: String!
+}
+
+input InvoiceFilter {
+  status: InvoiceStatus
+  vendorId: String
+  customerId: String
+  dateFrom: DateTime
+  dateTo: DateTime
+  minAmount: Float
+  maxAmount: Float
+  mushakNumber: String
+}
+
+input PaymentFilter {
+  status: PaymentStatus
+  invoiceId: String
+  paymentMethod: PaymentMethod
+  dateFrom: DateTime
+  dateTo: DateTime
+  minAmount: Float
+  maxAmount: Float
+}
+
+input PaginationInput {
+  page: Int!
+  limit: Int!
+  sortBy: String
+  sortOrder: SortOrder
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+# Queries
+type Query {
+  # Invoice queries
+  invoice(id: ID!): Invoice
+  invoices(
+    filter: InvoiceFilter
+    pagination: PaginationInput
+  ): InvoiceConnection!
+  invoiceByNumber(invoiceNumber: String!): Invoice
+
+  # Payment queries
+  payment(id: ID!): Payment
+  payments(
+    filter: PaymentFilter
+    pagination: PaginationInput
+  ): PaymentConnection!
+  paymentByNumber(paymentNumber: String!): Payment
+
+  # Journal queries
+  journalEntry(id: ID!): JournalEntry
+  journalEntries(
+    dateFrom: DateTime
+    dateTo: DateTime
+    journalType: JournalType
+    status: JournalStatus
+    pagination: PaginationInput
+  ): [JournalEntry!]!
+
+  # Chart of Accounts queries
+  chartOfAccount(id: ID!): ChartOfAccount
+  chartOfAccounts(
+    accountType: AccountType
+    isActive: Boolean
+  ): [ChartOfAccount!]!
+  accountByCode(accountCode: String!): ChartOfAccount
+  accountHierarchy(parentAccountId: String): [ChartOfAccount!]!
+
+  # Financial reporting queries
+  financialSummary(
+    period: String!
+    tenantId: String
+  ): FinancialSummary!
+
+  trialBalance(
+    asOfDate: DateTime!
+  ): [AccountBalance!]!
+
+  incomeStatement(
+    startDate: DateTime!
+    endDate: DateTime!
+  ): IncomeStatement!
+
+  balanceSheet(
+    asOfDate: DateTime!
+  ): BalanceSheet!
+
+  # Approval workflow queries
+  approvalStatus(workflowId: String!): ApprovalWorkflow
+  pendingApprovals(userId: String!): [ApprovalRequest!]!
+}
+
+# Mutations
+type Mutation {
+  # Invoice mutations
+  createInvoice(input: CreateInvoiceInput!): Invoice!
+  updateInvoice(id: ID!, input: UpdateInvoiceInput!): Invoice!
+  approveInvoice(id: ID!): Invoice!
+  cancelInvoice(id: ID!, reason: String!): Invoice!
+
+  # Payment mutations
+  createPayment(input: CreatePaymentInput!): Payment!
+  completePayment(id: ID!, transactionReference: String!): Payment!
+  failPayment(id: ID!, reason: String!): Payment!
+  reconcilePayment(
+    id: ID!
+    bankTransactionId: String!
+  ): Payment!
+  reversePayment(id: ID!, reason: String!): Payment!
+
+  # Journal mutations
+  createJournalEntry(input: CreateJournalInput!): JournalEntry!
+  postJournalEntry(id: ID!): JournalEntry!
+  reverseJournalEntry(
+    id: ID!
+    reversingDate: DateTime!
+  ): JournalEntry!
+
+  # Chart of Accounts mutations
+  createAccount(input: CreateAccountInput!): ChartOfAccount!
+  updateAccount(id: ID!, input: UpdateAccountInput!): ChartOfAccount!
+  deactivateAccount(id: ID!, reason: String!): ChartOfAccount!
+
+  # Approval workflow mutations
+  submitApprovalDecision(
+    workflowId: String!
+    decision: ApprovalDecision!
+    comments: String
+    conditions: [String!]
+  ): ApprovalWorkflow!
+
+  delegateApproval(
+    workflowId: String!
+    toUserId: String!
+    reason: String!
+  ): ApprovalWorkflow!
+
+  escalateApproval(
+    workflowId: String!
+    reason: String!
+  ): ApprovalWorkflow!
+}
+
+# Additional types for financial reports
+type AccountBalance {
+  accountId: String!
+  accountCode: String!
+  accountName: String!
+  accountType: AccountType!
+  debitBalance: Money!
+  creditBalance: Money!
+  netBalance: Money!
+}
+
+type IncomeStatement {
+  period: String!
+  revenue: [AccountBalance!]!
+  expenses: [AccountBalance!]!
+  grossProfit: Money!
+  operatingIncome: Money!
+  netIncome: Money!
+}
+
+type BalanceSheet {
+  asOfDate: DateTime!
+  assets: [AccountBalance!]!
+  liabilities: [AccountBalance!]!
+  equity: [AccountBalance!]!
+  totalAssets: Money!
+  totalLiabilities: Money!
+  totalEquity: Money!
+}
+
+input UpdateInvoiceInput {
+  dueDate: DateTime
+  lineItems: [LineItemInput!]
+}
+
+input UpdateAccountInput {
+  accountName: String
+  parentAccountId: String
+}
+
+type ApprovalRequest {
+  requestId: String!
+  entityType: String!
+  entityId: String!
+  amount: Money!
+  requestedBy: User!
+  requestedAt: DateTime!
+  description: String!
+}
+
+enum ApprovalDecision {
+  APPROVE
+  REJECT
+}
+
+scalar DateTime

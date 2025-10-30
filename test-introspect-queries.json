@@ -1,0 +1,3 @@
+{
+  "query": "{ __schema { queryType { fields(includeDeprecated: true) { name description args { name type { name kind } } } } } }"
+}

@@ -1,0 +1,188 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@playwright/mcp"
+      ],
+      "env": {
+        "PLAYWRIGHT_BROWSER": "chromium",
+        "PLAYWRIGHT_HEADLESS": "false"
+      }
+    },
+    "brave-search": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "BSAN-x6l1bRzrW5CokyV_URi33fbtnk"
+      }
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "ctx7sk-a89018f2-9934-4b30-b384-23a7e6883071"
+      ]
+    },
+    "consult7": {
+      "type": "stdio",
+      "command": "C:\\Users\\riz\\AppData\\Roaming\\uv\\tools\\consult7\\Scripts\\consult7.exe",
+      "args": ["google", "AIzaSyDmVuWC7_gWvK7IQsUbLNPjMU4QnywnkE8"]
+    },
+    "serena": {
+      "type": "stdio",
+      "command": "C:\\Users\\riz\\AppData\\Roaming\\uv\\tools\\serena-agent\\Scripts\\serena.exe",
+      "args": ["start-mcp-server", "--context", "ide-assistant"]
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:/Users/riz/vextrus-erp"
+      ]
+    },
+    "github": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "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"
+      }
+    },
+    "memory": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ]
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "prisma-local": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "prisma",
+        "mcp"
+      ]
+    },
+    "prisma-remote": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "mcp-remote",
+        "https://mcp.prisma.io/mcp"
+      ]
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-postgres"
+      ],
+      "env": {
+        "PGHOST": "localhost",
+        "PGPORT": "5432",
+        "PGUSER": "vextrus",
+        "PGDATABASE": "vextrus_erp",
+        "PGPASSWORD": "vextrus_dev_2024"
+      }
+    },
+    "sqlite": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "mcp-sqlite",
+        "C:/Users/riz/vextrus-erp/.sqlite/local.db"
+      ]
+    },
+    "brightdata": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@brightdata/mcp"
+      ],
+      "env": {
+        "API_TOKEN": "3e44f99126348a1f0cf9f52331c8f0e4a6eb984dd7c4850aa890c5f68082ba0c"
+      }
+    },
+    "notion": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@notionhq/notion-mcp-server"
+      ],
+      "env": {
+        "NOTION_API_KEY": "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"
+      }
+    },
+    "reddit": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "reddit-mcp-server"
+      ],
+      "env": {
+        "REDDIT_CLIENT_ID": "x8DuvBgh3rMGL08zbCsmyg",
+        "REDDIT_CLIENT_SECRET": "z4WjKEye9BlprgYN-WgMn8151RGs9g",
+        "REDDIT_USER_AGENT": "windows:vextrus-mcp:v1.0 (by /u/riz)"
+      }
+    }
+  }
+}

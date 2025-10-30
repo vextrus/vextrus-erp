@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  finance:
+    build:
+      context: .
+      dockerfile: ./services/finance/Dockerfile
+      target: production  # Use production stage instead of development
+    # No volume mounts in production - everything is baked into the image
+    volumes: []
+    environment:
+      NODE_ENV: production
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '1.0'
+          memory: 1024M

@@ -1,0 +1,182 @@
+# Traefik Dynamic Configuration for Bangladesh Construction ERP
+# This file defines middlewares, services, and routers for multi-tenant architecture
+
+http:
+  middlewares:
+    # Tenant Context Middleware - Extracts and validates tenant information
+    tenant-context:
+      plugin:
+        tenantContext:
+          headerName: "X-Tenant-ID"
+          projectHeader: "X-Project-ID"
+          siteHeader: "X-Site-ID"
+          defaultTenant: "default"
+          requireTenant: false
+    
+    # Alternative: Using headers middleware for simple tenant injection
+    tenant-headers:
+      headers:
+        customRequestHeaders:
+          X-Tenant-ID: "{{.Request.Header.Get \"X-Tenant-ID\"}}"
+          X-Project-ID: "{{.Request.Header.Get \"X-Project-ID\"}}"
+          X-Site-ID: "{{.Request.Header.Get \"X-Site-ID\"}}"
+        
+    # Rate limiting per tenant
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 200
+        sourceCriterion:
+          requestHeaderName: "X-Tenant-ID"
+    
+    # CORS configuration for API
+    cors:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - OPTIONS
+          - PUT
+          - POST
+          - DELETE
+          - PATCH
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowOriginList:
+          - "http://localhost:3000"
+          - "http://localhost:3001"
+          - "http://localhost:4200"
+          - "http://localhost:8080"
+        accessControlExposeHeaders:
+          - "X-Total-Count"
+          - "X-Page-Count"
+        accessControlMaxAge: 100
+        addVaryHeader: true
+        accessControlAllowCredentials: true
+    
+    # Security headers
+    security-headers:
+      headers:
+        customResponseHeaders:
+          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: "DENY"
+          X-XSS-Protection: "1; mode=block"
+          Referrer-Policy: "strict-origin-when-cross-origin"
+          Content-Security-Policy: "default-src 'self'"
+    
+    # Request ID generation for tracing
+    request-id:
+      headers:
+        customRequestHeaders:
+          X-Request-ID: "{{.RequestID}}"
+
+  # Service definitions for construction ERP modules
+  services:
+    # Auth service configuration
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://auth:3001"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+          scheme: http
+    
+    # Placeholder for Organization service
+    organization-service:
+      loadBalancer:
+        servers:
+          - url: "http://organization:3002"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+    
+    # Placeholder for Project Management service
+    project-service:
+      loadBalancer:
+        servers:
+          - url: "http://project:3003"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+    
+    # Placeholder for Inventory service
+    inventory-service:
+      loadBalancer:
+        servers:
+          - url: "http://inventory:3004"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+  # Routers for API endpoints
+  routers:
+    # Auth service router
+    auth-api:
+      rule: "Host(`api.localhost`) && PathPrefix(`/api/auth`)"
+      service: auth-service
+      middlewares:
+        - cors
+        - security-headers
+        - request-id
+        - tenant-context
+        - rate-limit
+      entryPoints:
+        - web
+    
+    # Organization service router
+    organization-api:
+      rule: "Host(`api.localhost`) && PathPrefix(`/api/organizations`)"
+      service: organization-service
+      middlewares:
+        - cors
+        - security-headers
+        - request-id
+        - tenant-context
+        - rate-limit
+      entryPoints:
+        - web
+    
+    # Project service router
+    project-api:
+      rule: "Host(`api.localhost`) && PathPrefix(`/api/projects`)"
+      service: project-service
+      middlewares:
+        - cors
+        - security-headers
+        - request-id
+        - tenant-context
+        - rate-limit
+      entryPoints:
+        - web
+    
+    # Inventory service router
+    inventory-api:
+      rule: "Host(`api.localhost`) && PathPrefix(`/api/inventory`)"
+      service: inventory-service
+      middlewares:
+        - cors
+        - security-headers
+        - request-id
+        - tenant-context
+        - rate-limit
+      entryPoints:
+        - web
+
+# TCP configuration (for future database proxy)
+tcp:
+  routers:
+    postgres:
+      rule: "HostSNI(`*`)"
+      service: postgres-service
+      entryPoints:
+        - postgres
+  
+  services:
+    postgres-service:
+      loadBalancer:
+        servers:
+          - address: "postgres:5432"

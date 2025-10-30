@@ -1,0 +1,6 @@
+# Health Check Queries
+# Simple queries to test GraphQL connectivity
+
+query HealthCheck {
+  __typename
+}

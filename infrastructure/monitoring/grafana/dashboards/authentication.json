@@ -1,0 +1,373 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "authentication",
+    "title": "Authentication & Security Dashboard",
+    "tags": ["authentication", "security", "auth", "vextrus"],
+    "timezone": "Asia/Dhaka",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+        "type": "stat",
+        "title": "Login Success Rate",
+        "targets": [
+          {
+            "expr": "(sum(rate(auth_login_success_total[5m])) / sum(rate(auth_login_attempts_total[5m]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "green", "value": 90}
+              ]
+            },
+            "unit": "percent",
+            "decimals": 1
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0},
+        "type": "stat",
+        "title": "Active Sessions",
+        "targets": [
+          {
+            "expr": "auth_active_sessions",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 500}
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "orientation": "horizontal",
+          "textMode": "value"
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 0},
+        "type": "stat",
+        "title": "Failed Login Attempts (Last 5m)",
+        "targets": [
+          {
+            "expr": "sum(increase(auth_login_failures_total[5m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 5},
+                {"color": "orange", "value": 20},
+                {"color": "red", "value": 50}
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 0},
+        "type": "stat",
+        "title": "Token Validations/sec",
+        "targets": [
+          {
+            "expr": "sum(rate(auth_token_validation_total[1m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "ops",
+            "decimals": 2
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "orientation": "horizontal",
+          "textMode": "value"
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+        "type": "timeseries",
+        "title": "Login Attempts Over Time",
+        "targets": [
+          {
+            "expr": "sum(rate(auth_login_success_total[5m]))",
+            "refId": "A",
+            "legendFormat": "Successful"
+          },
+          {
+            "expr": "sum(rate(auth_login_failures_total[5m]))",
+            "refId": "B",
+            "legendFormat": "Failed"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 20,
+              "gradientMode": "opacity"
+            },
+            "unit": "ops",
+            "color": {"mode": "palette-classic"}
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Failed"},
+              "properties": [
+                {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "Successful"},
+              "properties": [
+                {"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+        "type": "timeseries",
+        "title": "Token Operations",
+        "targets": [
+          {
+            "expr": "sum(rate(auth_token_issued_total[5m]))",
+            "refId": "A",
+            "legendFormat": "Issued"
+          },
+          {
+            "expr": "sum(rate(auth_token_refreshed_total[5m]))",
+            "refId": "B",
+            "legendFormat": "Refreshed"
+          },
+          {
+            "expr": "sum(rate(auth_token_expired_total[5m]))",
+            "refId": "C",
+            "legendFormat": "Expired"
+          },
+          {
+            "expr": "sum(rate(auth_token_revoked_total[5m]))",
+            "refId": "D",
+            "legendFormat": "Revoked"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 15
+            },
+            "unit": "ops",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 14},
+        "type": "bargauge",
+        "title": "Login Failures by Reason",
+        "targets": [
+          {
+            "expr": "sum(increase(auth_login_failures_total[1h])) by (reason)",
+            "refId": "A",
+            "legendFormat": "{{reason}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 50}
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient",
+          "showUnfilled": true
+        }
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 14},
+        "type": "piechart",
+        "title": "Auth Methods Distribution",
+        "targets": [
+          {
+            "expr": "sum(increase(auth_login_attempts_total[1h])) by (auth_method)",
+            "refId": "A",
+            "legendFormat": "{{auth_method}}"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          },
+          "pieType": "donut"
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 14},
+        "type": "gauge",
+        "title": "JWT Token Validation Success Rate",
+        "targets": [
+          {
+            "expr": "(sum(rate(auth_token_validation_success_total[5m])) / sum(rate(auth_token_validation_total[5m]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 99}
+              ]
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "options": {
+          "orientation": "auto",
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 10,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 22},
+        "type": "table",
+        "title": "Recent Failed Login Attempts",
+        "targets": [
+          {
+            "expr": "topk(20, auth_login_failures_total)",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Time"},
+              "properties": [
+                {"id": "custom.hidden", "value": true}
+              ]
+            }
+          ]
+        },
+        "options": {
+          "sortBy": [
+            {"displayName": "Value", "desc": true}
+          ]
+        }
+      },
+      {
+        "id": 11,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22},
+        "type": "timeseries",
+        "title": "User Sessions Over Time",
+        "targets": [
+          {
+            "expr": "auth_active_sessions",
+            "refId": "A",
+            "legendFormat": "Active Sessions"
+          },
+          {
+            "expr": "deriv(auth_active_sessions[5m])",
+            "refId": "B",
+            "legendFormat": "Session Growth Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 15
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Active Sessions"},
+              "properties": [
+                {"id": "unit", "value": "short"},
+                {"id": "custom.axisPlacement", "value": "left"}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "Session Growth Rate"},
+              "properties": [
+                {"id": "unit", "value": "short/s"},
+                {"id": "custom.axisPlacement", "value": "right"}
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}

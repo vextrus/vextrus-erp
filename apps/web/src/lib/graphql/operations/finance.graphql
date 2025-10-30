@@ -1,0 +1,234 @@
+# Finance Module GraphQL Operations
+# Queries and mutations for invoice, payment, and accounting operations
+
+# Get all invoices for current tenant
+query GetInvoices(
+  $limit: Int = 50
+  $offset: Int = 0
+) {
+  invoices(limit: $limit, offset: $offset) {
+    id
+    invoiceNumber
+    status
+    customerId
+    customerTIN
+    customerBIN
+    grandTotal {
+      amount
+      currency
+    }
+    invoiceDate
+    dueDate
+    createdAt
+    updatedAt
+  }
+}
+
+# Get single invoice by ID
+query GetInvoice($id: ID!) {
+  invoice(id: $id) {
+    id
+    invoiceNumber
+    status
+    vendorId
+    customerId
+    vendorTIN
+    vendorBIN
+    customerTIN
+    customerBIN
+    grandTotal {
+      amount
+      currency
+    }
+    subtotal {
+      amount
+      currency
+    }
+    vatAmount {
+      amount
+      currency
+    }
+    supplementaryDuty {
+      amount
+      currency
+    }
+    advanceIncomeTax {
+      amount
+      currency
+    }
+    invoiceDate
+    dueDate
+    fiscalYear
+    mushakNumber
+    challanNumber
+    lineItems {
+      description
+      quantity
+      unitPrice {
+        amount
+        currency
+      }
+    }
+    createdAt
+    updatedAt
+  }
+}
+
+# Get chart of accounts
+query GetChartOfAccounts {
+  chartOfAccounts {
+    id
+    accountCode
+    accountName
+    accountType
+    parentAccountId
+    balance {
+      amount
+      currency
+    }
+    currency
+    isActive
+    createdAt
+  }
+}
+
+# Get single payment by ID
+query GetPayment($id: ID!) {
+  payment(id: $id) {
+    id
+    paymentNumber
+    invoiceId
+    amount {
+      amount
+      currency
+    }
+    paymentMethod
+    bankAccountId
+    checkNumber
+    mobileWallet {
+      provider
+      mobileNumber
+      transactionId
+      merchantCode
+    }
+    status
+    paymentDate
+    reference
+    transactionReference
+    reconciledAt
+    reconciledBy
+    bankTransactionId
+    reversedAt
+    reversedBy
+    reversalReason
+    failureReason
+    createdAt
+    updatedAt
+  }
+}
+
+# Get payments by status
+query GetPaymentsByStatus(
+  $status: PaymentStatus!
+  $limit: Int = 50
+  $offset: Int = 0
+) {
+  paymentsByStatus(status: $status, limit: $limit, offset: $offset) {
+    id
+    paymentNumber
+    invoiceId
+    amount {
+      amount
+      currency
+    }
+    paymentMethod
+    status
+    paymentDate
+    reference
+    createdAt
+    updatedAt
+  }
+}
+
+# Get all journal entries
+query GetJournals(
+  $limit: Int = 50
+  $offset: Int = 0
+  $status: JournalStatus
+) {
+  journals(limit: $limit, offset: $offset, status: $status) {
+    id
+    journalNumber
+    journalDate
+    journalType
+    description
+    reference
+    totalDebit
+    totalCredit
+    currency
+    status
+    fiscalPeriod
+    isReversing
+    originalJournalId
+    createdAt
+    updatedAt
+  }
+}
+
+# Get single journal entry by ID
+query GetJournal($id: ID!) {
+  journal(id: $id) {
+    id
+    journalNumber
+    journalDate
+    journalType
+    description
+    reference
+    lines {
+      lineId
+      accountId
+      debitAmount
+      creditAmount
+      description
+      costCenter
+      project
+      reference
+      taxCode
+    }
+    totalDebit
+    totalCredit
+    currency
+    status
+    fiscalPeriod
+    isReversing
+    originalJournalId
+    postedAt
+    postedBy
+    createdAt
+    updatedAt
+  }
+}
+
+# Get single chart of account by ID
+query GetChartOfAccount($id: ID!) {
+  chartOfAccount(id: $id) {
+    id
+    accountCode
+    accountName
+    accountType
+    parentAccountId
+    parentAccount {
+      id
+      accountCode
+      accountName
+    }
+    balance {
+      amount
+      currency
+    }
+    currency
+    isActive
+    createdAt
+    updatedAt
+  }
+}

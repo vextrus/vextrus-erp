@@ -1,0 +1,139 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 100
+      name: "Ramp up load"
+    - duration: 300
+      arrivalRate: 1000
+      name: "Sustained load"
+    - duration: 120
+      arrivalRate: 100
+      name: "Cool down"
+  processor: "./processors/api-processor.js"
+  variables:
+    tenantId: "test-tenant-001"
+  plugins:
+    metrics-by-endpoint: {}
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      X-Tenant-Id: "{{ tenantId }}"
+
+scenarios:
+  - name: "API Gateway Throughput Test"
+    weight: 40
+    flow:
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "test@vextrus.bd"
+            password: "Test123!@#"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      
+      - loop:
+        - get:
+            url: "/api/v1/users/profile"
+            headers:
+              Authorization: "Bearer {{ authToken }}"
+        - get:
+            url: "/api/v1/projects"
+            headers:
+              Authorization: "Bearer {{ authToken }}"
+        - get:
+            url: "/api/v1/notifications"
+            headers:
+              Authorization: "Bearer {{ authToken }}"
+        count: 10
+
+  - name: "CRUD Operations Test"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "test@vextrus.bd"
+            password: "Test123!@#"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      
+      - post:
+          url: "/api/v1/projects"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            name: "{{ $randomString() }}"
+            budget: "{{ $randomNumber(1000000, 10000000) }}"
+            type: "Infrastructure"
+          capture:
+            - json: "$.id"
+              as: "projectId"
+      
+      - get:
+          url: "/api/v1/projects/{{ projectId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      
+      - put:
+          url: "/api/v1/projects/{{ projectId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            status: "IN_PROGRESS"
+      
+      - delete:
+          url: "/api/v1/projects/{{ projectId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  - name: "Multi-Tenant Isolation Test"
+    weight: 20
+    flow:
+      - loop:
+        - post:
+            url: "/api/v1/auth/login"
+            json:
+              email: "user@tenant{{ $loopCount }}.bd"
+              password: "Pass123!"
+            headers:
+              X-Tenant-Id: "tenant-{{ $loopCount }}"
+            capture:
+              - json: "$.token"
+                as: "token{{ $loopCount }}"
+        
+        - get:
+            url: "/api/v1/data"
+            headers:
+              Authorization: "Bearer {{ token{{ $loopCount }} }}"
+              X-Tenant-Id: "tenant-{{ $loopCount }}"
+        count: 5
+
+  - name: "Service Discovery Health Check"
+    weight: 10
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: status
+      
+      - get:
+          url: "/api/v1/services/status"
+          expect:
+            - statusCode: 200
+            - hasProperty: services
+            - hasProperty: healthy
+
+# Performance targets
+ensure:
+  p95: 500  # 95th percentile response time < 500ms
+  p99: 1000 # 99th percentile response time < 1s
+  max: 5000 # Maximum response time < 5s
+  min: 10   # Minimum response time > 10ms (sanity check)

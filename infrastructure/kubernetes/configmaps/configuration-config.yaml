@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configuration-config
+  namespace: vextrus
+data:
+  NODE_ENV: "production"
+  PORT: "3006"
+  DATABASE_HOST: "postgres.vextrus.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "vextrus_erp"
+  REDIS_HOST: "redis.vextrus.svc.cluster.local"
+  REDIS_PORT: "6379"
+  KAFKA_BROKERS: "kafka-0.kafka.vextrus.svc.cluster.local:9092,kafka-1.kafka.vextrus.svc.cluster.local:9092,kafka-2.kafka.vextrus.svc.cluster.local:9092"
+  FEATURE_FLAG_CACHE_TTL: "60"
+  CONFIG_REFRESH_INTERVAL: "30000"
+  REAL_TIME_UPDATE_ENABLED: "true"
+  AB_TESTING_ENABLED: "true"
+  CONFIG_VERSION_HISTORY_LIMIT: "100"
+  ENABLE_METRICS: "true"
+  METRICS_PORT: "9090"

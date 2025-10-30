@@ -1,0 +1,3 @@
+{
+  "query": "query GetCurrentUser { me { id email username organizationId status } }"
+}

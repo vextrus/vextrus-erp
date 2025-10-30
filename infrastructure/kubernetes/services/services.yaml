@@ -1,0 +1,191 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: vextrus
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+  labels:
+    app: auth-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3001
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: auth-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: organization-service
+  namespace: vextrus
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+  labels:
+    app: organization-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3002
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: organization-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: vextrus
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+  labels:
+    app: notification-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3003
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: notification-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: file-storage-service
+  namespace: vextrus
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+  labels:
+    app: file-storage-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3004
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: file-storage-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audit-service
+  namespace: vextrus
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+  labels:
+    app: audit-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3005
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: audit-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: configuration-service
+  namespace: vextrus
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+  labels:
+    app: configuration-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3006
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: configuration-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: import-export-service
+  namespace: vextrus
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+  labels:
+    app: import-export-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3007
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: import-export-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: document-generator-service
+  namespace: vextrus
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+  labels:
+    app: document-generator-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3008
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: document-generator-service

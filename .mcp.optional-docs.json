@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "context7": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "ctx7sk-a89018f2-9934-4b30-b384-23a7e6883071"
+      ]
+    },
+    "consult7": {
+      "type": "stdio",
+      "command": "C:\\Users\\riz\\AppData\\Roaming\\uv\\tools\\consult7\\Scripts\\consult7.exe",
+      "args": ["google", "AIzaSyDmVuWC7_gWvK7IQsUbLNPjMU4QnywnkE8"]
+    }
+  }
+}

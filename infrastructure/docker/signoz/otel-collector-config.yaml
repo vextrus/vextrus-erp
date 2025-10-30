@@ -1,0 +1,191 @@
+# OpenTelemetry Collector Configuration for SigNoz
+receivers:
+  # OTLP receiver for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://localhost:*"
+            - "http://api.localhost:*"
+
+  # Host metrics receiver for infrastructure monitoring
+  hostmetrics:
+    collection_interval: 10s
+    scrapers:
+      cpu: {}
+      memory: {}
+      disk: {}
+      network: {}
+      load: {}
+      filesystem: {}
+
+  # Docker stats receiver
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 10s
+    timeout: 20s
+    api_version: 1.24
+
+  # Prometheus receiver for scraping metrics
+  prometheus:
+    config:
+      scrape_configs:
+        # Scrape Node.js services metrics
+        - job_name: 'nodejs-services'
+          scrape_interval: 15s
+          static_configs:
+            - targets:
+                - 'auth:3001'
+                - 'master-data:3010'
+                - 'workflow:3011'
+                - 'rules-engine:3012'
+                - 'api-gateway:4000'
+              labels:
+                service_type: 'nodejs'
+        
+        # Scrape Kafka metrics
+        - job_name: 'kafka'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['kafka:9092']
+              labels:
+                service_type: 'kafka'
+        
+        # Scrape Redis metrics
+        - job_name: 'redis'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['redis:6379']
+              labels:
+                service_type: 'redis'
+
+processors:
+  # Batch processor for better throughput
+  batch:
+    send_batch_size: 10000
+    timeout: 10s
+    send_batch_max_size: 11000
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 90
+
+  # Resource processor to add metadata
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: development
+        action: insert
+      - key: service.namespace
+        value: vextrus-erp
+        action: insert
+      - key: cloud.region
+        value: bangladesh
+        action: insert
+
+  # Attributes processor for data enrichment
+  attributes:
+    actions:
+      - key: http.user_agent
+        action: delete
+      - key: http.request.body
+        action: delete
+      - key: db.statement
+        action: hash
+      - key: user.password
+        action: delete
+      - key: user.token
+        action: delete
+
+  # Span processor for trace sampling
+  probabilistic_sampler:
+    sampling_percentage: 10  # Sample 10% in development
+
+  # Resource detection processor
+  resourcedetection:
+    detectors: [env, system, docker]
+    timeout: 5s
+
+  # Filter processor for removing sensitive data
+  filter/errors:
+    traces:
+      span:
+        - 'attributes["error"] == true'
+
+exporters:
+  # ClickHouse exporters for SigNoz
+  clickhousetraces:
+    datasource: tcp://default:@signoz-clickhouse:9000/?database=signoz_traces
+    docker_multi_node_cluster: false
+    low_cardinal_exception_grouping: false
+
+  clickhousemetricswrite:
+    endpoint: tcp://default:@signoz-clickhouse:9000/?database=signoz_metrics
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  clickhouselogsexporter:
+    dsn: tcp://default:@signoz-clickhouse:9000/?database=signoz_logs
+    docker_multi_node_cluster: false
+    timeout: 10s
+
+  # Logging exporter (debug not supported by SignOz)
+  logging:
+    loglevel: info
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+    path: "/health"
+    check_collector_pipeline:
+      enabled: true
+      interval: 10s
+      exporter_failure_threshold: 5
+
+  # Performance profiler
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # zPages for debugging
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  # Extensions to enable
+  extensions: [health_check, pprof, zpages]
+
+  # Pipeline definitions
+  pipelines:
+    # Traces pipeline
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource, attributes, probabilistic_sampler]
+      exporters: [clickhousetraces, logging]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics, docker_stats]
+      processors: [memory_limiter, batch, resource, resourcedetection]
+      exporters: [clickhousemetricswrite]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource, attributes]
+      exporters: [clickhouselogsexporter]
+
+  telemetry:
+    logs:
+      level: info
+      initial_fields:
+        service: otel-collector
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888

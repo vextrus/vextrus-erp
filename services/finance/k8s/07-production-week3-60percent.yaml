@@ -1,0 +1,361 @@
+---
+# Production Stable Deployment (40% traffic)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-service-stable
+  namespace: vextrus-production
+  labels:
+    app: finance-service
+    environment: production
+    version: stable
+  annotations:
+    deployment.kubernetes.io/revision: "stable"
+    rollback.target: "stable"
+    kubernetes.io/change-cause: "Stable baseline deployment"
+spec:
+  replicas: 4  # 40% of total capacity (4 out of 10 pods)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero-downtime deployment
+  selector:
+    matchLabels:
+      app: finance-service
+      environment: production
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: finance-service
+        environment: production
+        track: stable
+        version: stable
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3014"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 60  # Allow graceful shutdown for in-flight requests
+      containers:
+      - name: finance-service
+        image: vextrus/finance:stable
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3014
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3014"
+        # Database configuration
+        - name: DATABASE_HOST
+          valueFrom:
+            secretKeyRef:
+              name: finance-db-production
+              key: host
+        - name: DATABASE_PORT
+          value: "5432"
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: finance-db-production
+              key: username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: finance-db-production
+              key: password
+        - name: DATABASE_NAME
+          value: "vextrus_finance"
+        # JWT configuration
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets-production
+              key: jwt-secret
+        # CORS configuration
+        - name: CORS_ORIGIN
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets-production
+              key: cors-origin
+        # EventStore configuration with connection pooling
+        - name: EVENTSTORE_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets-production
+              key: eventstore-connection
+        - name: EVENTSTORE_MAX_RETRY_ATTEMPTS
+          value: "3"
+        - name: EVENTSTORE_RETRY_DELAY_MS
+          value: "1000"
+        - name: EVENTSTORE_CONNECTION_TIMEOUT_MS
+          value: "5000"
+        # Kafka configuration
+        - name: KAFKA_BROKERS
+          value: "kafka-production-0:9092,kafka-production-1:9092,kafka-production-2:9092"
+        # Observability
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://signoz:4318"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3014
+          initialDelaySeconds: 45
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3014
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              # Graceful shutdown: wait 10s for load balancer to remove pod, then stop accepting new connections
+              command: ["/bin/sh", "-c", "sleep 10"]
+---
+# Week 3 Canary Deployment (60% traffic - RBAC + Security Hardening + EventStore Snapshots)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-service-week3
+  namespace: vextrus-production
+  labels:
+    app: finance-service
+    environment: production
+    version: week3
+  annotations:
+    deployment.kubernetes.io/revision: "week3"
+    rollback.target: "stable"
+    kubernetes.io/change-cause: "Week 3: RBAC, security hardening, EventStore snapshot optimization"
+spec:
+  replicas: 6  # 60% of total capacity (6 out of 10 pods)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2  # Allow 2 extra pods during rollout for faster deployment
+      maxUnavailable: 0  # Zero-downtime deployment
+  selector:
+    matchLabels:
+      app: finance-service
+      environment: production
+      track: canary
+  template:
+    metadata:
+      labels:
+        app: finance-service
+        environment: production
+        track: canary
+        version: week3
+        snapshot-enabled: "true"  # For snapshot-aware monitoring
+      annotations:
+        security-hardening: "rate-limiting,rbac-guards,tenant-isolation,helmet"
+        deployment-date: "2025-10-17"
+        rollout-percentage: "60"
+        features: "event-sourcing-snapshots,rbac,security-hardening"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3014"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 60  # Allow graceful shutdown for in-flight requests
+      containers:
+      - name: finance-service
+        image: vextrus/finance:week3-prod
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3014
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3014"
+        - name: DEPLOYMENT_TRACK
+          value: "canary"
+        - name: DEPLOYMENT_VERSION
+          value: "week3"
+        # Database configuration
+        - name: DATABASE_HOST
+          valueFrom:
+            secretKeyRef:
+              name: finance-db-production
+              key: host
+        - name: DATABASE_PORT
+          value: "5432"
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: finance-db-production
+              key: username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: finance-db-production
+              key: password
+        - name: DATABASE_NAME
+          value: "vextrus_finance"
+        # JWT configuration
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets-production
+              key: jwt-secret
+        # CORS configuration
+        - name: CORS_ORIGIN
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets-production
+              key: cors-origin
+        # EventStore configuration with snapshots and connection pooling
+        - name: EVENTSTORE_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets-production
+              key: eventstore-connection
+        - name: SNAPSHOTS_ENABLED
+          value: "true"
+        - name: SNAPSHOT_FREQUENCY
+          value: "50"  # Create snapshot every 50 events
+        - name: EVENTSTORE_MAX_RETRY_ATTEMPTS
+          value: "3"
+        - name: EVENTSTORE_RETRY_DELAY_MS
+          value: "1000"
+        - name: EVENTSTORE_CONNECTION_TIMEOUT_MS
+          value: "5000"
+        - name: EVENTSTORE_READ_BATCH_SIZE
+          value: "500"  # Optimize batch reads for snapshot rebuilds
+        # Kafka configuration
+        - name: KAFKA_BROKERS
+          value: "kafka-production-0:9092,kafka-production-1:9092,kafka-production-2:9092"
+        # Observability with snapshot-specific metrics
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://signoz:4318"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: METRICS_SNAPSHOT_ENABLED
+          value: "true"  # Enable snapshot-specific metrics
+        resources:
+          requests:
+            memory: "1.5Gi"  # Increased for snapshot overhead
+            cpu: "600m"      # Slightly higher for snapshot processing
+          limits:
+            memory: "3Gi"    # Higher limit for snapshot memory usage
+            cpu: "1500m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3014
+          initialDelaySeconds: 60  # Increased delay for snapshot initialization
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3014
+          initialDelaySeconds: 30  # Increased delay for snapshot warmup
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              # Graceful shutdown: wait for load balancer removal, flush snapshots, then stop
+              command: ["/bin/sh", "-c", "sleep 10"]
+---
+# Service with session affinity for blue-green consistency
+apiVersion: v1
+kind: Service
+metadata:
+  name: finance-service
+  namespace: vextrus-production
+  labels:
+    app: finance-service
+    environment: production
+spec:
+  type: ClusterIP
+  selector:
+    app: finance-service
+    environment: production
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3014
+    protocol: TCP
+  sessionAffinity: ClientIP  # Sticky sessions for consistent version routing
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours for long-running sessions
+---
+# PodDisruptionBudget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: finance-service-week3-pdb
+  namespace: vextrus-production
+spec:
+  minAvailable: 4  # Ensure at least 4 pods available during disruptions
+  selector:
+    matchLabels:
+      app: finance-service
+      environment: production
+      track: canary
+---
+# HPA for Week 3 with snapshot-aware thresholds
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: finance-service-week3-hpa
+  namespace: vextrus-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: finance-service-week3
+  minReplicas: 6
+  maxReplicas: 12  # Allow scaling for snapshot load
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60  # Wait 1min before scaling up
+      policies:
+      - type: Percent
+        value: 50  # Scale up by 50% at a time
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5min before scaling down
+      policies:
+      - type: Pod
+        value: 1  # Scale down 1 pod at a time
+        periodSeconds: 60
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 65  # Lower threshold due to snapshot CPU overhead
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75  # Lower threshold due to snapshot memory overhead

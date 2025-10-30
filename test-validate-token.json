@@ -1,0 +1,3 @@
+{
+  "query": "query ValidateToken { validateToken { valid userId email organizationId expiresAt } }"
+}

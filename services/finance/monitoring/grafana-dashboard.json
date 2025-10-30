@@ -1,0 +1,516 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "finance-prod-001",
+    "title": "Finance Module - Production Monitoring",
+    "tags": ["finance", "production", "bangladesh", "erp"],
+    "timezone": "Asia/Dhaka",
+    "schemaVersion": 30,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Health Overview",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "up{job=\"finance-service\"}",
+            "legendFormat": "Service Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "type": "value", "value": 1, "text": "Healthy", "color": "green" },
+              { "type": "value", "value": 0, "text": "Down", "color": "red" }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 1, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Response Time (P95)",
+        "type": "gauge",
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service=\"finance\"}[5m]))",
+            "legendFormat": "95th Percentile"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "min": 0,
+            "max": 200,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 100, "color": "yellow" },
+                { "value": 150, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Active Users",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+        "targets": [
+          {
+            "expr": "finance_active_users",
+            "legendFormat": "Active Users"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "gray" },
+                { "value": 100, "color": "green" },
+                { "value": 10000, "color": "yellow" },
+                { "value": 40000, "color": "orange" },
+                { "value": 50000, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Error Rate",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{service=\"finance\",status=~\"5..\"}[5m]) / rate(http_requests_total{service=\"finance\"}[5m]) * 100",
+            "legendFormat": "Error Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "decimals": 2,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 0.1, "color": "yellow" },
+                { "value": 1, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Request Rate",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{service=\"finance\"}[1m])",
+            "legendFormat": "Requests/sec"
+          }
+        ],
+        "yaxes": [
+          { "format": "reqps", "label": "Requests/sec" }
+        ],
+        "lines": true,
+        "fill": 1,
+        "fillGradient": 5,
+        "linewidth": 2
+      },
+      {
+        "id": 6,
+        "title": "Response Time Distribution",
+        "type": "heatmap",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+        "targets": [
+          {
+            "expr": "sum(rate(http_request_duration_seconds_bucket{service=\"finance\"}[5m])) by (le)",
+            "format": "heatmap",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "dataFormat": "timeseries",
+        "cards": {
+          "cardPadding": 2,
+          "cardRound": 2
+        },
+        "color": {
+          "mode": "spectrum",
+          "scheme": "interpolateRdYlGn",
+          "reverse": true
+        },
+        "yAxis": {
+          "format": "ms"
+        }
+      },
+      {
+        "id": 7,
+        "title": "Database Performance",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(postgres_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "Query Time (P95)"
+          },
+          {
+            "expr": "postgres_connections_active",
+            "legendFormat": "Active Connections",
+            "yaxis": 2
+          }
+        ],
+        "yaxes": [
+          { "format": "ms", "label": "Query Time" },
+          { "format": "short", "label": "Connections" }
+        ],
+        "seriesOverrides": [
+          {
+            "alias": "Active Connections",
+            "yaxis": 2,
+            "color": "#1f77b4"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Cache Performance",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+        "targets": [
+          {
+            "expr": "redis_cache_hit_rate",
+            "legendFormat": "Cache Hit Rate"
+          },
+          {
+            "expr": "rate(redis_commands_total[1m])",
+            "legendFormat": "Commands/sec",
+            "yaxis": 2
+          }
+        ],
+        "yaxes": [
+          { "format": "percentunit", "label": "Hit Rate", "min": 0, "max": 1 },
+          { "format": "ops", "label": "Operations/sec" }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Business KPIs",
+        "type": "row",
+        "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 }
+      },
+      {
+        "id": 10,
+        "title": "Daily Revenue (BDT)",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 6, "x": 0, "y": 21 },
+        "targets": [
+          {
+            "expr": "sum(finance_revenue_total_bdt)",
+            "legendFormat": "Revenue"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyBDT",
+            "decimals": 0,
+            "custom": {
+              "prefix": "৳"
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "Invoices Created Today",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 6, "x": 6, "y": 21 },
+        "targets": [
+          {
+            "expr": "increase(finance_invoices_created_total[24h])",
+            "legendFormat": "Invoices"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "VAT Collected (BDT)",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 6, "x": 12, "y": 21 },
+        "targets": [
+          {
+            "expr": "sum(finance_vat_collected_bdt)",
+            "legendFormat": "VAT"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyBDT",
+            "decimals": 0,
+            "custom": {
+              "prefix": "৳"
+            }
+          }
+        }
+      },
+      {
+        "id": 13,
+        "title": "Payment Success Rate",
+        "type": "gauge",
+        "gridPos": { "h": 6, "w": 6, "x": 18, "y": 21 },
+        "targets": [
+          {
+            "expr": "rate(finance_payments_successful_total[1h]) / rate(finance_payments_total[1h]) * 100",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 90, "color": "yellow" },
+                { "value": 95, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 14,
+        "title": "Bangladesh Compliance",
+        "type": "row",
+        "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 }
+      },
+      {
+        "id": 15,
+        "title": "TIN Validations",
+        "type": "graph",
+        "gridPos": { "h": 6, "w": 8, "x": 0, "y": 28 },
+        "targets": [
+          {
+            "expr": "rate(finance_tin_validations_total[5m])",
+            "legendFormat": "Total"
+          },
+          {
+            "expr": "rate(finance_tin_validations_failed_total[5m])",
+            "legendFormat": "Failed"
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "bKash Transactions",
+        "type": "graph",
+        "gridPos": { "h": 6, "w": 8, "x": 8, "y": 28 },
+        "targets": [
+          {
+            "expr": "increase(finance_bkash_transactions_total[1h])",
+            "legendFormat": "Transactions"
+          },
+          {
+            "expr": "sum(increase(finance_bkash_amount_total[1h]))",
+            "legendFormat": "Amount (BDT)",
+            "yaxis": 2
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Count" },
+          { "format": "currencyBDT", "label": "Amount" }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "NBR Compliance Status",
+        "type": "table",
+        "gridPos": { "h": 6, "w": 8, "x": 16, "y": 28 },
+        "targets": [
+          {
+            "expr": "finance_nbr_compliance_status",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true
+              },
+              "renameByName": {
+                "compliance_type": "Type",
+                "status": "Status",
+                "last_filing": "Last Filing"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Infrastructure",
+        "type": "row",
+        "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 }
+      },
+      {
+        "id": 19,
+        "title": "CPU Usage",
+        "type": "graph",
+        "gridPos": { "h": 6, "w": 8, "x": 0, "y": 35 },
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{pod=~\"finance-.*\"}[5m]) * 100",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "yaxes": [
+          { "format": "percent", "label": "CPU Usage", "min": 0, "max": 100 }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": { "h": 6, "w": 8, "x": 8, "y": 35 },
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{pod=~\"finance-.*\"} / 1024 / 1024",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "yaxes": [
+          { "format": "decmbytes", "label": "Memory" }
+        ]
+      },
+      {
+        "id": 21,
+        "title": "Pod Status",
+        "type": "table",
+        "gridPos": { "h": 6, "w": 8, "x": 16, "y": 35 },
+        "targets": [
+          {
+            "expr": "kube_pod_status_phase{namespace=\"finance\"}",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true
+              },
+              "renameByName": {
+                "pod": "Pod",
+                "phase": "Status",
+                "node": "Node"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "title": "Alerts",
+        "type": "alertlist",
+        "gridPos": { "h": 6, "w": 24, "x": 0, "y": 41 },
+        "options": {
+          "showOptions": "current",
+          "maxItems": 10,
+          "sortOrder": 1,
+          "dashboardAlerts": true,
+          "alertName": "",
+          "dashboardTitle": "",
+          "tags": ["finance"]
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "tenant",
+          "type": "query",
+          "query": "label_values(finance_active_users, tenant)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "multi": true
+        },
+        {
+          "name": "interval",
+          "type": "interval",
+          "current": {
+            "text": "5m",
+            "value": "5m"
+          },
+          "options": [
+            { "text": "1m", "value": "1m" },
+            { "text": "5m", "value": "5m" },
+            { "text": "15m", "value": "15m" },
+            { "text": "1h", "value": "1h" }
+          ]
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "changes(finance_deployment_info[24h])",
+          "tagKeys": "version",
+          "titleFormat": "Deployment",
+          "textFormat": "Version {{version}} deployed"
+        }
+      ]
+    },
+    "links": [
+      {
+        "title": "Finance Application",
+        "url": "https://finance.vextrus.com",
+        "targetBlank": true
+      },
+      {
+        "title": "Logs",
+        "url": "https://logs.vextrus.com?service=finance",
+        "targetBlank": true
+      },
+      {
+        "title": "Alerts",
+        "url": "https://alerts.vextrus.com?service=finance",
+        "targetBlank": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,304 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "graphql-operations",
+    "title": "GraphQL Operations Dashboard",
+    "tags": ["graphql", "api", "operations", "vextrus"],
+    "timezone": "Asia/Dhaka",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "timeseries",
+        "title": "GraphQL Operations Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(graphql_operations_total[5m])) by (operation_name)",
+            "refId": "A",
+            "legendFormat": "{{operation_name}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 15,
+              "gradientMode": "opacity"
+            },
+            "unit": "ops",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "timeseries",
+        "title": "GraphQL Operation Duration (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(graphql_operation_duration_seconds_bucket[5m])) by (operation_name, le))",
+            "refId": "A",
+            "legendFormat": "{{operation_name}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 15
+            },
+            "unit": "s",
+            "color": {"mode": "palette-classic"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+        "type": "piechart",
+        "title": "Top GraphQL Operations",
+        "targets": [
+          {
+            "expr": "topk(10, sum(increase(graphql_operations_total[1h])) by (operation_name))",
+            "refId": "A",
+            "legendFormat": "{{operation_name}}"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          },
+          "pieType": "donut",
+          "tooltip": {
+            "mode": "single"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+        "type": "stat",
+        "title": "GraphQL Error Rate",
+        "targets": [
+          {
+            "expr": "(sum(rate(graphql_errors_total[5m])) / sum(rate(graphql_operations_total[5m]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "orange", "value": 3},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "unit": "percent",
+            "decimals": 2
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+        "type": "stat",
+        "title": "Total Operations (Last Hour)",
+        "targets": [
+          {
+            "expr": "sum(increase(graphql_operations_total[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short"
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "orientation": "horizontal",
+          "textMode": "value"
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "type": "table",
+        "title": "Slow GraphQL Operations",
+        "targets": [
+          {
+            "expr": "topk(20, avg(graphql_operation_duration_seconds) by (operation_name)) > 0.5",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Value"},
+              "properties": [
+                {"id": "displayName", "value": "Avg Duration (s)"},
+                {"id": "unit", "value": "s"},
+                {"id": "decimals", "value": 3},
+                {"id": "custom.displayMode", "value": "color-background"},
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {"color": "green", "value": 0},
+                      {"color": "yellow", "value": 0.5},
+                      {"color": "orange", "value": 1},
+                      {"color": "red", "value": 2}
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "options": {
+          "sortBy": [
+            {"displayName": "Avg Duration (s)", "desc": true}
+          ]
+        }
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "type": "timeseries",
+        "title": "GraphQL Errors by Type",
+        "targets": [
+          {
+            "expr": "sum(rate(graphql_errors_total[5m])) by (error_type)",
+            "refId": "A",
+            "legendFormat": "{{error_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 20,
+              "drawStyle": "bars",
+              "barAlignment": 0,
+              "stacking": {"mode": "normal"}
+            },
+            "unit": "errors/s",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "type": "timeseries",
+        "title": "Federation Query Execution Time",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(apollo_gateway_operation_duration_seconds_bucket[5m])) by (le))",
+            "refId": "A",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(apollo_gateway_operation_duration_seconds_bucket[5m])) by (le))",
+            "refId": "B",
+            "legendFormat": "p99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 10
+            },
+            "unit": "s",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "type": "timeseries",
+        "title": "Subgraph Request Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(apollo_gateway_subgraph_requests_total[5m])) by (subgraph)",
+            "refId": "A",
+            "legendFormat": "{{subgraph}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 15,
+              "gradientMode": "opacity",
+              "stacking": {"mode": "normal"}
+            },
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 10,
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32},
+        "type": "heatmap",
+        "title": "GraphQL Operation Duration Distribution",
+        "targets": [
+          {
+            "expr": "sum(increase(graphql_operation_duration_seconds_bucket[1m])) by (le)",
+            "format": "heatmap",
+            "refId": "A"
+          }
+        ],
+        "dataFormat": "timeseries",
+        "options": {
+          "calculate": false,
+          "cellGap": 2,
+          "color": {
+            "scheme": "Spectral",
+            "mode": "spectrum"
+          },
+          "yAxis": {
+            "unit": "s",
+            "decimals": 2
+          }
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}

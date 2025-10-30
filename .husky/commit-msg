@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Commit message validation
+# Ensures: conventional commits format, Co-Authored-By: Claude present
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Check for Co-Authored-By: Claude
+if ! echo "$COMMIT_MSG" | grep -q "Co-Authored-By: Claude"; then
+  echo "⚠️  Missing 'Co-Authored-By: Claude <noreply@anthropic.com>'"
+  echo "Adding automatically..."
+  echo "" >> "$COMMIT_MSG_FILE"
+  echo "Co-Authored-By: Claude <noreply@anthropic.com>" >> "$COMMIT_MSG_FILE"
+fi
+
+# Validate conventional commits format (optional, non-blocking)
+if ! echo "$COMMIT_MSG" | grep -qE "^(feat|fix|docs|chore|refactor|test|perf|style|build|ci|revert)(\(.+\))?:"; then
+  echo "⚠️  Commit message doesn't follow conventional commits format"
+  echo "Recommended: <type>(<scope>): <description>"
+  echo "Example: feat(finance): add payment reconciliation"
+  echo ""
+  echo "Proceeding anyway..."
+fi
+
+echo "✅ Commit message validated"

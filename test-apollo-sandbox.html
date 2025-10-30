@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Apollo Sandbox Introspection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .result {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .error {
+            background: #ffe6e6;
+            border: 1px solid #ff0000;
+        }
+        .success {
+            background: #e6ffe6;
+            border: 1px solid #00ff00;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Apollo Sandbox Introspection Test</h1>
+    <p>Testing GraphQL introspection at: <code>http://localhost:3014/graphql</code></p>
+
+    <button onclick="testIntrospection()">Test Introspection Query</button>
+    <button onclick="testFullIntrospection()">Test Full Introspection</button>
+    <button onclick="testWithoutAuth()">Test Without Auth</button>
+
+    <div id="results"></div>
+
+    <script>
+        const GRAPHQL_ENDPOINT = 'http://localhost:3014/graphql';
+
+        async function testIntrospection() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing basic introspection...</p>';
+
+            try {
+                const response = await fetch(GRAPHQL_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        operationName: 'IntrospectionQuery',
+                        query: `
+                            query IntrospectionQuery {
+                                __schema {
+                                    queryType { name }
+                                    mutationType { name }
+                                }
+                            }
+                        `
+                    })
+                });
+
+                const data = await response.json();
+                resultsDiv.innerHTML += `<div class="result success">
+                    <strong>Success!</strong><br>
+                    ${JSON.stringify(data, null, 2)}
+                </div>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="result error">
+                    <strong>Error:</strong><br>
+                    ${error.message}
+                </div>`;
+            }
+        }
+
+        async function testFullIntrospection() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing full introspection (Apollo Sandbox style)...</p>';
+
+            try {
+                const response = await fetch(GRAPHQL_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        operationName: 'IntrospectionQuery',
+                        query: `
+                            query IntrospectionQuery {
+                                __schema {
+                                    queryType { name }
+                                    mutationType { name }
+                                    types {
+                                        name
+                                        kind
+                                        description
+                                    }
+                                }
+                            }
+                        `
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.errors) {
+                    resultsDiv.innerHTML += `<div class="result error">
+                        <strong>GraphQL Errors:</strong><br>
+                        ${JSON.stringify(data.errors, null, 2)}
+                    </div>`;
+                } else {
+                    resultsDiv.innerHTML += `<div class="result success">
+                        <strong>Success!</strong><br>
+                        Found ${data.data.__schema.types.length} types<br>
+                        Query type: ${data.data.__schema.queryType.name}<br>
+                        Mutation type: ${data.data.__schema.mutationType.name}
+                    </div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="result error">
+                    <strong>Error:</strong><br>
+                    ${error.message}
+                </div>`;
+            }
+        }
+
+        async function testWithoutAuth() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing regular query without authentication...</p>';
+
+            try {
+                const response = await fetch(GRAPHQL_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query {
+                                invoices {
+                                    id
+                                    invoiceNumber
+                                }
+                            }
+                        `
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.errors) {
+                    resultsDiv.innerHTML += `<div class="result error">
+                        <strong>Expected Error (auth required):</strong><br>
+                        ${JSON.stringify(data.errors, null, 2)}
+                    </div>`;
+                } else {
+                    resultsDiv.innerHTML += `<div class="result success">
+                        <strong>Unexpected Success (should require auth):</strong><br>
+                        ${JSON.stringify(data, null, 2)}
+                    </div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="result error">
+                    <strong>Network Error:</strong><br>
+                    ${error.message}
+                </div>`;
+            }
+        }
+
+        // Test automatically on page load
+        window.onload = () => {
+            testIntrospection();
+        };
+    </script>
+</body>
+</html>

@@ -1,6 +1,0 @@
-{
-  "task": "m-vextrus-erp-migration",
-  "branch": "feature/vextrus-erp-migration",
-  "services": ["migration", "infrastructure", "documentation"],
-  "updated": "2025-09-05"
-}

@@ -1,0 +1,82 @@
+# Simplified Dockerfile for Local Kubernetes Testing
+# Removes heavy ML dependencies for faster builds
+
+FROM node:18-alpine AS base
+WORKDIR /app
+
+# Install only essential runtime dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+# Install pnpm
+RUN npm install -g pnpm@8.15.0
+
+# Builder stage
+FROM base AS builder
+
+# Copy workspace configuration
+COPY package.json pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml* ./
+
+# Copy shared packages
+COPY shared/ ./shared/
+
+# Copy finance service
+COPY services/finance/package.json ./services/finance/
+COPY services/finance/ ./services/finance/
+
+# Install dependencies for the entire workspace (skip optional deps that need native builds)
+WORKDIR /app
+RUN pnpm install --frozen-lockfile --no-optional --ignore-scripts || pnpm install --no-optional --ignore-scripts
+
+# Build shared packages first
+RUN cd shared/infrastructure && pnpm run build || echo "Shared infrastructure build skipped"
+RUN cd shared/cache && pnpm run build || echo "Shared cache build skipped"
+
+# Build the finance service
+WORKDIR /app/services/finance
+RUN pnpm install --frozen-lockfile --no-optional || pnpm install --no-optional
+RUN pnpm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init curl
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+WORKDIR /app
+
+# Copy built application, pnpm store, and service node_modules
+WORKDIR /app
+# Copy root node_modules with .pnpm store
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.pnpm ./node_modules/.pnpm
+# Copy service node_modules with symlinks to dependencies
+COPY --from=builder --chown=nodejs:nodejs /app/services/finance/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/services/finance/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/services/finance/package.json ./package.json
+
+# Set environment variables
+ENV NODE_ENV=production \
+    PORT=3014
+
+# Switch to non-root user
+USER nodejs
+
+# Health check
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
+    CMD curl -f http://localhost:3014/health || exit 1
+
+# Expose port
+EXPOSE 3014
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start application
+CMD ["node", "dist/src/main.js"]

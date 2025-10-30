@@ -1,0 +1,45 @@
+{
+  "mcpServers": {
+    "brave-search": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "BSAN-x6l1bRzrW5CokyV_URi33fbtnk"
+      }
+    },
+    "brightdata": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@brightdata/mcp"
+      ],
+      "env": {
+        "API_TOKEN": "3e44f99126348a1f0cf9f52331c8f0e4a6eb984dd7c4850aa890c5f68082ba0c"
+      }
+    },
+    "reddit": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "reddit-mcp-server"
+      ],
+      "env": {
+        "REDDIT_CLIENT_ID": "x8DuvBgh3rMGL08zbCsmyg",
+        "REDDIT_CLIENT_SECRET": "z4WjKEye9BlprgYN-WgMn8151RGs9g",
+        "REDDIT_USER_AGENT": "windows:vextrus-mcp:v1.0 (by /u/riz)"
+      }
+    }
+  }
+}

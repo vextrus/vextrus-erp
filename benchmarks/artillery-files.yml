@@ -1,0 +1,123 @@
+config:
+  target: "http://localhost:3008"
+  phases:
+    - duration: 30
+      arrivalRate: 2
+      name: "Warm up"
+    - duration: 60
+      arrivalRate: 10
+      name: "Ramp up"
+    - duration: 120
+      arrivalRate: 20
+      name: "Sustained file upload load"
+  processor: "./processors/file-processor.js"
+  payload:
+    - path: "./fixtures/test-files.csv"
+      fields:
+        - "filename"
+        - "size"
+        - "type"
+
+scenarios:
+  - name: "File Upload Performance Test"
+    weight: 50
+    flow:
+      - post:
+          url: "/api/v1/files/upload"
+          beforeRequest: "generateFileUpload"
+          formData:
+            file:
+              fromFile: "./fixtures/sample-{{ size }}.pdf"
+              contentType: "application/pdf"
+              filename: "{{ filename }}"
+            title: "{{ filename }}"
+            category: "documents"
+            tenantId: "test-tenant-001"
+          expect:
+            - statusCode: 201
+            - hasProperty: fileId
+            - hasProperty: url
+          capture:
+            - json: "$.fileId"
+              as: "uploadedFileId"
+      
+      - think: 1
+      
+      - get:
+          url: "/api/v1/files/{{ uploadedFileId }}/metadata"
+          expect:
+            - statusCode: 200
+            - hasProperty: size
+            - hasProperty: mimeType
+
+  - name: "Concurrent File Upload Test"
+    weight: 30
+    flow:
+      - loop:
+        - post:
+            url: "/api/v1/files/upload"
+            formData:
+              file:
+                fromFile: "./fixtures/test-1mb.pdf"
+                contentType: "application/pdf"
+              title: "Concurrent Test {{ $loopCount }}"
+              tenantId: "test-tenant-001"
+            expect:
+              - statusCode: 201
+        count: 5
+
+  - name: "Large File Upload Test (100MB)"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/v1/files/upload/multipart"
+          timeout: 60000
+          beforeRequest: "initiateLargeUpload"
+          json:
+            filename: "large-file-{{ $timestamp() }}.zip"
+            size: 104857600
+            tenantId: "test-tenant-001"
+          capture:
+            - json: "$.uploadId"
+              as: "multipartUploadId"
+      
+      - loop:
+        - post:
+            url: "/api/v1/files/upload/multipart/{{ multipartUploadId }}/part/{{ $loopCount }}"
+            beforeRequest: "uploadPart"
+            formData:
+              partNumber: "{{ $loopCount }}"
+              data: "{{ $generateChunk(10485760) }}"
+        count: 10
+      
+      - post:
+          url: "/api/v1/files/upload/multipart/{{ multipartUploadId }}/complete"
+          json:
+            parts: "{{ $generatePartsList(10) }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: location
+
+  - name: "File Download Performance Test"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/v1/files/test-file-id/download"
+          followRedirect: true
+          expect:
+            - statusCode: 200
+            - contentType: "application/pdf"
+      
+      - get:
+          url: "/api/v1/files/test-file-id/presigned-url"
+          expect:
+            - statusCode: 200
+            - hasProperty: url
+            - hasProperty: expiresIn
+
+# MinIO S3 performance targets
+ensure:
+  p95: 2000  # File operations under 2s
+  p99: 5000  # 99th percentile under 5s
+  max: 30000 # Max 30s for large files
+  errors: 2  # Error rate less than 2%

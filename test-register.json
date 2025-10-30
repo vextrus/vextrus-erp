@@ -1,0 +1,11 @@
+{
+  "query": "mutation RegisterTestUser($input: RegisterInput!) { register(input: $input) { user { id email name } tokens { accessToken refreshToken } } }",
+  "variables": {
+    "input": {
+      "email": "test.integration@vextrus.com",
+      "password": "TestPassword123!",
+      "name": "Integration Test User",
+      "organizationId": "org-test-001"
+    }
+  }
+}

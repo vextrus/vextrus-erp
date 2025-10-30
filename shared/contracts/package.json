@@ -1,0 +1,100 @@
+{
+  "name": "@vextrus/contracts",
+  "version": "1.0.1",
+  "description": "Shared contracts and interfaces for Vextrus ERP services",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./auth": {
+      "import": {
+        "types": "./dist/auth/auth.contracts.d.ts",
+        "default": "./dist/auth/auth.contracts.mjs"
+      },
+      "require": {
+        "types": "./dist/auth/auth.contracts.d.ts",
+        "default": "./dist/auth/auth.contracts.js"
+      }
+    },
+    "./events": {
+      "import": {
+        "types": "./dist/events/event.contracts.d.ts",
+        "default": "./dist/events/event.contracts.mjs"
+      },
+      "require": {
+        "types": "./dist/events/event.contracts.d.ts",
+        "default": "./dist/events/event.contracts.js"
+      }
+    },
+    "./errors": {
+      "import": {
+        "types": "./dist/errors/error.contracts.d.ts",
+        "default": "./dist/errors/error.contracts.mjs"
+      },
+      "require": {
+        "types": "./dist/errors/error.contracts.d.ts",
+        "default": "./dist/errors/error.contracts.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "CLAUDE.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "rimraf": "^6.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "class-transformer": "^0.5.0",
+    "class-validator": "^0.14.0"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "http://localhost:4873/"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vextrus/vextrus-erp.git",
+    "directory": "shared/contracts"
+  },
+  "keywords": [
+    "contracts",
+    "interfaces",
+    "api",
+    "dto",
+    "events",
+    "errors",
+    "authentication"
+  ],
+  "license": "PROPRIETARY",
+  "author": "Vextrus Technologies"
+}

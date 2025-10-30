@@ -1,0 +1,3 @@
+{
+  "query": "query GetInvoices { invoices { id invoiceNumber status grandTotal { amount currency } createdAt } }"
+}

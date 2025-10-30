@@ -1,0 +1,411 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "sla-monitoring",
+    "title": "SLA Monitoring Dashboard",
+    "tags": ["sla", "monitoring", "compliance", "vextrus"],
+    "timezone": "Asia/Dhaka",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "1m",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+        "type": "row",
+        "title": "Overall SLA Status",
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 1},
+        "type": "gauge",
+        "title": "Availability SLA (Target: 99.9%)",
+        "targets": [
+          {
+            "expr": "(sum(up{job=~\".*-service|api-gateway\"}) / count(up{job=~\".*-service|api-gateway\"})) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "orange", "value": 95},
+                {"color": "yellow", "value": 99},
+                {"color": "green", "value": 99.9}
+              ]
+            },
+            "unit": "percent",
+            "min": 95,
+            "max": 100,
+            "decimals": 2
+          }
+        },
+        "options": {
+          "orientation": "auto",
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 1},
+        "type": "gauge",
+        "title": "Response Time SLA (Target: < 500ms)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 500},
+                {"color": "orange", "value": 1000},
+                {"color": "red", "value": 2000}
+              ]
+            },
+            "unit": "ms",
+            "min": 0,
+            "max": 3000,
+            "decimals": 0
+          }
+        },
+        "options": {
+          "orientation": "auto",
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 1},
+        "type": "gauge",
+        "title": "Error Rate SLA (Target: < 1%)",
+        "targets": [
+          {
+            "expr": "(sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "orange", "value": 3},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 10,
+            "decimals": 2
+          }
+        },
+        "options": {
+          "orientation": "auto",
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 1},
+        "type": "stat",
+        "title": "SLA Compliance Score",
+        "targets": [
+          {
+            "expr": "((sum(up == 1) / count(up)) * 0.4 + (1 - (histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) / 0.5)) * 0.3 + (1 - (sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) / 0.01)) * 0.3) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "orange", "value": 80},
+                {"color": "yellow", "value": 90},
+                {"color": "green", "value": 95}
+              ]
+            },
+            "unit": "percent",
+            "decimals": 1
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 4, "w": 24, "x": 0, "y": 7},
+        "type": "row",
+        "title": "Service Level Indicators",
+        "collapsed": false
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "type": "timeseries",
+        "title": "Availability Over Time (24h)",
+        "targets": [
+          {
+            "expr": "(sum(up{job=~\".*-service|api-gateway\"}) / count(up{job=~\".*-service|api-gateway\"})) * 100",
+            "refId": "A",
+            "legendFormat": "Current Availability"
+          },
+          {
+            "expr": "99.9",
+            "refId": "B",
+            "legendFormat": "SLA Target (99.9%)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 20,
+              "gradientMode": "scheme"
+            },
+            "unit": "percent",
+            "min": 95,
+            "max": 100
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "SLA Target (99.9%)"},
+              "properties": [
+                {"id": "custom.lineStyle", "value": {"dash": [10, 10], "fill": "dash"}},
+                {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}},
+                {"id": "custom.fillOpacity", "value": 0}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "type": "timeseries",
+        "title": "Response Time Over Time (24h)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "refId": "A",
+            "legendFormat": "p95 Response Time"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "refId": "B",
+            "legendFormat": "p99 Response Time"
+          },
+          {
+            "expr": "500",
+            "refId": "C",
+            "legendFormat": "SLA Target (500ms)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 15
+            },
+            "unit": "ms"
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "SLA Target (500ms)"},
+              "properties": [
+                {"id": "custom.lineStyle", "value": {"dash": [10, 10], "fill": "dash"}},
+                {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}},
+                {"id": "custom.fillOpacity", "value": 0}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "type": "timeseries",
+        "title": "Error Rate Over Time (24h)",
+        "targets": [
+          {
+            "expr": "(sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))) * 100",
+            "refId": "A",
+            "legendFormat": "Error Rate"
+          },
+          {
+            "expr": "1",
+            "refId": "B",
+            "legendFormat": "SLA Target (1%)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 20
+            },
+            "unit": "percent"
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "SLA Target (1%)"},
+              "properties": [
+                {"id": "custom.lineStyle", "value": {"dash": [10, 10], "fill": "dash"}},
+                {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}},
+                {"id": "custom.fillOpacity", "value": 0}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 10,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "type": "stat",
+        "title": "Uptime This Month",
+        "targets": [
+          {
+            "expr": "(sum(up{job=~\".*-service|api-gateway\"} == 1) / count(up{job=~\".*-service|api-gateway\"})) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "orange", "value": 99},
+                {"color": "yellow", "value": 99.5},
+                {"color": "green", "value": 99.9}
+              ]
+            },
+            "unit": "percent",
+            "decimals": 3
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 11,
+        "gridPos": {"h": 4, "w": 24, "x": 0, "y": 24},
+        "type": "row",
+        "title": "Service-Level SLA Compliance",
+        "collapsed": false
+      },
+      {
+        "id": 12,
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 25},
+        "type": "table",
+        "title": "Per-Service SLA Compliance",
+        "targets": [
+          {
+            "expr": "up{job=~\".*-service|api-gateway\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true
+              },
+              "indexByName": {},
+              "renameByName": {
+                "job": "Service",
+                "Value": "Status"
+              }
+            }
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Status"},
+              "properties": [
+                {"id": "custom.displayMode", "value": "color-background"},
+                {
+                  "id": "mappings",
+                  "value": [
+                    {"type": "value", "value": 0, "text": "Down", "color": "dark-red"},
+                    {"type": "value", "value": 1, "text": "Up", "color": "dark-green"}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 13,
+        "gridPos": {"h": 4, "w": 24, "x": 0, "y": 33},
+        "type": "row",
+        "title": "SLA Violations",
+        "collapsed": false
+      },
+      {
+        "id": 14,
+        "gridPos": {"h": 6, "w": 24, "x": 0, "y": 34},
+        "type": "table",
+        "title": "Recent SLA Violations",
+        "targets": [
+          {
+            "expr": "ALERTS{alertname=~\"SLAViolation.*\", alertstate=\"firing\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "severity"},
+              "properties": [
+                {"id": "custom.displayMode", "value": "color-background"},
+                {
+                  "id": "mappings",
+                  "value": [
+                    {"type": "value", "value": "critical", "color": "dark-red"},
+                    {"type": "value", "value": "warning", "color": "dark-yellow"}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}

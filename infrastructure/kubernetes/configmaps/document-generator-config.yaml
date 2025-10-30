@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: document-generator-config
+  namespace: vextrus
+data:
+  NODE_ENV: "production"
+  PORT: "3008"
+  DATABASE_HOST: "postgres.vextrus.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "vextrus_erp"
+  REDIS_HOST: "redis.vextrus.svc.cluster.local"
+  REDIS_PORT: "6379"
+  PDF_ENGINE: "puppeteer"
+  EXCEL_ENGINE: "exceljs"
+  BENGALI_FONT_SUPPORT: "true"
+  QR_CODE_ENABLED: "true"
+  DIGITAL_SIGNATURE_ENABLED: "true"
+  TEMPLATE_CACHE_TTL: "3600"
+  MAX_CONCURRENT_GENERATIONS: "10"
+  OUTPUT_FORMAT: "pdf,xlsx,docx"
+  WATERMARK_ENABLED: "true"
+  ENABLE_METRICS: "true"
+  METRICS_PORT: "9090"

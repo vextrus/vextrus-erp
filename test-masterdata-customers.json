@@ -1,0 +1,3 @@
+{
+  "query": "query GetCustomers { customers { id customerCode customerName email tin nid status } }"
+}
