@@ -33,10 +33,10 @@ Parse user-provided token count & percentage
   ↓
 Evaluate threshold
   ↓
-  ├─ <100k (50%): GREEN → Continue
-  ├─ 100-120k (50-60%): YELLOW → Log warning, continue
-  ├─ 120-140k (60-70%): ORANGE → FORCE checkpoint, continue
-  └─ ≥140k (70%+): RED → BLOCKING (new session REQUIRED)
+  ├─ <140k (70%): GREEN → Continue
+  ├─ 140-160k (70-80%): YELLOW → Log warning, continue
+  ├─ 160-180k (80-90%): ORANGE → FORCE checkpoint, continue
+  └─ ≥180k (90%+): RED → BLOCKING (new session REQUIRED)
   ↓
 Update .claude/context-log.md
   ↓
@@ -47,7 +47,7 @@ Commit log update
 
 ## Threshold Definitions
 
-### GREEN: <100k tokens (50%)
+### GREEN: <140k tokens (70%)
 
 **Status**: Optimal operating range
 **Action**: Continue normal workflow
@@ -56,14 +56,14 @@ Commit log update
 
 **Example**:
 ```
-Phase 2 complete: 85k tokens (42.5%)
+Phase 2 complete: 120k tokens (60%)
 Status: GREEN
 Action: Continue to Phase 3
 ```
 
 ---
 
-### YELLOW: 100-120k tokens (50-60%)
+### YELLOW: 140-160k tokens (70-80%)
 
 **Status**: Warning - Monitor closely
 **Action**:
@@ -78,7 +78,7 @@ Action: Continue to Phase 3
 
 **Example**:
 ```
-Phase 3 complete: 112k tokens (56%)
+Phase 3 complete: 155k tokens (77.5%)
 Status: YELLOW (Warning)
 Action: Continue to Phase 4
 Recommendation: Consider disabling unused MCPs
@@ -86,7 +86,7 @@ Recommendation: Consider disabling unused MCPs
 
 ---
 
-### ORANGE: 120-140k tokens (60-70%)
+### ORANGE: 160-180k tokens (80-90%)
 
 **Status**: Critical - Checkpoint required
 **Action**:
@@ -121,7 +121,7 @@ Proceed to next phase
 
 **Example**:
 ```
-Phase 4 complete: 125k tokens (62.5%)
+Phase 4 complete: 175k tokens (87.5%)
 Status: ORANGE (Critical)
 Action: FORCE checkpoint created
 Checkpoint: .claude/checkpoints/2025-10-31-1445-AUTO-CONTEXT.md
@@ -130,7 +130,7 @@ Continue: YES (can continue after checkpoint)
 
 ---
 
-### RED: ≥140k tokens (70%+)
+### RED: ≥180k tokens (90%+)
 
 **Status**: BLOCKING - New session required
 **Action**:
@@ -164,7 +164,7 @@ User must resume in new session
 
 **Example**:
 ```
-Phase 5 complete: 142k tokens (71%)
+Phase 5 complete: 185k tokens (92.5%)
 Status: RED (BLOCKING)
 Action: EMERGENCY checkpoint created
 Checkpoint: .claude/checkpoints/2025-10-31-1520-EMERGENCY-RED.md
@@ -175,7 +175,7 @@ BLOCKING MESSAGE:
 ⛔ CONTEXT RED: New Session Required
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Context: 142k tokens (71%)
+Context: 185k tokens (92.5%)
 Status: BLOCKING
 
 All work has been checkpointed and committed.
@@ -267,13 +267,13 @@ If context reaches RED:
 
 ## Context Optimization Strategies
 
-### When YELLOW (100-120k):
+### When YELLOW (140-160k):
 - Disable unused MCP servers (use @ syntax to toggle)
 - Use Explore subagent for codebase analysis (separate context)
 - Avoid reading large files directly (use targeted searches)
 - Clear message buffer if possible
 
-### When ORANGE (120-140k):
+### When ORANGE (160-180k):
 - All YELLOW strategies
 - Checkpoint now (before forced)
 - Consider phase completion and natural break point

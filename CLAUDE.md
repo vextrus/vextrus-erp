@@ -76,15 +76,15 @@ MUST: Update .claude/context-log.md
 MUST: Commit log update
 
 THRESHOLDS:
-- GREEN (<100k / 50%): Continue
-- YELLOW (100-120k / 50-60%): Warning logged
-- ORANGE (120-140k / 60-70%): FORCE checkpoint (MANDATORY)
-- RED (≥140k / 70%): BLOCKING - new session required
+- GREEN (<140k / 70%): Continue
+- YELLOW (140-160k / 70-80%): Warning logged
+- ORANGE (160-180k / 80-90%): FORCE checkpoint (MANDATORY)
+- RED (≥180k / 90%): BLOCKING - new session required
 
 BLOCKING IF:
-- Context ≥140k AND attempting to continue
+- Context ≥180k AND attempting to continue
 - Skipping context check after phase
-- Not creating checkpoint at ORANGE (120-140k)
+- Not creating checkpoint at ORANGE (160-180k)
 ```
 
 **Verification After EVERY Phase**:
@@ -97,7 +97,7 @@ Q1: "Current context? [Xk tokens / Y%]"
 Parse user-provided number
 
 Q2: "Threshold status? [GREEN/YELLOW/ORANGE/RED]"
-IF ORANGE: "Creating checkpoint now (MANDATORY at 120-140k)"
+IF ORANGE: "Creating checkpoint now (MANDATORY at 160-180k)"
   Create checkpoint
 IF RED: BLOCKING: "Context RED. Emergency checkpoint required. New session needed."
   Create emergency checkpoint
@@ -498,10 +498,10 @@ AFTER EVERY PHASE:
 
 | Status | Range | Action |
 |--------|-------|--------|
-| GREEN | <100k (50%) | Continue |
-| YELLOW | 100-120k (50-60%) | Warning logged |
-| ORANGE | 120-140k (60-70%) | FORCE checkpoint |
-| RED | ≥140k (70%) | BLOCKING - new session |
+| GREEN | <140k (70%) | Continue |
+| YELLOW | 140-160k (70-80%) | Warning logged |
+| ORANGE | 160-180k (80-90%) | FORCE checkpoint |
+| RED | ≥180k (90%) | BLOCKING - new session |
 
 ---
 
@@ -558,7 +558,7 @@ Fiscal Year: July 1 - June 30
 
 | Metric | Target | BLOCKING If |
 |--------|--------|-------------|
-| Context/session | <80k (40%) | ≥140k (70%) |
+| Context/session | <140k (70%) | ≥180k (90%) |
 | Agent usage (Tier 2/3) | 100% | 0% (skipped) |
 | TODO persistence | 100% | Lost/not synced |
 | Quality gates | 100% | Errors/failures |
