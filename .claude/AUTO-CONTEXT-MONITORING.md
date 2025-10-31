@@ -1,10 +1,12 @@
 # Auto-Context Monitoring System
 
-**Purpose**: Prevent context explosion through automatic monitoring and enforcement
+**Purpose**: Prevent context explosion through user-driven monitoring and enforcement
 
-**Problem Solved**: V7.0 context exploded from 50k → 140k+ in Day 1 due to manual checking
+**Problem Solved**: V7.0 context exploded from 50k → 140k+ in Day 1 due to no monitoring
 
-**Solution**: Automatic context check after EVERY phase with blocking gates
+**Solution**: User-driven context check after EVERY phase with blocking gates
+
+**CRITICAL LIMITATION**: Claude CANNOT run /context command directly. User must run it and provide results.
 
 ---
 
@@ -23,9 +25,11 @@ Context monitoring MUST be triggered at:
 ```
 PHASE_COMPLETE
   ↓
-AUTO: Run /context command
+MUST: Ask user to run /context command
   ↓
-Parse token count & percentage
+WAIT: For user response with token count
+  ↓
+Parse user-provided token count & percentage
   ↓
 Evaluate threshold
   ↓

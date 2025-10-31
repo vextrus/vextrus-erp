@@ -61,12 +61,15 @@ IF NO → BLOCKING: "Must launch Explore subagent. Cannot proceed."
 
 ---
 
-### 3. Context Monitoring (MANDATORY after EVERY phase - BLOCKING)
+### 3. Context Monitoring (USER-DRIVEN - MANDATORY after EVERY phase)
 
-**Auto-Monitor After EVERY Phase**:
+**IMPORTANT**: Claude CANNOT run /context directly. User must run it.
+
+**After EVERY Phase**:
 ```
-MUST: Run /context after EVERY phase completion
-MUST: Parse token count and percentage
+MUST: Ask user to run /context command
+MUST: Wait for user's response with token count
+MUST: Parse user-provided token count and percentage
 MUST: Evaluate threshold
 MUST: Take required action
 MUST: Update .claude/context-log.md
@@ -86,16 +89,19 @@ BLOCKING IF:
 
 **Verification After EVERY Phase**:
 ```
-Q1: "Did you run /context? [YES/NO]"
-IF NO → BLOCKING: "Must run /context after EVERY phase."
+MUST: Ask user: "Please run /context and share the token count."
+WAIT: For user response
 
-Q2: "Current context? [Xk tokens / Y%]"
-Parse actual number
+After user provides context:
+Q1: "Current context? [Xk tokens / Y%]"
+Parse user-provided number
 
-Q3: "Threshold status? [GREEN/YELLOW/ORANGE/RED]"
-IF ORANGE: Q4: "Did you create checkpoint? [YES/NO]"
-  IF NO → BLOCKING: "Checkpoint MANDATORY at ORANGE."
-IF RED → BLOCKING: "New session required. Stop immediately."
+Q2: "Threshold status? [GREEN/YELLOW/ORANGE/RED]"
+IF ORANGE: "Creating checkpoint now (MANDATORY at 120-140k)"
+  Create checkpoint
+IF RED: BLOCKING: "Context RED. Emergency checkpoint required. New session needed."
+  Create emergency checkpoint
+  Stop immediately
 ```
 
 ---
@@ -442,7 +448,7 @@ AFTER EVERY PHASE:
 |--------|---------|
 | **MANDATORY: Plan** | Task tool (subagent_type="Plan") |
 | **MANDATORY: Explore** | Task tool (subagent_type="Explore") |
-| **MANDATORY: Context** | /context (after EVERY phase) |
+| **MANDATORY: Context** | Ask user to run /context (after EVERY phase) |
 | **MANDATORY: Build** | pnpm build (0 errors) |
 | **MANDATORY: Test** | npm test (all passing) |
 | **MANDATORY: Review** | /comprehensive-review:full-review (≥8/10) |
@@ -460,10 +466,11 @@ AFTER EVERY PHASE:
 
 **After EVERY Phase**:
 ```
-[ ] Ran /context command?
+[ ] Asked user to run /context command?
+[ ] Received user's context report?
 [ ] Context status: GREEN/YELLOW/ORANGE/RED?
 [ ] If ORANGE: Created checkpoint?
-[ ] If RED: Stopped and started new session?
+[ ] If RED: Created emergency checkpoint and stopped?
 [ ] Updated .claude/todo/current.md?
 [ ] Committed TODO update to git?
 ```
