@@ -33,10 +33,10 @@ Parse user-provided token count & percentage
   ↓
 Evaluate threshold
   ↓
-  ├─ <140k (70%): GREEN → Continue
-  ├─ 140-160k (70-80%): YELLOW → Log warning, continue
-  ├─ 160-180k (80-90%): ORANGE → FORCE checkpoint, continue
-  └─ ≥180k (90%+): RED → BLOCKING (new session REQUIRED)
+  ├─ <120k (60%): GREEN → Continue
+  ├─ 120-140k (60-70%): YELLOW → Log warning, continue
+  ├─ 140-160k (70-80%): ORANGE → FORCE checkpoint, continue
+  └─ ≥160k (80%+): RED → BLOCKING (new session REQUIRED)
   ↓
 Update .claude/context-log.md
   ↓
@@ -47,7 +47,7 @@ Commit log update
 
 ## Threshold Definitions
 
-### GREEN: <140k tokens (70%)
+### GREEN: <120k tokens (60%)
 
 **Status**: Optimal operating range
 **Action**: Continue normal workflow
@@ -56,14 +56,14 @@ Commit log update
 
 **Example**:
 ```
-Phase 2 complete: 120k tokens (60%)
+Phase 2 complete: 100k tokens (50%)
 Status: GREEN
 Action: Continue to Phase 3
 ```
 
 ---
 
-### YELLOW: 140-160k tokens (70-80%)
+### YELLOW: 120-140k tokens (60-70%)
 
 **Status**: Warning - Monitor closely
 **Action**:
@@ -73,20 +73,21 @@ Action: Continue to Phase 3
    - Disable unused MCP servers
    - Avoid large file reads
    - Use Explore subagent for codebase analysis
+   - Clear context for unrelated tasks
 
 **Logging**: Warning entry with optimization suggestions
 
 **Example**:
 ```
-Phase 3 complete: 155k tokens (77.5%)
+Phase 3 complete: 135k tokens (67.5%)
 Status: YELLOW (Warning)
 Action: Continue to Phase 4
-Recommendation: Consider disabling unused MCPs
+Recommendation: Consider context optimization (see .claude/CONTEXT-OPTIMIZATION.md)
 ```
 
 ---
 
-### ORANGE: 160-180k tokens (80-90%)
+### ORANGE: 140-160k tokens (70-80%)
 
 **Status**: Critical - Checkpoint required
 **Action**:
@@ -108,7 +109,7 @@ Recommendation: Consider disabling unused MCPs
 
 # 3. Git commit
 git add .claude/
-git commit -m "chore: AUTO checkpoint - context at 125k (62.5%)"
+git commit -m "chore: AUTO checkpoint - context at 145k (72.5%)"
 
 # 4. Verify
 Checkpoint created: YES ✓
@@ -121,7 +122,7 @@ Proceed to next phase
 
 **Example**:
 ```
-Phase 4 complete: 175k tokens (87.5%)
+Phase 4 complete: 155k tokens (77.5%)
 Status: ORANGE (Critical)
 Action: FORCE checkpoint created
 Checkpoint: .claude/checkpoints/2025-10-31-1445-AUTO-CONTEXT.md
@@ -130,7 +131,7 @@ Continue: YES (can continue after checkpoint)
 
 ---
 
-### RED: ≥180k tokens (90%+)
+### RED: ≥160k tokens (80%+)
 
 **Status**: BLOCKING - New session required
 **Action**:
@@ -153,7 +154,7 @@ Continue: YES (can continue after checkpoint)
 
 # 3. Git commit
 git add .
-git commit -m "chore: EMERGENCY checkpoint - context RED at 142k (71%)"
+git commit -m "chore: EMERGENCY checkpoint - context RED at 165k (82.5%)"
 git push
 
 # 4. STOP
@@ -164,7 +165,7 @@ User must resume in new session
 
 **Example**:
 ```
-Phase 5 complete: 185k tokens (92.5%)
+Phase 5 complete: 170k tokens (85%)
 Status: RED (BLOCKING)
 Action: EMERGENCY checkpoint created
 Checkpoint: .claude/checkpoints/2025-10-31-1520-EMERGENCY-RED.md
@@ -175,7 +176,7 @@ BLOCKING MESSAGE:
 ⛔ CONTEXT RED: New Session Required
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Context: 185k tokens (92.5%)
+Context: 170k tokens (85%)
 Status: BLOCKING
 
 All work has been checkpointed and committed.
@@ -195,21 +196,21 @@ DO NOT CONTINUE IN THIS SESSION.
 After each monitoring check, update `.claude/context-log.md`:
 
 ```markdown
-| 2025-10-31 14:45 | Phase 4 | 125k | 62.5% | ORANGE | Force checkpoint | 2025-10-31-1445-AUTO-CONTEXT.md |
+| 2025-10-31 14:45 | Phase 4 | 145k | 72.5% | ORANGE | Force checkpoint | 2025-10-31-1445-AUTO-CONTEXT.md |
 ```
 
 ---
 
 ## Implementation in CLAUDE.md
 
-In V8.0 CLAUDE.md, this will be enforced as:
+In V8.1 CLAUDE.md, this is enforced as:
 
 ```markdown
 ## MANDATORY: Auto-Context Monitoring
 
 AFTER EVERY PHASE:
-1. MUST run /context command
-2. MUST parse token count
+1. MUST ask user to run /context command
+2. MUST parse token count from user response
 3. MUST evaluate threshold (GREEN/YELLOW/ORANGE/RED)
 4. MUST take required action:
    - GREEN: Continue
@@ -220,9 +221,9 @@ AFTER EVERY PHASE:
 6. MUST commit log update
 
 BLOCKING IF:
-- Context ≥140k (70%) AND continuing
+- Context ≥160k (80%) AND continuing
 - Skipping context check after phase
-- Not creating checkpoint at 120-140k
+- Not creating checkpoint at 140-160k
 ```
 
 ---
@@ -267,23 +268,26 @@ If context reaches RED:
 
 ## Context Optimization Strategies
 
-### When YELLOW (140-160k):
+### When YELLOW (120-140k):
 - Disable unused MCP servers (use @ syntax to toggle)
 - Use Explore subagent for codebase analysis (separate context)
 - Avoid reading large files directly (use targeted searches)
-- Clear message buffer if possible
+- Clear context for unrelated tasks (/clear between features)
+- See .claude/CONTEXT-OPTIMIZATION.md for detailed strategies
 
-### When ORANGE (160-180k):
+### When ORANGE (140-160k):
 - All YELLOW strategies
-- Checkpoint now (before forced)
+- Checkpoint now (MANDATORY before continuing)
 - Consider phase completion and natural break point
 - Plan next session if close to RED
 
 ### Prevent RED:
 - Monitor actively (don't wait for auto-check)
-- Use Explore/Plan subagents (separate context)
+- Use Explore/Plan subagents (separate 200k context windows)
 - Don't read entire service directories
 - Use grep/glob instead of reading files
+- Disable auto-compact (can waste 45k tokens)
+- Be selective with MCP servers (each uses 4-10k tokens)
 
 ---
 
@@ -291,10 +295,10 @@ If context reaches RED:
 
 To validate auto-context monitoring:
 
-1. **GREEN test**: Complete simple task, verify <100k
-2. **YELLOW test**: Simulate 110k context, verify warning logged
-3. **ORANGE test**: Simulate 125k context, verify checkpoint created
-4. **RED test**: Simulate 142k context, verify BLOCKING works
+1. **GREEN test**: Complete simple task, verify <120k (60%)
+2. **YELLOW test**: Simulate 130k context (65%), verify warning logged
+3. **ORANGE test**: Simulate 150k context (75%), verify checkpoint created
+4. **RED test**: Simulate 165k context (82.5%), verify BLOCKING works
 
 ---
 
@@ -302,13 +306,13 @@ To validate auto-context monitoring:
 
 | Metric | Target |
 |--------|--------|
-| Context per session | <80k (40%) |
+| Context per session | <100k (50%) |
 | Auto-check compliance | 100% (after every phase) |
 | Checkpoint compliance | 100% (at ORANGE) |
 | RED incidents | 0 (should never reach RED) |
 
 ---
 
-**Version**: V8.0
+**Version**: V8.1
 **Status**: Production
 **Last Updated**: 2025-10-31
